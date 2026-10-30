@@ -6476,3 +6476,48 @@ html.wp-less .wk-fl.on,html.wp-less .wk-cut.on,html.wp-less .wk-cd.go.on{animati
 .wk-pad .wk-b.wk-it.has{border-color:#ffc23c}
 .wk.noitems .wk-it,.wk.noitems .wk-item{display:none}.wk.noitems .wk-act{grid-template-areas:"bo dr" "br gas"}
 .wk.picking .wk-item,.wk.pod .wk-item{display:none}
+/* KART KX1 (2026-10-30, polish & layout): one glass frame for the race HUD — the race bar's teal glass with the thin cyan edge
+   (images/kart/hud/panel-lap) carried to the speed dial (its arc fills with the speed: --s), the minimap, the item slot, the gap
+   and ghost chips; glossy (a highlight on top) but no backdrop blur (cheap over the canvas) */
+.wk{--wkg:linear-gradient(180deg,rgba(150,240,255,.30) 0,rgba(60,170,200,.30) 18%,rgba(10,52,78,.72) 55%,rgba(5,26,46,.84));--wke:0 0 0 1.5px rgba(110,240,255,.85),0 0 10px rgba(80,230,255,.45),inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 12px rgba(95,240,255,.2),0 4px 12px rgba(0,0,0,.35)}
+.wk-spd{background:var(--wkg);box-shadow:var(--wke);border:0}
+.wk-spd::before{content:"";position:absolute;inset:4px;border-radius:50%;background:conic-gradient(from 225deg,#38d8ff 0,#ff6fc8 calc(var(--s,0) * 270deg),rgba(255,255,255,.12) 0 270deg,transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));pointer-events:none}
+.wk-spd b,.wk-spd small{position:relative}
+.wk-map{background:var(--wkg);border:0;box-shadow:var(--wke)}
+.wk-item{background:var(--wkg);border:0;box-shadow:var(--wke)}
+.wk-pad .wk-b.wk-it{background:var(--wkg);border:0;box-shadow:var(--wke)}
+.wk-item.has,.wk-it.has,.wk-pad .wk-b.wk-it.has{box-shadow:0 0 0 2px #ffc23c,0 0 18px rgba(255,194,60,.6),inset 0 1px 0 rgba(255,255,255,.45)}
+.wk-gap span,.wk-gh span{background:var(--wkg);border:0;box-shadow:var(--wke)}
+/* the empty slot: a faint glass '?' box (the first races add a 'Grab a box!' tip beside it) */
+.wk-item.empty .wk-slot,.wk-it.empty .wk-slot{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 5 42 14v20L24 43 6 34V14z' fill='%23bff4ff' fill-opacity='.16' stroke='%239fefff' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 14l18 9 18-9M24 23v20' fill='none' stroke='%239fefff' stroke-width='1.4' stroke-opacity='.6'/%3E%3Cpath d='M10.5 27.5c0-2.6 2-4 4-3.2 2.2.9 2.2 3.6.4 4.6-1.2.7-1.6 1.3-1.6 2.6' fill='none' stroke='%23e9fbff' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='13.3' cy='35' r='1.3' fill='%23e9fbff'/%3E%3Cpath d='M29.5 25.5c0-2.6 2-4 4-3.2 2.2.9 2.2 3.6.4 4.6-1.2.7-1.6 1.3-1.6 2.6' fill='none' stroke='%23e9fbff' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='32.3' cy='33' r='1.3' fill='%23e9fbff'/%3E%3C/svg%3E");opacity:.55}
+.wk-grab{position:absolute;white-space:nowrap;padding:3px 9px;border-radius:999px;font:800 11px/1.3 Sora,"Noto Sans KR",sans-serif;font-style:normal;color:#04201a;background:linear-gradient(180deg,#b6fff0,#3ef0c4);box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;animation:wkGrab 1s ease-in-out infinite alternate}
+.wk-grab[hidden]{display:none}
+.wk-item .wk-grab{left:calc(100% + 10px);top:50%;transform:translateY(-50%)}
+.wk-it .wk-grab{right:0;bottom:calc(100% + 8px);left:auto;transform:none;text-transform:none;letter-spacing:0}
+@keyframes wkGrab{to{translate:0 -3px}}
+html.wp-less .wk-grab{animation:none}
+/* the result card: a big place number, the laps as a small bar chart with the best lap marked */
+.wk-res-in h2.wk-place{display:flex;align-items:flex-start;justify-content:center;gap:4px;margin:2px 0 6px;line-height:.9}
+.wk-place b{font-size:92px;font-weight:900;font-style:italic;background:linear-gradient(180deg,#fff6c8,#ffc23c 55%,#e08a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(122,74,6,.85)) drop-shadow(0 0 18px rgba(255,194,60,.45))}
+.wk-place.p2 b{background-image:linear-gradient(180deg,#ffffff,#cfd8ea 55%,#8a96ad);filter:drop-shadow(0 4px 0 rgba(60,70,90,.85))}.wk-place.p3 b{background-image:linear-gradient(180deg,#ffe0c4,#d9894a 55%,#9a5420);filter:drop-shadow(0 4px 0 rgba(90,45,10,.85))}
+.wk-place.p4 b,.wk-place.p5 b{background-image:linear-gradient(180deg,#e8f6ff,#9fc6e8);filter:none}
+.wk-place sup{font-size:30px;font-weight:900;font-style:italic;color:#ffc23c;margin-top:10px}.wk-place span{align-self:flex-end;font-size:14px;font-weight:800;opacity:.75;margin-bottom:12px}
+.wk-bars{align-items:flex-end}.wk-bars li{position:relative;justify-content:flex-end;align-items:center;height:118px;padding:6px 4px;background:rgba(255,255,255,.05)}
+.wk-bars li i{display:block;width:46%;height:calc(var(--h,60) * .62px);border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#7ff6ff,#2a8fd8);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.wk-bars li.fast i{background:linear-gradient(180deg,#fff2a8,#ffc23c 60%,#d98a00);box-shadow:0 0 12px rgba(255,194,60,.55),inset 0 1px 0 rgba(255,255,255,.6)}
+.wk-bars li em{position:absolute;top:5px;left:50%;transform:translateX(-50%);margin:0;padding:1px 6px;border-radius:999px;background:#ffc23c;color:#3a1c00!important;font-size:9px!important;font-weight:900;letter-spacing:.05em;white-space:nowrap}
+/* the pick screen: the track cards with a real shot of the track and its outline in a corner, your best / this week's place under them */
+.wk-trk-pic{position:relative;display:block;width:100%;aspect-ratio:2/1;border-radius:8px;overflow:hidden;background:#0b1638}
+.wk-trk-pic img,.wk-trk img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0}
+.wk-trk-map{position:absolute;right:3px;bottom:3px;width:36%;max-width:46px;height:auto;aspect-ratio:1;padding:2px;border-radius:7px;background:rgba(4,12,32,.62);box-shadow:0 0 0 1px rgba(110,240,255,.55)}
+.wk-trk-map path{fill:none;stroke:#fff;stroke-width:2.6;stroke-linejoin:round;filter:drop-shadow(0 0 2px #38d8ff)}.wk-trk-map circle{fill:#ffc23c}
+.wk-trk-info{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:-2px 0 0;font-size:12px;font-weight:800}
+.wk-trk-info span{padding:3px 10px;border-radius:999px;background:var(--wkg);box-shadow:var(--wke);white-space:nowrap}
+.wk-trk-info:empty{display:none}
+/* phones: racers and tracks as swipe carousels (snap), so the screen isn't one tall stack and the mode pills + Race stay on screen */
+@media (max-width:600px){.wk-cards,.wk-tracks{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;width:100%;padding:8px 6px 4px;scroll-padding:0 6px}.wk-cards::-webkit-scrollbar,.wk-tracks::-webkit-scrollbar{display:none}.wk-card{flex:0 0 27%;width:auto;min-width:0;scroll-snap-align:center}.wk-trk{flex:0 0 40%;width:auto;scroll-snap-align:center}}
+html.wp-pcphone .wk-cards,html.wp-pcphone .wk-tracks{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;width:100%;padding:7px 6px 3px;gap:7px}
+html.wp-pcphone .wk-cards::-webkit-scrollbar,html.wp-pcphone .wk-tracks::-webkit-scrollbar{display:none}
+html.wp-pcphone .wk-card{flex:0 0 26%;width:auto;scroll-snap-align:center}html.wp-pcphone .wk-card img{aspect-ratio:160/170}
+html.wp-pcphone .wk-trk{flex:0 0 39%;width:auto;scroll-snap-align:center;padding:3px 3px 5px}html.wp-pcphone .wk-trk img{height:100%}html.wp-pcphone .wk-trk-pic{border-radius:6px}html.wp-pcphone .wk-trk b{font-size:11px}
+html.wp-pcphone .wk-trk-info{font-size:10.5px}html.wp-pcphone .wk-pick h3{display:none}

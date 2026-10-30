@@ -44,7 +44,7 @@
 // size. Low graphics / phones: fewer props, no side camera on low; reduce-motion: no slow motion, no drone sweep.
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
 //        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
-import { makeDress, makePodium, makeRings, makeChecker, outSide, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
+import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
 export const RULES = ["mirror", "nitro", "nodrift", "night", "turbo"], GHOST_DT = 0.2, GHOST_MAX = 3000;
@@ -64,17 +64,18 @@ export const TRACKS = {
     pads: [250, 500, 700], rows: [190, 400, 620], ramps: [{ i: 64, lat: 0 }, { i: 112, lat: 0 }], stands: [[14, 74], [530, 558]], tunnel: null, screen: 22, podium: 44, last: [740, 830],
     feel: { grav: 11, grip: 1, lava: false },
     look: { bg: 0x070a1c, ground: 0x4a4e5a, grid: 0x9b8cff, gridO: 0.07, rail: 0x7ff6ff, arch: [0x9b6bff, 0x38d8ff], hemi: [0xdfe6ff, 0x262a3a], sky: "/images/kart/tracks/moon-sky.webp", skyRep: 3, road: "/images/kart/tracks/moon-road.webp", roadRep: 1, edge: 0x6c707c,
-      props: { a: "moon/crystal-pylon", ah: 9, b: "moon/moon-rock", bl: 5 } } },
+      props: { a: "moon/crystal-pylon", ah: 9, b: "moon/moon-rock", bl: 5 }, atmo: "stars" } },
   ice: { name: "Frost Drift", line: "Slippery grip · long drifts", pts: [[0, 0], [117, 0], [171, -36], [207, 9], [180, 63], [99, 72], [54, 117], [90, 171], [27, 216], [-54, 180], [-81, 99], [-153, 81], [-162, 18], [-90, -9]], c: [22, 90],
     pads: [190, 350, 600], rows: [120, 460, 680], ramps: [{ i: 278, lat: 0 }], stands: [[12, 72], [843, 893]], tunnel: [500, 550], screen: 22, podium: 44, last: [730, 830],
     feel: { grav: 21, grip: 0.62, lava: false },
-    look: { bg: 0x0d2448, ground: 0x9cbfd6, grid: 0x7fd0ff, gridO: 0.12, rail: 0x9fe8ff, arch: [0x7ff6ff, 0xffffff], hemi: [0xe6f6ff, 0x3a5a7a], sky: "/images/kart/tracks/ice-sky.webp", skyRep: 3, road: "/images/kart/tracks/ice-road.webp", roadRep: 1, edge: 0xeaf6ff,
+    look: { bg: 0x0d2448, ground: 0x9cbfd6, grid: 0x7fd0ff, gridO: 0.12, rail: 0x2f9dff, railO: 0.9, arch: [0x7ff6ff, 0xffffff], hemi: [0xe6f6ff, 0x3a5a7a], sky: "/images/kart/tracks/ice-sky.webp", skyRep: 3, road: "/images/kart/tracks/ice-road.webp", roadRep: 1, edge: 0xeaf6ff,
+      roadTint: 0x56708e, curb: ["#1450e6", "#f4f9ff"], atmo: "snow", /* (KX1: the road a deeper blue-grey ice-asphalt against the pale snow, blue / white curbs, solid rails — the racing line reads at a glance) */
       props: { a: "ice/chain-pylon", ah: 10, b: "ice/ice-crystal", bl: 4.5 } } },
   volcano: { name: "Magma Run", line: "Lava edges · stay on the road", pts: [[0, 0], [135, -18], [189, 27], [144, 81], [198, 135], [153, 198], [54, 180], [0, 126], [-54, 180], [-144, 153], [-135, 72], [-99, 18], [-54, -9]], c: [27, 90],
     pads: [250, 560, 700], rows: [140, 330, 620], ramps: [{ i: 80, lat: 0 }, { i: 775, lat: 0 }], stands: [[12, 72], [715, 755]], tunnel: [407, 459], screen: 22, podium: 44, last: [800, 890],
     feel: { grav: 21, grip: 1, lava: true },
     look: { bg: 0x1a0806, ground: 0x1d1512, grid: 0xff5a1a, gridO: 0.08, rail: 0xff7a2e, arch: [0xff5a1a, 0xffc23c], hemi: [0xffd0b0, 0x2a0a05], sky: "/images/kart/tracks/volcano-sky.webp", skyRep: 3, road: "/images/kart/tracks/volcano-road.webp", roadRep: 1, edge: -1,
-      props: { a: "volcano/candle-pillar", ah: 8, b: "volcano/lava-rock", bl: 5.5 } } },
+      props: { a: "volcano/candle-pillar", ah: 8, b: "volcano/lava-rock", bl: 5.5 }, atmo: "embers" } },
 };
 /// the longest a track may be (the gaps' marks are sized for it)
 export const MAX_LEN = 1400;
@@ -98,7 +99,7 @@ export const optsOf = (raw, coarse) => { let j = null; try { j = JSON.parse(raw 
 /// tilt steering: degrees of tilt → −1…1, a dead zone, full lock at 24°
 export const tiltSteer = (deg, dead = 4, full = 24) => { const a = Math.abs(+deg || 0); return a < dead ? 0 : Math.sign(deg) * Math.min(1, (a - dead) / (full - dead)); };
 /// Meshy models that may replace K6's drawn pieces (models/world/kart/<name>.glb, from raw/kart-k2/models once packed): add a name when its file is in
-export const K6_GLB = [];
+export const K6_GLB = ["lights", "podium", "ramp"]; // (KX1: packed from raw/kart-k2/models — tools/pack-prop.mjs + tools/ktx-hero.mjs, 3.8–4.5 k tris, KTX2 512 / 1024 px, 0.14–0.34 MB)
 // ---- K3's items (pure: tests/world/kart.test.mjs) ----
 export const ITEMS = ["rocket", "bomb", "magnet", "pump", "rug", "shield"];
 /// how much an item helps a racer who is behind (1 a defence, 3 a catch-up)
@@ -139,6 +140,10 @@ Object.assign(LW.tr, { "FINAL LAP": "SON TUR", "1ST!": "1.!", "PHOTO FINISH": "F
 Object.assign(LW.ko, { "Nexus Circuit": "넥서스 서킷", "Lunar Loop": "루나 루프", "Frost Drift": "프로스트 드리프트", "Magma Run": "마그마 런", "Neon city · the classic": "네온 시티 · 클래식", "Low gravity · long jumps": "저중력 · 긴 점프", "Slippery grip · long drifts": "미끄러운 노면 · 긴 드리프트", "Lava edges · stay on the road": "용암 가장자리 · 도로를 벗어나지 마세요", "Track": "트랙", "Today's track": "오늘의 트랙", "Lava!": "용암!", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART에서 {r}(으)로 {k}을(를) {t}에 달렸어요! 🏎️ 이길 수 있나요?" });
 Object.assign(LW.zh, { "Nexus Circuit": "枢纽赛道", "Lunar Loop": "月球环道", "Frost Drift": "冰霜漂移", "Magma Run": "熔岩疾驰", "Neon city · the classic": "霓虹之城 · 经典赛道", "Low gravity · long jumps": "低重力 · 超远飞跃", "Slippery grip · long drifts": "路面湿滑 · 超长漂移", "Lava edges · stay on the road": "熔岩边缘 · 别离开赛道", "Track": "赛道", "Today's track": "今日赛道", "Lava!": "熔岩！", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "我在 ARCIRCLE KART 用 {r} 跑完 {k}，用时 {t}！🏎️ 你能超过我吗？" });
 Object.assign(LW.tr, { "Nexus Circuit": "Nexus Pisti", "Lunar Loop": "Ay Halkası", "Frost Drift": "Buz Drifti", "Magma Run": "Magma Koşusu", "Neon city · the classic": "Neon şehir · klasik", "Low gravity · long jumps": "Düşük yerçekimi · uzun atlayışlar", "Slippery grip · long drifts": "Kaygan yol · uzun driftler", "Lava edges · stay on the road": "Lav kenarları · yolda kal", "Track": "Pist", "Today's track": "Bugünün pisti", "Lava!": "Lav!", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART'ta {r} ile {k} pistini {t} sürede bitirdim! 🏎️ Geçebilir misin?" });
+// KX1's words (the empty item slot's tip, the result card's lap chart, the pick's best / week line)
+Object.assign(LW.ko, { "Grab a box!": "상자를 먹어요!", "BEST LAP": "베스트 랩", "No best yet": "아직 기록 없음", "This week #{n}": "이번 주 {n}위", "Not on this week's board yet": "아직 이번 주 순위에 없어요" });
+Object.assign(LW.zh, { "Grab a box!": "去撞道具箱！", "BEST LAP": "最快单圈", "No best yet": "暂无最佳成绩", "This week #{n}": "本周第 {n} 名", "Not on this week's board yet": "还没进入本周排行榜" });
+Object.assign(LW.tr, { "Grab a box!": "Kutu topla!", "BEST LAP": "EN İYİ TUR", "No best yet": "Henüz rekor yok", "This week #{n}": "Bu hafta {n}.", "Not on this week's board yet": "Henüz bu haftanın sıralamasında yoksun" });
 const COLORS = [0x38d8ff, 0xff6fc8, 0x9b6bff, 0xffc23c, 0x5fe05a];
 // the five racers (the owner's CRYPTO LEGENDS key art); clip names as the Meshy rigs have them
 export const RACERS = [
@@ -161,6 +166,8 @@ export function createKart(ctx) {
   // K3: the item boxes, the flying / lying items (pools, made once a visit), the HUD's slot, a log for the browser test
   // K5: the track picked (tid → TD), its scene pieces (tg, rebuilt on a change), a token for its async loads
   let tid = "nexus", TD = TRACKS.nexus, tg = null, trackTok = 0, lavaTex = null, lavaAt = 0, ownTrack = "nexus";
+  // KX1: the track's air (one Points + an aurora / heat sheet), the Meshy stage pieces in (for the test), the podium model loaded ahead, the box glow's clock, the pick's best / rank line
+  const lightLog = []; let atmo = null, glbIn = { lights: false, ramp: 0, podium: false }, podGl = null, boxU = { uT: { value: 0 } }, grabN = 0, topCache = {};
   let boxes = null, iPool = null, iOrd = [], slotShown = "", rollIc = -1, meItems = true, itemLog = { box: 0, used: {}, hits: 0, spins: 0, spinReact: 0, blocked: 0, spinClips: [] };
   const NOINP = Object.freeze({ steer: 0, gas: 0, brake: 0, drift: 0, boost: 0, trick: false }), BRAKEINP = Object.freeze({ steer: 0, gas: 0, brake: 1, drift: 0, boost: 0, trick: false });
   try { opts = optsOf(localStorage.getItem(OPTS), ctx.coarse); } catch { /* the defaults */ }
@@ -214,11 +221,11 @@ export function createKart(ctx) {
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return new THREE.Mesh(g, mat);
   }
   function roadTex() { const c = document.createElement("canvas"); c.width = 64; c.height = 256; const g = c.getContext("2d"); g.fillStyle = "#2a2f3d"; g.fillRect(0, 0, 64, 256); for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`; g.fillRect(Math.random() * 64, Math.random() * 256, 1, 1); } g.fillStyle = "#e8f6ff"; g.fillRect(30, 0, 4, 120); g.fillStyle = "#38d8ff"; g.fillRect(0, 0, 3, 256); g.fillRect(61, 0, 3, 256); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
-  function curbTex() { const c = document.createElement("canvas"); c.width = 8; c.height = 32; const g = c.getContext("2d"); g.fillStyle = "#ff3d6e"; g.fillRect(0, 0, 8, 16); g.fillStyle = "#f4f7ff"; g.fillRect(0, 16, 8, 16); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t; }
+  function curbTex([a, b] = ["#ff3d6e", "#f4f7ff"]) { const c = document.createElement("canvas"); c.width = 8; c.height = 32; const g = c.getContext("2d"); g.fillStyle = a; g.fillRect(0, 0, 8, 16); g.fillStyle = b; g.fillRect(0, 16, 8, 16); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t; }
 
   function buildScene() {
     scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1638); scene.fog = new THREE.Fog(0x0b1638, 120, ctx.low ? 320 : 520);
-    cam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.5, 900);
+    cam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.5, 1500); // (KX1: the sky's far side is ~900 m off the line — at 900 the drone's corner rays ran past it and left a dark patch)
     hemi = new THREE.HemisphereLight(0x9fd8ff, 0x1a2244, 1.25); scene.add(hemi); sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(80, 140, 40); scene.add(sun);
     world = new THREE.Group(); scene.add(world); // (the track's pieces sit in `world`: a mirror race flips it and drives on tracks[1])
     nightLight = new THREE.PointLight(0xbfe8ff, 0, 34, 1.6); scene.add(nightLight); // (the night rule's headlight: always there, dark by day, so no shader changes at the start)
@@ -228,19 +235,19 @@ export function createKart(ctx) {
   function setTrack(id) {
     tid = TRACKS[id] ? id : "nexus"; TD = TRACKS[tid]; const LK = TD.look, tok = ++trackTok;
     if (tg) { world.remove(tg); tg.traverse((o) => { if (o.geometry) o.geometry.dispose(); const m = o.material; if (m) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } }); }
-    tg = new THREE.Group(); world.add(tg); dress = null; skyCyl = null; lavaTex = null; mapFor = null;
+    if (atmo) atmo.dispose(); tg = new THREE.Group(); world.add(tg); dress = null; skyCyl = null; lavaTex = null; mapFor = null; atmo = null;
     tracks = [buildTrack(false), buildTrack(true)]; track = tracks[0];
     scene.background.setHex(LK.bg); scene.fog.color.setHex(LK.bg); hemi.color.setHex(LK.hemi[0]); hemi.groundColor.setHex(LK.hemi[1]);
     const [cx, cz] = TD.c, add = (m) => { tg.add(m); return m; };
     const ground = add(new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshLambertMaterial({ color: LK.ground }))); ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -0.05, cz);
     const grid = add(new THREE.GridHelper(1000, 100, LK.grid, LK.grid)); grid.position.set(cx, 0, cz); grid.material.transparent = true; grid.material.opacity = LK.gridO;
-    const rt = roadTex(); rt.repeat.set(1, 1); const road = add(ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt })));
-    const ct = curbTex(); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
+    const rt = roadTex(); rt.repeat.set(1, 1); const road = add(ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt, color: LK.roadTint || 0xffffff })));
+    const ct = curbTex(LK.curb); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
     // K5: the strip between the curb and the wall — moon dust, snow, or (Magma Run) flowing lava that slows and bounces you
     if (LK.edge === -1) { lavaTex = lavaTexOf(); const lm = new THREE.MeshBasicMaterial({ map: lavaTex }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, lm)); }
     else if (LK.edge) { const em = new THREE.MeshLambertMaterial({ color: LK.edge }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, em)); }
     // the walls: low glowing rails
-    const railM = new THREE.MeshBasicMaterial({ color: LK.rail, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+    const railM = new THREE.MeshBasicMaterial({ color: LK.rail, transparent: true, opacity: LK.railO || 0.55, side: THREE.DoubleSide });
     for (const w of [-WALL, WALL]) { const m = ribbon(w, w + 0.01, 0, railM); const g = m.geometry, p = g.attributes.position; for (let i = 0; i < p.count; i++) if (i % 2) p.setY(i, 1.1); p.needsUpdate = true; add(m); }
     // neon arches every ~60 m (one InstancedMesh), the start gantry, boost pads
     const archN = Math.floor(track.len / 60), arch = new THREE.InstancedMesh(new THREE.TorusGeometry(ROAD / 2 + 2, 0.35, 6, 32, Math.PI), new THREE.MeshBasicMaterial({ color: 0xffffff }), archN), o = new THREE.Object3D();
@@ -265,7 +272,55 @@ export function createKart(ctx) {
     try { const rd = new THREE.TextureLoader().load(LK.road + (ctx.ver || ""), () => { if (tok !== trackTok) return; road.material.map = rd; road.material.needsUpdate = true; rt.dispose(); }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = THREE.RepeatWrapping; rd.wrapT = THREE.MirroredRepeatWrapping; rd.repeat.set(LK.roadRep, 1); rd.anisotropy = 4; } catch { /* the drawn road */ }
     if (LK.skyline) { if (!ctx.low) props(arch, gantry, towers, tok).catch((e) => console.warn("kart props:", e && e.message)); }
     else themeProps(tok).catch((e) => console.warn("kart props:", e && e.message));
+    if (!ctx.low && LK.atmo) try { atmo = makeAtmo(LK.atmo, tg); } catch (e) { atmo = null; console.warn("kart atmo:", e && e.message); } // (KX1: the track's air — stardust, snow + aurora, embers + heat)
     if (rule) applyRule(); else applyLook();
+  }
+  /// KX1: a track's air, cheap: ONE Points (a small shader: each point its own size and colour, additive) that lives in a box
+  /// round the camera and wraps — stars: slow falling stardust + three shooting stars (a head and a fading tail each);
+  /// snow: flakes falling and drifting + a soft aurora band in the sky (one sheet whose curtain texture drifts); embers:
+  /// sparks rising off the lava + ash drifting down, and a heat shimmer over the lava strips (one sheet, a rising wavy glow).
+  /// ≤ 360 points on a phone, 640 on a computer; nothing on low graphics (setTrack doesn't call it there).
+  function makeAtmo(kind, grp) {
+    const N = ctx.coarse ? 360 : 640, SH = kind === "stars" ? 3 : 0, TAIL = 8, NS = SH * TAIL, NP = N - NS, BX = 50, BY = 26, fwd = new THREE.Vector3(); // (KX1: a box ±50 m round a point 30 m ahead of the camera — dense where you look)
+    const g = new THREE.BufferGeometry(), P = new Float32Array(N * 3), C = new Float32Array(N * 3), Z = new Float32Array(N), V = new Float32Array(N * 3), ph = new Float32Array(N);
+    const pal = { stars: [0xd9d2ff, 0x9fe8ff, 0xffffff], snow: [0xffffff, 0xe6f4ff, 0xcfe8ff], embers: [0xff7a1a, 0xffb43a, 0xff4a10, 0x8a5a4a] }[kind], col = new THREE.Color();
+    for (let i = 0; i < NP; i++) { P[i * 3] = (Math.random() - 0.5) * BX * 2; P[i * 3 + 1] = Math.random() * BY; P[i * 3 + 2] = (Math.random() - 0.5) * BX * 2; ph[i] = Math.random() * 7;
+      const ash = kind === "embers" && i % 3 === 0; col.setHex(ash ? pal[3] : pal[i % (kind === "embers" ? 3 : pal.length)]); const k = kind === "stars" ? 0.55 + Math.random() * 0.45 : ash ? 0.5 : 1; C.set([col.r * k, col.g * k, col.b * k], i * 3);
+      Z[i] = kind === "snow" ? 1.1 + Math.random() * 1.3 : kind === "stars" ? 0.6 + Math.random() * 0.8 : ash ? 1.1 + Math.random() * 0.9 : 0.9 + Math.random() * 0.9;
+      V.set(kind === "snow" ? [0.6, -(1.6 + Math.random() * 1.4), 0.3] : kind === "stars" ? [0.15, -(0.35 + Math.random() * 0.5), 0.1] : ash ? [0.8, -(0.4 + Math.random() * 0.5), 0.4] : [0, 1.8 + Math.random() * 2.6, 0], i * 3); }
+    for (let i = NP; i < N; i++) { P[i * 3 + 1] = -999; Z[i] = 0; }
+    g.setAttribute("position", new THREE.BufferAttribute(P, 3)); g.setAttribute("color", new THREE.BufferAttribute(C, 3)); g.setAttribute("size", new THREE.BufferAttribute(Z, 1));
+    const mat = new THREE.ShaderMaterial({ uniforms: { uS: { value: innerHeight * 0.5 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true,
+      vertexShader: "attribute float size; varying vec3 vC; uniform float uS; void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = size * uS / max(1.0, -mv.z); gl_Position = projectionMatrix * mv; }",
+      fragmentShader: "varying vec3 vC; void main(){ vec2 d = gl_PointCoord - 0.5; float a = smoothstep(0.5, 0.0, length(d)); gl_FragColor = vec4(vC * a, a); }" });
+    const pts = new THREE.Points(g, mat); pts.frustumCulled = false; pts.renderOrder = 3; scene.add(pts); // (in the scene, not the mirrored track group: the air round the camera never flips)
+    let sheet = null, sheetTex = null;
+    if (kind === "snow") { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 64; const x = cv.getContext("2d");
+      for (let i = 0; i < 90; i++) { const px = (i * 37) % 256, w = 2 + (i % 5) * 2, gr = x.createLinearGradient(0, 0, 0, 64); const c0 = i % 3 ? "80,255,190" : i % 2 ? "120,200,255" : "190,120,255"; gr.addColorStop(0, `rgba(${c0},0)`); gr.addColorStop(0.35, `rgba(${c0},.55)`); gr.addColorStop(1, `rgba(${c0},0)`); x.fillStyle = gr; x.globalAlpha = 0.25 + ((i * 13) % 10) / 20; x.fillRect(px, 0, w, 64); }
+      sheetTex = new THREE.CanvasTexture(cv); sheetTex.wrapS = THREE.RepeatWrapping; sheetTex.repeat.set(3, 1); sheetTex.colorSpace = THREE.SRGBColorSpace;
+      sheet = new THREE.Mesh(new THREE.CylinderGeometry(560, 560, 120, 40, 1, true, 0.4, Math.PI * 1.25), new THREE.MeshBasicMaterial({ map: sheetTex, side: THREE.BackSide, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      sheet.position.set(TD.c[0], 210, TD.c[1]); sheet.renderOrder = 1; grp.add(sheet); }
+    if (kind === "embers" && TD.feel.lava) { const cv = document.createElement("canvas"); cv.width = 64; cv.height = 64; const x = cv.getContext("2d");
+      for (let i = 0; i < 12; i++) { x.strokeStyle = `rgba(255,${120 + (i * 23) % 90},40,${0.10 + (i % 4) * 0.05})`; x.lineWidth = 2 + (i % 3); x.beginPath(); for (let v = 0; v <= 64; v += 4) { const u = ((i * 11) % 64) + Math.sin(v * 0.2 + i) * 4; v ? x.lineTo(u, v) : x.moveTo(u, v); } x.stroke(); }
+      const fade = x.createLinearGradient(0, 0, 64, 0); fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,1)"); x.globalCompositeOperation = "destination-out"; x.fillStyle = fade; x.fillRect(0, 0, 64, 64);
+      sheetTex = new THREE.CanvasTexture(cv); sheetTex.wrapS = sheetTex.wrapT = THREE.RepeatWrapping; sheetTex.colorSpace = THREE.SRGBColorSpace;
+      const NT = track.N, pos = new Float32Array(2 * (NT + 1) * 6), uv = new Float32Array(2 * (NT + 1) * 4), idx = []; let b = 0;
+      for (const w of [-(WALL + ROAD / 2 + 1.2) / 2 - 0.3, (WALL + ROAD / 2 + 1.2) / 2 + 0.3]) { const base = b; for (let i = 0; i <= NT; i++, b++) { const q = track.S[i % NT], px = q.p.x + q.r.x * w, pz = q.p.z + q.r.z * w; pos.set([px, 0.05, pz, px, 2.6, pz], b * 6); const v = (i / NT) * track.len / 10; uv.set([0, v, 1, v], b * 4); if (i < NT) { const k = (base + i) * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } } }
+      const hg = new THREE.BufferGeometry(); hg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); hg.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); hg.setIndex(idx);
+      sheet = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ map: sheetTex, side: THREE.DoubleSide, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })); sheet.frustumCulled = false; grp.add(sheet); }
+    const sh = []; for (let k = 0; k < SH; k++) sh.push({ t: -1 - k * 2.5, dur: 1.1, a: new THREE.Vector3(), d: new THREE.Vector3() });
+    const keep = (i, cx, cz) => { const j = i * 3; let dx = P[j] - cx, dz = P[j + 2] - cz; if (dx > BX) P[j] -= 2 * BX; else if (dx < -BX) P[j] += 2 * BX; if (dz > BX) P[j + 2] -= 2 * BX; else if (dz < -BX) P[j + 2] += 2 * BX; if (P[j + 1] < 0) P[j + 1] += BY; else if (P[j + 1] > BY) P[j + 1] -= BY; };
+    const out = { kind, n: N, pts, sheet, step(dt, t) { if (!cam) return; cam.getWorldDirection(fwd); const cx = cam.position.x + fwd.x * 30, cz = cam.position.z + fwd.z * 30; /* (the box follows the camera; the air isn't in the mirrored group) */
+        for (let i = 0; i < NP; i++) { const j = i * 3, sw = kind === "snow" ? Math.sin(t * 0.9 + ph[i]) * 0.8 : kind === "embers" && V[j + 1] > 0 ? Math.sin(t * 3 + ph[i]) * 0.9 : 0; P[j] += (V[j] + sw) * dt; P[j + 1] += V[j + 1] * dt; P[j + 2] += V[j + 2] * dt; keep(i, cx, cz); }
+        if (kind === "embers") for (let i = 1; i < NP; i += 3) Z[i] = (0.75 + 0.45 * Math.sin(t * 9 + ph[i] * 5)) * 1.3; // (embers flicker)
+        for (let k = 0; k < SH; k++) { const q = sh[k]; q.t += dt; if (q.t > q.dur) { q.t = -(2 + Math.random() * 4); }
+          if (q.t >= 0 && q.t - dt < 0) { const a = Math.random() * Math.PI * 2, r = 220 + Math.random() * 120; q.a.set(cam.position.x + Math.cos(a) * r, 120 + Math.random() * 90, cam.position.z + Math.sin(a) * r); q.d.set(Math.cos(a + 1.9) * 260, -70 - Math.random() * 50, Math.sin(a + 1.9) * 260); }
+          for (let m = 0; m < TAIL; m++) { const i = NP + k * TAIL + m, j = i * 3, u = q.t - m * 0.035; if (q.t < 0 || u < 0) { P[j + 1] = -999; continue; } P[j] = q.a.x + q.d.x * u; P[j + 1] = q.a.y + q.d.y * u; P[j + 2] = q.a.z + q.d.z * u; const f = (1 - m / TAIL) * Math.min(1, (q.dur - q.t) * 3); Z[i] = (m ? 7 : 11) * f; C[j] = C[j + 1] = C[j + 2] = 0.95 * f; C[j + 2] = f; } }
+        if (NS) g.attributes.color.needsUpdate = true; g.attributes.position.needsUpdate = true; if (kind === "embers" || NS) g.attributes.size.needsUpdate = true;
+        if (sheetTex) { if (kind === "snow") sheetTex.offset.x = (t * 0.004) % 1; else sheetTex.offset.x = -(t * 0.35) % 1; }
+        if (sheet && kind === "snow") sheet.material.opacity = 0.38 + Math.sin(t * 0.4) * 0.12; },
+      dispose() { scene && scene.remove(pts); g.dispose(); mat.dispose(); } };
+    return out;
   }
   /// the track's own colours (applyRule darkens them for the night rule)
   function applyLook() { const night = rule === "night", bg = night ? 0x02040c : TD.look.bg; scene.background.setHex(bg); scene.fog.color.setHex(bg); }
@@ -290,8 +345,9 @@ export function createKart(ctx) {
   // K6's hook: a Meshy model listed in K6_GLB replaces the drawn start lights' frame / a ramp's wedge (the drawn lamps stay)
   function glbSwap() {
     if (ctx.low || !dress) return;
-    if (K6_GLB.includes("lights")) load("lights").then((gl) => { if (!dress) return; const g = fit(gl.scene, { len: 2 * WALL + 1.2 }); dress.lights.g.add(g); for (const c of dress.lights.g.children) if (c.userData.drawn) c.visible = false; }).catch(() => { /* the drawn gantry */ });
-    if (K6_GLB.includes("ramp")) load("ramp").then((gl) => { if (!dress) return; for (const rg of dress.ramps) { const g = fit(gl.scene.clone(), { len: RAMP.w }); rg.add(g); for (const c of rg.children) if (c.userData.drawn) c.visible = false; } }).catch(() => { /* the drawn wedge */ });
+    const d0 = dress; // (KX1: a track changed while it loaded → this dressing is gone; the next one asks again)
+    if (K6_GLB.includes("lights")) load("lights").then((gl) => { if (dress !== d0) return; d0.lights.useModel(gl.scene); glbIn.lights = true; }).catch(() => { /* the drawn gantry */ });
+    if (K6_GLB.includes("ramp")) load("ramp").then((gl) => { if (dress !== d0) return; for (const rg of d0.ramps) { rg.add(rampModel(THREE, gl.scene)); for (const c of rg.children) if (c.userData.drawn) c.visible = false; } glbIn.ramp = d0.ramps.length; }).catch(() => { /* the drawn wedge */ });
   }
   // one model → instanced copies (its fitted transform baked into the geometry)
   function instOf(gl, n, opts) { const w = fit(gl.scene, opts); w.updateMatrixWorld(true); const out = []; w.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone().applyMatrix4(o.matrixWorld); out.push(new THREE.InstancedMesh(g, o.material, n)); } }); return out; }
@@ -330,6 +386,7 @@ export function createKart(ctx) {
     try {
       const [kg, cg] = await Promise.all([load("kart-" + r.id), load("char-" + r.id + "-rig")]);
       const kart = fit(kg.scene, { len: KART_LEN, turn: Math.PI / 2 }); // (Meshy's kart: nose at −X → +Z, our forward)
+      kg.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m && "roughness" in m) { m.roughness = Math.min(m.roughness, 0.36); m.metalness = Math.max(m.metalness || 0, 0.12); } }); // (KX1: glossier, toy-like karts — the sun's highlight reads on the body)
       const body = fit(cg.scene, { h: SEAT.h }), mixer = new THREE.AnimationMixer(cg.scene), acts = {};
       for (const c of cg.animations || []) acts[c.name] = mixer.clipAction(c);
       cg.scene.traverse((o) => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
@@ -438,21 +495,26 @@ export function createKart(ctx) {
     const qt = new THREE.CanvasTexture(c); qt.colorSpace = THREE.SRGBColorSpace;
     const drawn = new THREE.InstancedMesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshBasicMaterial({ map: qt, transparent: true, opacity: 0.88 }), n); drawn.frustumCulled = false; scene.add(drawn);
     const B = { ims: [drawn], n, pos: new Float32Array(n * 2), t: new Float32Array(n), grow: new Float32Array(n).fill(1), o: new THREE.Object3D() };
-    load("item-box").then((gl) => { if (!boxes || boxes !== B || !scene) return; const ms = instOf(gl, n, { len: 1.5 });
-      for (const im of ms) { im.geometry.computeBoundingBox(); const cc = im.geometry.boundingBox.getCenter(V(0, 0, 0)); im.geometry.translate(-cc.x, -cc.y, -cc.z); im.frustumCulled = false; im.visible = drawn.visible; scene.add(im); }
+    load("item-box").then((gl) => { if (!boxes || boxes !== B || !scene) return; const ms = instOf(gl, n, { len: 1.7 });
+      for (const im of ms) { im.material = boxGlow(im.material); im.geometry.computeBoundingBox(); const cc = im.geometry.boundingBox.getCenter(V(0, 0, 0)); im.geometry.translate(-cc.x, -cc.y, -cc.z); im.frustumCulled = false; im.visible = drawn.visible; scene.add(im); }
       B.ims = ms; scene.remove(drawn); drawn.geometry.dispose(); drawn.material.dispose(); qt.dispose(); }).catch(() => { /* the drawn boxes stay */ });
     return B;
   }
+  /// KX1: the box reads from far — its own texture lights it a little and a rainbow rim (brighter toward the edges, its hues
+  /// drifting with the clock) is added in the shader: no extra mesh, still the one InstancedMesh
+  function boxGlow(m0) { const m = m0.clone(); if (m.map && "emissiveMap" in m) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = m.map; m.emissiveIntensity = 0.45; } if ("roughness" in m) { m.roughness = 0.25; m.metalness = 0.1; }
+    m.onBeforeCompile = (sh) => { sh.uniforms.uT = boxU.uT; sh.fragmentShader = "uniform float uT;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n{ float fr = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 1.5); vec3 hue = 0.55 + 0.45 * cos(6.2831 * (uT * 0.35 + fr * 0.7 + vec3(0.0, 0.33, 0.67))); totalEmissiveRadiance += hue * (0.3 + 1.9 * fr); }"); };
+    m.customProgramCacheKey = () => "kartbox"; return m; }
   function placeBoxes() {
     if (!boxes) return; const on0 = itemsNow(); let n = 0;
     for (const ri of TD.rows) { const s = track.S[ri]; for (let j = 0; j < ITEM.per; j++, n++) { const lat = (j - (ITEM.per - 1) / 2) * ITEM.gap; boxes.pos[n * 2] = s.p.x + s.r.x * lat; boxes.pos[n * 2 + 1] = s.p.z + s.r.z * lat; boxes.t[n] = 0; boxes.grow[n] = 1; } }
     for (const im of boxes.ims) im.visible = on0;
   }
   function drawBoxes(dt) {
-    if (!boxes || !boxes.ims[0].visible) return; const o = boxes.o, tt = performance.now() / 1000;
+    if (!boxes || !boxes.ims[0].visible) return; const o = boxes.o, tt = performance.now() / 1000; boxU.uT.value = tt % 1000;
     for (let i = 0; i < boxes.n; i++) { if (boxes.t[i] > 0) { boxes.t[i] -= dt; if (boxes.t[i] <= 0) boxes.grow[i] = 0; }
       let sc = 0; if (boxes.t[i] <= 0) { boxes.grow[i] = Math.min(1, boxes.grow[i] + dt * 2.5); const u = boxes.grow[i]; sc = u >= 1 ? 1 : 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2); } // (an ease-out-back pop as it comes back)
-      o.position.set(boxes.pos[i * 2], 1.15 + Math.sin(tt * 2.2 + i) * 0.16, boxes.pos[i * 2 + 1]); o.rotation.set(0.35, tt * 1.7 + i * 0.7, 0.2); o.scale.setScalar(Math.max(0.0001, sc)); o.updateMatrix();
+      o.position.set(boxes.pos[i * 2], 1.3 + Math.sin(tt * 2.2 + i) * 0.22, boxes.pos[i * 2 + 1]); o.rotation.set(0.35, tt * 1.4 + i * 0.7, 0.2); o.scale.setScalar(Math.max(0.0001, sc)); o.updateMatrix();
       for (const im of boxes.ims) im.setMatrixAt(i, o.matrix); }
     for (const im of boxes.ims) im.instanceMatrix.needsUpdate = true;
   }
@@ -551,10 +613,16 @@ export function createKart(ctx) {
     else if (me.item) want = me.item;
     if (want === slotShown) return; const was = slotShown; slotShown = want;
     const id = want.startsWith("r:") ? want.slice(2) : want; sl.style.backgroundImage = id ? `url(${icon(id)})` : ""; const box = sl.closest(".wk-item, .wk-it");
-    if (box) { box.classList.toggle("has", !!want && !want.startsWith("r:")); box.classList.toggle("rolling", want.startsWith("r:")); }
+    if (box) { box.classList.toggle("has", !!want && !want.startsWith("r:")); box.classList.toggle("rolling", want.startsWith("r:")); box.classList.toggle("empty", !want); } // (KX1: empty — a faint glass '?' box)
+    if (want) grabHint(false);
     if (want && !want.startsWith("r:") && was.startsWith("r:")) { snd("kartItem"); if (box) { box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop"); } }
   }
 
+  /// KX1: the 'Grab a box!' tip by the empty slot — in your first three races with items, until the first box of the race
+  const GRAB = "arc.kart.grab";
+  function grabHint(start) { if (!ui) return; const el = ui.querySelector(".wk-grab");
+    if (start) { let n = 0; try { n = +localStorage.getItem(GRAB) || 0; } catch { n = 9; } grabN = itemsNow() ? n : 9; if (grabN < 3) try { localStorage.setItem(GRAB, String(grabN + 1)); } catch { /* shown again */ } if (el) el.hidden = grabN >= 3; return; }
+    if (el && !el.hidden) el.hidden = true; }
   function aiInput(k) {
     const look = track.S[(k.idx + 14 + Math.floor(k.speed / 4)) % track.N], tgt = tmp2.copy(look.p).addScaledVector(look.r, k.lane + Math.sin(clock * 0.7 + k.i) * 1.2);
     let a = Math.atan2(tgt.x - k.pos.x, tgt.z - k.pos.z) - k.yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
@@ -579,6 +647,7 @@ export function createKart(ctx) {
     if (!on || performance.now() < freezeUntil) return; /* (K6: the photo finish's freeze-frame — nothing moves, the scene stays drawn) */ dt = Math.min(dt, 0.1); if (realT && phase === "race") dt = Math.max(dt, Math.min(1, (performance.now() - goWall) / 1000 - clock - 0.3)); /* (realT: the browser test catches the race up to the wall clock on a slow machine, never past it) */
     const rdt = dt; if (slowT > 0) { slowT -= dt; dt *= 0.3; } // (K6: taking 1st — a short slow motion)
     if (lavaTex) lavaTex.offset.y -= dt * 0.18; // (K5: Magma Run's lava flows)
+    if (atmo) atmo.step(dt, performance.now() / 1000); // (KX1: the track's air)
     if (phase === "pick") { pickCam(dt); for (const k of karts) if (k.hero && k.hero.update) k.hero.update(dt, t); return; }
     if (phase === "count") { cd -= dt; paintCount(); if (cd <= 0) { phase = "race"; clock = 0; goWall = performance.now(); lightsOff = 2.2; for (const k of karts) if (!k.me) k.speed = 6; const inp = input(); if (inp.gas && me.startSpeed > 0.9 && me.startSpeed < 1.6) boost(me, 1.0, 0.9, "Start boost!"); else if (me.startSpeed >= 1.6) { me.stall = 0.7; flash(T("Stalled!")); snd("kartStall"); buzz(60); if (fx) for (let j = 0; j < 14; j++) fx.emit(at(me, (Math.random() - 0.5) * 0.8, -1.7, tmp2), (Math.random() - 0.5) * 2, 1.5 + Math.random(), (Math.random() - 0.5) * 2, 0x777c88, 0.9); } if (opts.autogas && ctx.coarse) { gasLatch = true; paintGas(); } } else { const inp = input(); me.startSpeed = inp.gas ? me.startSpeed + dt : 0; } }
     if (phase === "race" || phase === "done") {
@@ -644,10 +713,10 @@ export function createKart(ctx) {
     ui = document.createElement("div"); ui.className = "wk"; ui.setAttribute("data-no-i18n", "");
     ui.innerHTML = `<div class="wk-top" data-game-hud><b class="wk-pos">1/4</b><span class="wk-lap"></span><span class="wk-time">0:00.00</span><button type="button" class="wk-x" data-leave aria-label="${esc(T("Leave"))}">✕</button></div>
       <div class="wk-spd"><b>0</b><small>km/h</small><i class="wk-ni"><s></s><s></s></i></div><div class="wk-lines" aria-hidden="true"></div><div class="wk-msg" aria-live="polite"></div><div class="wk-cd"></div>
-      <canvas class="wk-map" width="184" height="184" aria-hidden="true"></canvas><div class="wk-gap" aria-hidden="true"><span></span><span></span></div><div class="wk-fl" aria-hidden="true"><b></b></div><div class="wk-cut" aria-hidden="true"></div>${ctx.coarse ? "" : `<div class="wk-item" aria-hidden="true"><b class="wk-slot"></b><kbd>E</kbd></div>`}<div class="wk-photo" hidden><b>${esc(T("PHOTO FINISH"))}</b></div>
+      <canvas class="wk-map" width="184" height="184" aria-hidden="true"></canvas><div class="wk-gap" aria-hidden="true"><span></span><span></span></div><div class="wk-fl" aria-hidden="true"><b></b></div><div class="wk-cut" aria-hidden="true"></div>${ctx.coarse ? "" : `<div class="wk-item empty" aria-hidden="true"><b class="wk-slot"></b><kbd>E</kbd><em class="wk-grab" hidden>${esc(T("Grab a box!"))}</em></div>`}<div class="wk-photo" hidden><b>${esc(T("PHOTO FINISH"))}</b></div>
       ${ctx.coarse ? `<button type="button" class="wk-trick" data-k="trick" hidden><span>${esc(T("Trick"))}</span></button>` : ""}
       <p class="wk-help">${esc(T(ctx.coarse ? "Hold Gas to drive · hold Drift in a corner, let go for a turbo." : "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro"))}</p>
-      ${ctx.coarse ? `<div class="wk-pad"><div class="wk-steer"><button type="button" data-k="l" class="wk-b wk-l" aria-label="${esc(T("Left"))}"><i></i></button><button type="button" data-k="r" class="wk-b wk-r" aria-label="${esc(T("Right"))}"><i></i></button></div><div class="wk-act"><button type="button" data-k="item" class="wk-b wk-it" aria-label="${esc(T("Use item"))}"><b class="wk-slot"></b><span>${esc(T("Item"))}</span></button><button type="button" data-k="boost" class="wk-b wk-bo"><i></i><span>${esc(T("Nitro"))}</span></button><button type="button" data-k="drift" class="wk-b wk-dr"><i></i><span>${esc(T("Drift"))}</span></button><button type="button" data-k="brake" class="wk-b wk-br"><i></i><span>${esc(T("Brake"))}</span></button><button type="button" data-k="gas" class="wk-b wk-gas"><i></i><span>${esc(T("Gas"))}</span></button></div></div>` : ""}`; /* (2026-10-30, the owner's phone: steering on the left, gas / brake / drift (+ nitro) on the right) */
+      ${ctx.coarse ? `<div class="wk-pad"><div class="wk-steer"><button type="button" data-k="l" class="wk-b wk-l" aria-label="${esc(T("Left"))}"><i></i></button><button type="button" data-k="r" class="wk-b wk-r" aria-label="${esc(T("Right"))}"><i></i></button></div><div class="wk-act"><button type="button" data-k="item" class="wk-b wk-it empty" aria-label="${esc(T("Use item"))}"><b class="wk-slot"></b><span>${esc(T("Item"))}</span><em class="wk-grab" hidden>${esc(T("Grab a box!"))}</em></button><button type="button" data-k="boost" class="wk-b wk-bo"><i></i><span>${esc(T("Nitro"))}</span></button><button type="button" data-k="drift" class="wk-b wk-dr"><i></i><span>${esc(T("Drift"))}</span></button><button type="button" data-k="brake" class="wk-b wk-br"><i></i><span>${esc(T("Brake"))}</span></button><button type="button" data-k="gas" class="wk-b wk-gas"><i></i><span>${esc(T("Gas"))}</span></button></div></div>` : ""}`; /* (2026-10-30, the owner's phone: steering on the left, gas / brake / drift (+ nitro) on the right) */
     document.body.appendChild(ui);
     ui.addEventListener("click", (e) => { if (e.target.closest("[data-leave]")) leave(); });
     const set = (e, v) => { const b = e.target.closest("[data-k]"); if (!b) return; e.preventDefault();
@@ -667,10 +736,10 @@ export function createKart(ctx) {
       if (pl < lastPlace) { snd("kartPass"); buzz(12); if (pl === 1 && clock - cutAt > 10) { cutAt = clock; cutIn(T("1ST!")); if (!ctx.reduce) slowT = 0.3; buzz([20, 30, 40]); } } } // (K6: taking 1st — a 0.3 s slow motion and the cut-in, 10 s apart)
     lastPlace = pl;
     if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : Math.max(me.boostT > 0 ? 0.55 + 0.15 * (me.boostLv || 1) : 0, Math.min(1, (me.speed / TOP - 0.82) * 3.5), me.slip > 0.5 ? 0.35 : 0); ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
-    ui.querySelector(".wk-spd b").textContent = Math.round(me.speed * 3.6); const s = ui.querySelectorAll(".wk-ni s"); s[0].style.setProperty("--f", Math.min(1, me.nitro)); s[1].style.setProperty("--f", Math.max(0, Math.min(1, me.nitro - 1))); }
+    ui.querySelector(".wk-spd b").textContent = Math.round(me.speed * 3.6); ui.querySelector(".wk-spd").style.setProperty("--s", Math.min(1, me.speed / BOOST_TOP).toFixed(3)); /* (KX1: the dial's arc fills with the speed) */ const s = ui.querySelectorAll(".wk-ni s"); s[0].style.setProperty("--f", Math.min(1, me.nitro)); s[1].style.setProperty("--f", Math.max(0, Math.min(1, me.nitro - 1))); }
   let lastCd = -1;
   function paintCount() { const n = Math.ceil(cd); if (n === lastCd || !ui) return; lastCd = n; const el = ui.querySelector(".wk-cd"); el.textContent = n > 3 ? "" : n > 0 ? String(n) : T("GO!"); el.classList.toggle("go", n <= 0); el.classList.remove("on"); void el.offsetWidth; if (n <= 3) el.classList.add("on"); if (n <= 0) setTimeout(() => { if (el.classList.contains("go")) { el.classList.remove("on"); el.textContent = ""; } }, 1100);
-    if (dress) dress.lights.set(n <= 0 ? "go" : n <= 3 ? 4 - n : 0); /* (the gantry: red, red, red, all green on GO) */ if (n <= 3) { snd("tick", n <= 0, n <= 0); buzz(n > 0 ? 12 : 45); } }
+    if (dress) dress.lights.set(n <= 0 ? "go" : n <= 3 ? 4 - n : 0); /* (the gantry: red, red, red, all green on GO) */ lightLog.push(n + ":" + (dress && dress.lights.colors ? (dress.lights.colors() || []).join("/") : "-")); if (lightLog.length > 12) lightLog.shift(); if (n <= 3) { snd("tick", n <= 0, n <= 0); buzz(n > 0 ? 12 : 45); } }
   // ---------- K6: the HUD's new pieces ----------
   const offT = {}, onFor = (el, ms) => { el.classList.remove("on"); void el.offsetWidth; el.classList.add("on"); clearTimeout(offT[el.className]); const k = el.className; offT[k] = setTimeout(function off() { if (holdK6) { offT[k] = setTimeout(off, 300); return; } el.classList.remove("on"); }, ms); }; // (taken off by time too: low graphics ends every CSS animation at once)
   function banner(txt) { const el = ui && ui.querySelector(".wk-fl"); if (!el) return; el.firstChild.textContent = txt; onFor(el, 2300); }
@@ -696,9 +765,12 @@ export function createKart(ctx) {
   /// the camera's K6 moments: the drone over the grid in the countdown, the last corner's side camera, the podium
   function camK6(dt) {
     const fx0 = Math.sin(me.yaw), fz0 = Math.cos(me.yaw);
-    if (podCam) { podCam.t += dt; const hf = Math.atan(Math.tan((25 * Math.PI) / 180) * cam.aspect), d = Math.max(7.2, 5.6 / Math.tan(hf)) - Math.min(1, podCam.t / 3.2) * 1.6; /* (close enough that the racers read on an upright phone; the last one beside it may sit at the edge) */ cam.position.set(podCam.c.x + podCam.f.x * d, 1.6 + d * 0.13, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 2.4, podCam.c.z); /* (higher the farther: over the road's rails) */ if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); } return; }
-    if (phase === "count" && droneOn && !ctx.reduce) { const u = Math.max(0, Math.min(1, (3.2 - cd) / 2.9)), e = u * u * (3 - 2 * u), th = me.yaw + Math.PI * e, R = 30 + (7.2 - 30) * e, gx = gridC.x + (me.pos.x - gridC.x) * e, gz = gridC.z + (me.pos.z - gridC.z) * e;
-      cam.position.set(gx + Math.sin(th) * R, 22 + (3.1 - 22) * e, gz + Math.cos(th) * R); cam.lookAt(gx + fx0 * 6 * e, 1.2, gz + fz0 * 6 * e); return; } // (from high in front of the grid round to your place behind the kart)
+    if (podCam) { podCam.t += dt; const hf = Math.atan(Math.tan((25 * Math.PI) / 180) * cam.aspect), push = Math.min(1, podCam.t / 3.2);
+      if (podCam.tall) { const d = Math.max(6.5, 3.6 / Math.tan(hf)) - push * 1.2; /* (KX1: an upright phone — framed on the three steps (3.6 m each side), the camera higher and looking down on them, so the podium fills the middle instead of a small strip low in the frame) */ cam.position.set(podCam.c.x + podCam.f.x * d, 3.4 + d * 0.16, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 1.25, podCam.c.z); }
+      else { const d = Math.max(7.2, 5.6 / Math.tan(hf)) - push * 1.6; /* (close enough that the racers read on an upright phone; the last one beside it may sit at the edge) */ cam.position.set(podCam.c.x + podCam.f.x * d, 1.6 + d * 0.13, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 2.4, podCam.c.z); } /* (higher the farther: over the road's rails) */
+      if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); } return; }
+    if (phase === "count" && droneOn && !ctx.reduce) { const u = Math.max(0, Math.min(1, (3.2 - cd) / 2.9)), e = u * u * (3 - 2 * u), th = me.yaw + Math.PI * e, R = 34 + (7.2 - 34) * e, gx = gridC.x + (me.pos.x - gridC.x) * e, gz = gridC.z + (me.pos.z - gridC.z) * e;
+      cam.position.set(gx + Math.sin(th) * R, 34 + (3.1 - 34) * e, gz + Math.cos(th) * R); cam.lookAt(gx + fx0 * 6 * e, 1.2, gz + fz0 * 6 * e); return; } // (from high in front of the grid round to your place behind the kart — KX1: higher, 34 m, so it looks over Meshy's start board)
     if (cineT > 0 && phase === "race") { cineT -= dt; const px = fz0 * cineSide, pz = -fx0 * cineSide; cam.position.set(me.pos.x + px * 6.5 + fx0 * 3, 1.5, me.pos.z + pz * 6.5 + fz0 * 3); cam.lookAt(me.pos.x + fx0, 0.9, me.pos.z + fz0); if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); } }
   }
   /// every frame: the flags, the standings screen (twice a second), the start lights going dark, the tunnel's shade, the Trick button, the keys card
@@ -780,8 +852,9 @@ export function createKart(ctx) {
     lastRes = { pl, time, laps, mode, rule };
     const card = () => { if (!on || !ui) return; const c = document.createElement("div"); c.className = "wk-res";
       const head = mode === "daily" ? `${T("Daily challenge")} · ${T(RULE_NAME[rule] || "")} · ${T(TD.name)}` : `${T(TD.name)} · ${T(MODE_NAME[mode])}`, fast = Math.min(...laps);
-      c.innerHTML = `<div class="wk-res-in"><small>${esc(head)}</small><h2>${esc(mode === "ta" ? fmt(time) : ord(pl))}</h2><p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${nb ? `<em>${esc(T("New best!"))}</em> ` : ""}<i class="wk-best">${fmt(nb ? time : best || time)}</i></b></p>
-        <ol class="wk-laps">${laps.map((x, i) => `<li class="${x === fast ? "fast" : ""}"><span>${esc(T("Lap"))} ${i + 1}</span><b>${fmt(x)}</b></li>`).join("")}</ol>
+      const slow = Math.max(...laps), lo = fast * 0.94, barH = (x) => Math.round(38 + 62 * Math.min(1, (x - lo) / Math.max(0.01, slow - lo))); /* (KX1: the laps as a small bar chart, the fastest marked BEST LAP) */
+      c.innerHTML = `<div class="wk-res-in"><small>${esc(head)}</small>${mode === "ta" ? `<h2>${esc(fmt(time))}</h2>` : `<h2 class="wk-place p${pl}" aria-label="${esc(ord(pl))}"><b>${pl}</b>${L["1st"] ? `<span>${esc(T("Place"))}</span>` : `<sup>${esc(ord(pl).replace(/^\d+/, ""))}</sup>`}</h2>`}<p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${nb ? `<em>${esc(T("New best!"))}</em> ` : ""}<i class="wk-best">${fmt(nb ? time : best || time)}</i></b></p>
+        <ol class="wk-laps wk-bars">${laps.map((x, i) => `<li class="${x === fast ? "fast" : ""}">${x === fast ? `<em>${esc(T("BEST LAP"))}</em>` : ""}<i style="--h:${barH(x)}"></i><b>${fmt(x)}</b><span>${esc(T("Lap"))} ${i + 1}</span></li>`).join("")}</ol>
         <section class="wk-arcl">${signed() ? `<b>${esc(T("Saving…"))}</b>` : `<b>${esc(T("Sign in to earn ARCL"))}</b><small>${esc(T("Guests race for fun: no ARCL, no board"))}</small>`}</section><section class="wk-ach" hidden></section>
         ${mode === "ta" ? "" : standings()}<section class="wk-week"></section>
         <div class="wk-res-btns"><button type="button" class="wk-go" data-again>${esc(T("Race again"))}</button>${ctx.share ? `<button type="button" class="wk-out" data-share>📸 ${esc(T("Share"))}</button>` : ""}<button type="button" class="wk-out" data-leave>${esc(T("Leave"))}</button></div><button type="button" class="wk-chg" data-modes>${esc(T("Change racer or mode"))}</button></div>`;
@@ -802,15 +875,15 @@ export function createKart(ctx) {
     else setTimeout(next, mode === "ta" ? 1600 : 900);
   }
   function podiumStart(tok, card) {
-    if (!pod) { let lt = null; try { lt = new THREE.TextureLoader().load("/images/kart/logo.webp"); lt.colorSpace = THREE.SRGBColorSpace; } catch { lt = null; } pod = makePodium(THREE, lt); scene.add(pod.g);
-      if (K6_GLB.includes("podium") && !ctx.low) load("podium").then((gl) => { if (!pod) return; pod.g.add(fit(gl.scene, { len: 7.2 })); for (const c of pod.g.children) if (c.userData.drawn) c.visible = false; }).catch(() => { /* the drawn podium */ }); } // (the hook for raw/kart-k2/models/podium.glb once packed)
+    if (!pod) { let lt = null; try { lt = new THREE.TextureLoader().load("/images/kart/logo.webp"); lt.colorSpace = THREE.SRGBColorSpace; } catch { lt = null; } pod = makePodium(THREE, lt); scene.add(pod.g); }
+    if (podGl && !pod.model) { pod.model = true; try { pod.useModel(fit(podGl.scene, { len: 7.2 })); glbIn.podium = true; } catch (e) { console.warn("kart podium:", e && e.message); } } // (KX1: Meshy's podium, loaded at the race's start — the drawn one if it isn't in yet)
     const S0 = track.S[TD.podium], side = -outSide(track.S, TD.podium, TD.c[0] * mir, TD.c[1]), c = S0.p.clone().addScaledVector(S0.r, side * (WALL + 9)), f = S0.r.clone().multiplyScalar(-side); // (on the infield; f: from the podium toward the road)
     pod.g.position.copy(c); pod.g.rotation.set(0, Math.atan2(f.x, f.z), 0); pod.g.visible = true;
     const ord0 = order(), last = ord0.length > 3 ? ord0[ord0.length - 1] : null;
-    const put = (k, x, y, clip, alt) => { const h = k.hero; if (!h || !h.obj) return; if (!k.seatPos) k.seatPos = h.obj.position.clone(); k.onPod = true; pod.g.add(h.obj); h.obj.position.set(x, y, 0); h.obj.rotation.set(0, 0, 0); if (h.has) { h.after = null; h.play(clip); } else try { h.play(alt); } catch { /* standing is fine */ } };
-    ord0.slice(0, 3).forEach((k, n) => put(k, pod.spots[n][0], pod.spots[n][1], n === 0 ? CLIP.cheer : CLIP.wave, "emote-yes")); // (1st Victory_Cheer, 2nd and 3rd Big_Wave_Hello)
-    if (last) put(last, pod.last[0], pod.last[1], CLIP.lose, "emote-no"); // (the last beside it, Head_Hold_in_Pain)
-    podCam = { c, f, t: 0 }; ui.classList.add("pod"); snd("win");
+    const tall = innerHeight > innerWidth, put = (k, [x, y, z = 0], clip, alt) => { const h = k.hero; if (!h || !h.obj) return; if (!k.seatPos) k.seatPos = h.obj.position.clone(); k.onPod = true; pod.g.add(h.obj); h.obj.position.set(x, y, z); h.obj.rotation.set(0, 0, 0); if (h.has) { h.after = null; h.play(clip); } else try { h.play(alt); } catch { /* standing is fine */ } };
+    ord0.slice(0, 3).forEach((k, n) => put(k, pod.spots[n], n === 0 ? CLIP.cheer : CLIP.wave, "emote-yes")); // (1st Victory_Cheer, 2nd and 3rd Big_Wave_Hello)
+    if (last) put(last, tall ? [2.3, 0, 2.6] : pod.last, CLIP.lose, "emote-no"); // (the last beside it, Head_Hold_in_Pain — on an upright phone in front of the 3rd step, inside the closer frame)
+    podCam = { c, f, t: 0, tall }; ui.classList.add("pod"); snd("win");
     const lay = document.createElement("div"); lay.className = "wk-pod"; lay.innerHTML = `<span>${esc(T("Tap to skip"))}</span>`; ui.appendChild(lay);
     const conf = setInterval(() => { if (fx && pod && tok === seqTok) fx.burst(tmp2.copy(c).setY(4.6), [0xffd36a, 0x38d8ff, 0xff6fc8, 0x5fe05a, 0xffffff], 14, 8, 6, 1.2); }, 350);
     let ended = false; const end = () => { if (ended) return; ended = true; clearInterval(conf); lay.remove(); if (tok === seqTok && on && ui) card(); };
@@ -843,7 +916,7 @@ export function createKart(ctx) {
     return `<h4>${esc(T("Standings"))}</h4><ol class="wk-st">${rows}</ol>`;
   }
   /// back to the pick screen after a race: the plain track, the karts on the grid, no ghosts
-  function toPick() { podEnd(); if (keysEl) { keysEl.remove(); keysEl = null; } ghostTok++; clearGhosts(); raceP = null; mode = mode || "race"; rule = ""; mir = 1; track = tracks[0]; applyRule(true); grid(); for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); } showPick(me && me.racer ? me.racer.id : RACERS[0].id); }
+  function toPick() { topCache = {}; /* (KX1: the week's place may have moved) */ podEnd(); if (keysEl) { keysEl.remove(); keysEl = null; } ghostTok++; clearGhosts(); raceP = null; mode = mode || "race"; rule = ""; mir = 1; track = tracks[0]; applyRule(true); grid(); for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); } showPick(me && me.racer ? me.racer.id : RACERS[0].id); }
   function grid() {
     for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: rule === "nitro" ? 2 : 0, stall: 0, slip: 0, finish: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, hopY: 0, mk: 0, pl: 0, reactAt: -9, item: "", rollT: 0, useAt: 0, spinT: 0, safeT: 0, shieldT: 0, magT: 0, magTo: null, usePrev: false, spinCk: true }); k.marks.fill(-1); if (k.bub) k.bub.visible = false; k.m.g.visible = mode !== "ta" || k.me; k.m.g.position.copy(k.pos); k.m.g.rotation.set(0, k.yaw, 0); } // (K5: the body too — the pick screen doesn't run the draw loop, and a new track's grid is elsewhere)
   }
@@ -856,7 +929,8 @@ export function createKart(ctx) {
         keysEl.innerHTML = `<b>${esc(T("Controls"))}</b><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> ${esc(T("Steer & drive"))}</span><span><kbd>Shift</kbd> ${esc(T("Drift"))}</span><span><kbd>Space</kbd> ${esc(T("Nitro"))}</span>${itemsNow() ? `<span><kbd>E</kbd> ${esc(T("Use item"))}</span>` : ""}<span><kbd>Esc</kbd> ${esc(T("Leave"))}</span>`; ui.appendChild(keysEl); } }
     for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); }
     phase = "count"; cd = 3.2; lastCd = -1; lastPlace = 0; camBack = 0;
-    raceStart(); loadGhosts();
+    if (K6_GLB.includes("podium") && !ctx.low && !podGl && mode !== "ta") load("podium").then((gl) => { if (on) podGl = gl; }).catch(() => { /* the drawn podium */ }); // (KX1: fetched while racing, ready at the line)
+    grabHint(true); raceStart(); loadGhosts();
   }
 
   async function enter() {
@@ -882,7 +956,7 @@ export function createKart(ctx) {
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
-      <div class="wk-tracks" role="radiogroup" aria-label="${esc(T("Track"))}"></div><div class="wk-modes" role="radiogroup" aria-label="${esc(T("Mode"))}"></div><p class="wk-mode-l"></p>
+      <div class="wk-tracks" role="radiogroup" aria-label="${esc(T("Track"))}"></div><p class="wk-trk-info" aria-live="polite"></p><div class="wk-modes" role="radiogroup" aria-label="${esc(T("Mode"))}"></div><p class="wk-mode-l"></p>
       <button type="button" class="wk-go wk-race" data-race><i class="wk-flag"></i><span>${esc(T("Race!"))}</span><em></em></button><button type="button" class="wk-optb" data-opts aria-label="${esc(T("Settings"))}" title="${esc(T("Settings"))}">⚙</button>`;
     ui.appendChild(pickEl); paintModes(); sideHint();
     pickEl.addEventListener("click", (e) => { if (e.target.closest("[data-opts]")) return openOpts(); const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); const m = e.target.closest("[data-mode]"); if (m) setMode(m.dataset.mode); const tk = e.target.closest("[data-track]"); if (tk && !tk.disabled) chooseTrack(tk.dataset.track); if (e.target.closest("[data-race]")) pick(picked); });
@@ -890,7 +964,21 @@ export function createKart(ctx) {
   }
   /// K5: the track chooser — four cards with the track's art; in the Daily only the day's track
   function paintTracks() { if (!pickEl) return; const box = pickEl.querySelector(".wk-tracks"), dl = mode === "daily";
-    box.innerHTML = TRACK_IDS.map((id) => { const t = TRACKS[id], onT = id === tid, lock = dl && id !== daily.track; return `<button type="button" class="wk-trk${onT ? " on" : ""}${lock ? " lock" : ""}" role="radio" aria-checked="${onT}" data-track="${id}"${lock ? " disabled" : ""}><img src="/images/kart/tracks/${id}-card.webp" alt="" width="160" height="80"><b>${esc(T(t.short || t.name))}</b><small>${esc(dl && !lock ? T("Today's track") : T(t.line))}</small></button>`; }).join(""); }
+    box.innerHTML = TRACK_IDS.map((id) => { const t = TRACKS[id], onT = id === tid, lock = dl && id !== daily.track; return `<button type="button" class="wk-trk${onT ? " on" : ""}${lock ? " lock" : ""}" role="radio" aria-checked="${onT}" data-track="${id}"${lock ? " disabled" : ""}><span class="wk-trk-pic"><img src="/images/kart/tracks/${id}-card.webp${ctx.ver || ""}" alt="" width="320" height="160" loading="lazy">${outline(id)}</span><b>${esc(T(t.short || t.name))}</b><small>${esc(dl && !lock ? T("Today's track") : T(t.line))}</small></button>`; }).join("");
+    const on0 = box.querySelector(".wk-trk.on"); if (on0 && box.scrollWidth > box.clientWidth + 2) box.scrollLeft = Math.max(0, on0.offsetLeft - (box.clientWidth - on0.offsetWidth) / 2); // (KX1: the carousel shows the chosen track)
+    paintTrkInfo(); }
+  /// KX1: a track's outline as a small line drawing (its spline table, the start marked) for the card's corner — made once a track
+  const outlines = {};
+  function outline(id) { if (outlines[id]) return outlines[id]; const c = new THREE.CatmullRomCurve3(TRACKS[id].pts.map(([x, z]) => V(x, 0, z)), true, "centripetal"), q = c.getSpacedPoints(72);
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of q) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); } const k = 34 / Math.max(x1 - x0, z1 - z0), ox = (40 - (x1 - x0) * k) / 2, oz = (40 - (z1 - z0) * k) / 2;
+    const P = q.map((p) => [(ox + (p.x - x0) * k).toFixed(1), (oz + (p.z - z0) * k).toFixed(1)]);
+    return (outlines[id] = `<svg class="wk-trk-map" viewBox="0 0 40 40" aria-hidden="true"><path d="M${P.map((p) => p.join(" ")).join("L")}Z"/><circle cx="${P[0][0]}" cy="${P[0][1]}" r="2.6"/></svg>`); }
+  /// KX1: under the track cards — your best on the chosen track (the device's) and this week's place on it (the week's board, signed in)
+  function paintTrkInfo() { const el = pickEl && pickEl.querySelector(".wk-trk-info"); if (!el) return; const id = tid; let best = 0; try { best = +localStorage.getItem(id === "nexus" ? BEST : BEST + "." + id) || 0; } catch { best = 0; }
+    const s0 = ctx.sess && ctx.sess(), me0 = s0 && s0.wallet ? String(s0.wallet).toLowerCase() : "", sh = me0 ? me0.slice(0, 6) + "…" + me0.slice(-4) : "", top = topCache[id];
+    const rank = top && sh ? top.findIndex((x) => String(x.w || "").toLowerCase() === sh) + 1 : 0;
+    el.innerHTML = `<span>🏁 ${esc(best ? T("Your best") + " " + fmt(best) : T("No best yet"))}</span>${me0 ? `<span>🏆 ${esc(!top ? "…" : rank ? T("This week #{n}", { n: rank }) : T("Not on this week's board yet"))}</span>` : ""}`;
+    if (me0 && top === undefined) { topCache[id] = null; fetch("/api/social?world=kart-top&track=" + id, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { topCache[id] = (j && j.top) || []; if (tid === id) paintTrkInfo(); }).catch(() => { topCache[id] = []; if (tid === id) paintTrkInfo(); }); } }
   function pickVis() { for (const k of karts) k.m.g.visible = !k.racer || k.racer.id === picked; }
   function chooseTrack(id) { if (!TRACKS[id] || mode === "daily" || phase !== "pick") return; ownTrack = id; try { localStorage.setItem(TRACK, id); } catch { /* this visit */ }
     if (id !== tid) { setTrack(id); grid(); pickVis(); } paintTracks(); if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); }
@@ -938,8 +1026,8 @@ export function createKart(ctx) {
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
     pickEl = null; pickFill = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
     if (scene) scene.traverse((o) => { if (o.geometry && !o.isSkinnedMesh) o.geometry.dispose(); const m = o.material; if (m && !o.isSkinnedMesh) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } });
-    scene = null; karts = []; me = null; world = null; tracks = null; tg = null; lavaTex = null; trackTok++; nightLight = hemi = sun = skyCyl = null;
+    scene = null; karts = []; me = null; world = null; tracks = null; tg = null; lavaTex = null; trackTok++; nightLight = hemi = sun = skyCyl = null; atmo = null; podGl = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, /* KX1 */ kx1: () => ({ glb: { ...glbIn }, atmo: atmo ? { kind: atmo.kind, n: atmo.n, sheet: !!atmo.sheet } : null, spots: pod ? pod.spots.map((p) => p.map((v) => +(+v).toFixed(2))) : null, grab: !!(ui && [...ui.querySelectorAll(".wk-grab")].some((e) => !e.hidden)), lamps: dress && dress.lights.colors ? dress.lights.colors() : null, lightLog: lightLog.slice(), rows: TD.rows.slice(), ramps: TD.ramps.map((r) => r.i) }), podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
 }
