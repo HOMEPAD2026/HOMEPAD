@@ -44,13 +44,43 @@
 // size. Low graphics / phones: fewer props, no side camera on low; reduce-motion: no slow motion, no drone sweep.
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
 //        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
-import { makeDress, makePodium, makeRings, makeChecker, outSide, RAMPS, RAMP, PODIUM_I, OUTSIDE } from "./world-kart-dress.js";
+import { makeDress, makePodium, makeRings, makeChecker, outSide, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
 export const RULES = ["mirror", "nitro", "nodrift", "night", "turbo"], GHOST_DT = 0.2, GHOST_MAX = 3000;
+// ---- K5 (2026-10-30, the owner's KART list): four tracks. Each is a closed centripetal Catmull-Rom spline sampled into 900
+// points like the Nexus, so every place is a sample index: boost pads, item-box rows, ramps (on a straight, clear of the pads,
+// the rows, a tunnel and the line), grandstands (two straights), a tunnel or none, the standings screen, the podium, the
+// last corner (the side camera's stretch) and c, the middle "outside" is measured from. Its look (sky panorama and road
+// from Meshy, two Meshy props instanced along it) loads only when it's picked; its feel: gravity in the air, grip, lava.
+// The server keeps each one's length → minLap (api/_world-kart.mjs KART.TRACKS; tests/world/kart.test.mjs measures these).
+export const TRACK_IDS = ["nexus", "moon", "ice", "volcano"];
+export const TRACKS = {
+  nexus: { name: "ARCIRCLE Nexus Circuit", short: "Nexus Circuit", line: "Neon city · the classic", pts: TRACK_PTS, c: OUTSIDE,
+    pads: [180, 420, 650], rows: [140, 330, 600], ramps: RAMPS, stands: STANDS, tunnel: TUNNEL, screen: SCREEN_I, podium: PODIUM_I, last: [760, 890],
+    feel: { grav: 21, grip: 1, lava: false },
+    look: { bg: 0x0b1638, ground: 0x173a3a, grid: 0x2ee0b0, gridO: 0.18, rail: 0x38d8ff, arch: [0x2ee0b0, 0xff6fc8], hemi: [0x9fd8ff, 0x1a2244], sky: "/images/kart/sky.webp", skyRep: 3, road: "/images/kart/road.webp", roadRep: 2, edge: 0, skyline: true } },
+  moon: { name: "Lunar Loop", line: "Low gravity · long jumps", pts: [[0, 0], [140, 0], [220, 40], [240, 130], [190, 200], [100, 190], [60, 120], [-10, 110], [-80, 170], [-170, 150], [-190, 60], [-120, -10]], c: [25, 95],
+    pads: [250, 500, 700], rows: [190, 400, 620], ramps: [{ i: 64, lat: 0 }, { i: 112, lat: 0 }], stands: [[14, 74], [530, 558]], tunnel: null, screen: 22, podium: 44, last: [740, 830],
+    feel: { grav: 11, grip: 1, lava: false },
+    look: { bg: 0x070a1c, ground: 0x4a4e5a, grid: 0x9b8cff, gridO: 0.07, rail: 0x7ff6ff, arch: [0x9b6bff, 0x38d8ff], hemi: [0xdfe6ff, 0x262a3a], sky: "/images/kart/tracks/moon-sky.webp", skyRep: 3, road: "/images/kart/tracks/moon-road.webp", roadRep: 1, edge: 0x6c707c,
+      props: { a: "moon/crystal-pylon", ah: 9, b: "moon/moon-rock", bl: 5 } } },
+  ice: { name: "Frost Drift", line: "Slippery grip · long drifts", pts: [[0, 0], [117, 0], [171, -36], [207, 9], [180, 63], [99, 72], [54, 117], [90, 171], [27, 216], [-54, 180], [-81, 99], [-153, 81], [-162, 18], [-90, -9]], c: [22, 90],
+    pads: [190, 350, 600], rows: [120, 460, 680], ramps: [{ i: 278, lat: 0 }], stands: [[12, 72], [843, 893]], tunnel: [500, 550], screen: 22, podium: 44, last: [730, 830],
+    feel: { grav: 21, grip: 0.62, lava: false },
+    look: { bg: 0x0d2448, ground: 0x9cbfd6, grid: 0x7fd0ff, gridO: 0.12, rail: 0x9fe8ff, arch: [0x7ff6ff, 0xffffff], hemi: [0xe6f6ff, 0x3a5a7a], sky: "/images/kart/tracks/ice-sky.webp", skyRep: 3, road: "/images/kart/tracks/ice-road.webp", roadRep: 1, edge: 0xeaf6ff,
+      props: { a: "ice/chain-pylon", ah: 10, b: "ice/ice-crystal", bl: 4.5 } } },
+  volcano: { name: "Magma Run", line: "Lava edges · stay on the road", pts: [[0, 0], [135, -18], [189, 27], [144, 81], [198, 135], [153, 198], [54, 180], [0, 126], [-54, 180], [-144, 153], [-135, 72], [-99, 18], [-54, -9]], c: [27, 90],
+    pads: [250, 560, 700], rows: [140, 330, 620], ramps: [{ i: 80, lat: 0 }, { i: 775, lat: 0 }], stands: [[12, 72], [715, 755]], tunnel: [407, 459], screen: 22, podium: 44, last: [800, 890],
+    feel: { grav: 21, grip: 1, lava: true },
+    look: { bg: 0x1a0806, ground: 0x1d1512, grid: 0xff5a1a, gridO: 0.08, rail: 0xff7a2e, arch: [0xff5a1a, 0xffc23c], hemi: [0xffd0b0, 0x2a0a05], sky: "/images/kart/tracks/volcano-sky.webp", skyRep: 3, road: "/images/kart/tracks/volcano-road.webp", roadRep: 1, edge: -1,
+      props: { a: "volcano/candle-pillar", ah: 8, b: "volcano/lava-rock", bl: 5.5 } } },
+};
+/// the longest a track may be (the gaps' marks are sized for it)
+export const MAX_LEN = 1400;
 const dayHash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; };
 /// the day's challenge (the server's dailyOf in api/_world-kart.mjs is the same; tests/world/kart.test.mjs checks)
-export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("kart:" + day); return { day, seed, rule: RULES[seed % RULES.length] }; };
+export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("kart:" + day); return { day, seed, rule: RULES[seed % RULES.length], track: TRACK_IDS[(seed >>> 8) % TRACK_IDS.length] }; }; // (K5: the day's track too)
 /// a ghost as text: each sample "x·10,z·10,yaw·100" in base 36, samples joined by ";" (the server takes /^[0-9a-z,;.-]*$/)
 export const ghostEnc = (a) => a.map(([x, z, y]) => [Math.round(x * 10), Math.round(z * 10), Math.round(Math.atan2(Math.sin(y), Math.cos(y)) * 100)].map((n) => n.toString(36)).join(",")).join(";");
 export const ghostDec = (s) => String(s || "").split(";").filter(Boolean).map((r) => { const [x, z, y] = r.split(",").map((v) => parseInt(v, 36)); return [x / 10, z / 10, y / 100]; }).filter((p) => p.every(Number.isFinite));
@@ -84,7 +114,7 @@ export const itemsOn = (mode) => mode === "race" || mode === "daily";
 /// (BOOST_TOP at most) and the magnet pulls you to TOP × magnet.top (under BOOST_TOP) — so the server's minLap holds with items
 export const ITEM = { rows: [140, 330, 600], per: 5, gap: 3.1, respawn: 3, roll: 0.9, spin: 1.0, safe: 1.6, shield: 6, rocketV: 62, rocketLife: 7, bombFuse: 1.4, bombR: 6, rugLife: 25, rugR: 1.8, pump: { secs: 2.2, k: 1 }, magnet: { secs: 2.2, top: 1.2 } };
 const RACE_DAY = 5, ARCL_DAY = 2500; // (shown on the result card; the server's KART.DAY_RACES / DAY_ARCL decide)
-const ROAD = 16, WALL = ROAD / 2 + 3.2, STEP = 1 / 60, BEST = "arc.kart.best", MODE = "arc.kart.mode", GHOST = "arc.kart.ghost.", KEYS = "arc.kart.keys", SIDE = "arc.kart.side";
+const ROAD = 16, WALL = ROAD / 2 + 3.2, STEP = 1 / 60, BEST = "arc.kart.best", MODE = "arc.kart.mode", TRACK = "arc.kart.track", GHOST = "arc.kart.ghost.", KEYS = "arc.kart.keys", SIDE = "arc.kart.side";
 export const TOP = 34;
 const ACC = 19, BRAKE = 34, DRAG = 0.35;
 export const BOOST_TOP = 47;
@@ -105,6 +135,10 @@ Object.assign(LW.tr, { "Item": "Eşya", "Use item": "Eşyayı kullan", "Blocked!
 Object.assign(LW.ko, { "FINAL LAP": "마지막 랩", "1ST!": "1위!", "PHOTO FINISH": "사진 판독", "Tap to skip": "탭해서 건너뛰기", "Trick": "트릭", "Trick!": "트릭!", "Live": "라이브", "Controls": "조작법", "Steer & drive": "조향·가속", "Turn your phone sideways — it plays better": "휴대폰을 가로로 돌리면 더 잘 즐길 수 있어요", "OK": "확인", "Settings": "설정", "Steering assist": "조향 보조", "Keeps you off the walls": "벽에 부딪히지 않게 살짝 도와줘요", "Auto-gas": "자동 가속", "Tap Gas to stop and go": "가속 버튼을 탭해서 멈추고 출발해요", "Tilt steering": "기울기 조향", "Tilt your phone to steer": "휴대폰을 기울여서 조향해요", "Button size": "버튼 크기", "Small": "작게", "Medium": "보통", "Large": "크게", "Done": "완료", "Tilt isn't available on this device": "이 기기에서는 기울기 조향을 쓸 수 없어요" });
 Object.assign(LW.zh, { "FINAL LAP": "最后一圈", "1ST!": "第一！", "PHOTO FINISH": "冲线判定", "Tap to skip": "轻触跳过", "Trick": "特技", "Trick!": "特技！", "Live": "直播", "Controls": "操作", "Steer & drive": "转向与驾驶", "Turn your phone sideways — it plays better": "横屏握持手机，玩起来更顺手", "OK": "好的", "Settings": "设置", "Steering assist": "转向辅助", "Keeps you off the walls": "轻轻帮你避开护墙", "Auto-gas": "自动加速", "Tap Gas to stop and go": "轻触加速键来停车或出发", "Tilt steering": "重力转向", "Tilt your phone to steer": "倾斜手机来转向", "Button size": "按键大小", "Small": "小", "Medium": "中", "Large": "大", "Done": "完成", "Tilt isn't available on this device": "此设备无法使用重力转向" });
 Object.assign(LW.tr, { "FINAL LAP": "SON TUR", "1ST!": "1.!", "PHOTO FINISH": "FOTO FİNİŞ", "Tap to skip": "Geçmek için dokun", "Trick": "Numara", "Trick!": "Numara!", "Live": "Canlı", "Controls": "Kontroller", "Steer & drive": "Dön ve sür", "Turn your phone sideways — it plays better": "Telefonu yan çevir — daha iyi oynanır", "OK": "Tamam", "Settings": "Ayarlar", "Steering assist": "Direksiyon yardımı", "Keeps you off the walls": "Seni duvarlardan hafifçe uzak tutar", "Auto-gas": "Otomatik gaz", "Tap Gas to stop and go": "Durup kalkmak için Gaz'a dokun", "Tilt steering": "Eğerek sürüş", "Tilt your phone to steer": "Dönmek için telefonu eğ", "Button size": "Düğme boyutu", "Small": "Küçük", "Medium": "Orta", "Large": "Büyük", "Done": "Tamam", "Tilt isn't available on this device": "Bu cihazda eğerek sürüş yok" });
+// K5's words (the tracks)
+Object.assign(LW.ko, { "Nexus Circuit": "넥서스 서킷", "Lunar Loop": "루나 루프", "Frost Drift": "프로스트 드리프트", "Magma Run": "마그마 런", "Neon city · the classic": "네온 시티 · 클래식", "Low gravity · long jumps": "저중력 · 긴 점프", "Slippery grip · long drifts": "미끄러운 노면 · 긴 드리프트", "Lava edges · stay on the road": "용암 가장자리 · 도로를 벗어나지 마세요", "Track": "트랙", "Today's track": "오늘의 트랙", "Lava!": "용암!", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART에서 {r}(으)로 {k}을(를) {t}에 달렸어요! 🏎️ 이길 수 있나요?" });
+Object.assign(LW.zh, { "Nexus Circuit": "枢纽赛道", "Lunar Loop": "月球环道", "Frost Drift": "冰霜漂移", "Magma Run": "熔岩疾驰", "Neon city · the classic": "霓虹之城 · 经典赛道", "Low gravity · long jumps": "低重力 · 超远飞跃", "Slippery grip · long drifts": "路面湿滑 · 超长漂移", "Lava edges · stay on the road": "熔岩边缘 · 别离开赛道", "Track": "赛道", "Today's track": "今日赛道", "Lava!": "熔岩！", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "我在 ARCIRCLE KART 用 {r} 跑完 {k}，用时 {t}！🏎️ 你能超过我吗？" });
+Object.assign(LW.tr, { "Nexus Circuit": "Nexus Pisti", "Lunar Loop": "Ay Halkası", "Frost Drift": "Buz Drifti", "Magma Run": "Magma Koşusu", "Neon city · the classic": "Neon şehir · klasik", "Low gravity · long jumps": "Düşük yerçekimi · uzun atlayışlar", "Slippery grip · long drifts": "Kaygan yol · uzun driftler", "Lava edges · stay on the road": "Lav kenarları · yolda kal", "Track": "Pist", "Today's track": "Bugünün pisti", "Lava!": "Lav!", "I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART'ta {r} ile {k} pistini {t} sürede bitirdim! 🏎️ Geçebilir misin?" });
 const COLORS = [0x38d8ff, 0xff6fc8, 0x9b6bff, 0xffc23c, 0x5fe05a];
 // the five racers (the owner's CRYPTO LEGENDS key art); clip names as the Meshy rigs have them
 export const RACERS = [
@@ -125,10 +159,14 @@ export function createKart(ctx) {
   // K6: the dressing, effects, the settings, the race's show (freeze / slow motion / side camera / podium), the HUD's minimap and gaps
   let dress = null, rings = null, checker = null, opts = optsOf(null, ctx.coarse), gasLatch = false, tiltV = 0, slowT = 0, cutAt = -99, freezeUntil = 0, seqTok = 0, pod = null, podCam = null, cineT = 0, cineSide = 1, cineDone = false, finalLap = false, droneOn = false, lightsOff = 0, scrAt = 0, flagAt = 0, mapFor = null, mapPath = null, mapBox = null, passes = 0, tricks = 0, forcePhoto = false, holdK6 = false, keysEl = null, lastGaps = null, k6log = [];
   // K3: the item boxes, the flying / lying items (pools, made once a visit), the HUD's slot, a log for the browser test
+  // K5: the track picked (tid → TD), its scene pieces (tg, rebuilt on a change), a token for its async loads
+  let tid = "nexus", TD = TRACKS.nexus, tg = null, trackTok = 0, lavaTex = null, lavaAt = 0, ownTrack = "nexus";
   let boxes = null, iPool = null, iOrd = [], slotShown = "", rollIc = -1, meItems = true, itemLog = { box: 0, used: {}, hits: 0, spins: 0, spinReact: 0, blocked: 0, spinClips: [] };
   const NOINP = Object.freeze({ steer: 0, gas: 0, brake: 0, drift: 0, boost: 0, trick: false }), BRAKEINP = Object.freeze({ steer: 0, gas: 0, brake: 1, drift: 0, boost: 0, trick: false });
   try { opts = optsOf(localStorage.getItem(OPTS), ctx.coarse); } catch { /* the defaults */ }
   try { const m0 = localStorage.getItem(MODE); if (["race", "ta", "daily"].includes(m0)) mode = m0; } catch { /* the default */ }
+  try { const t0 = localStorage.getItem(TRACK); if (TRACKS[t0]) ownTrack = t0; } catch { /* the Nexus */ }
+  const wantTrack = () => (mode === "daily" && TRACKS[daily.track] ? daily.track : ownTrack);
   const signed = () => !!(ctx.sess && ctx.sess()), active = () => (mode === "ta" ? karts.filter((k) => k.me) : karts);
   const V = (x, y, z) => new THREE.Vector3(x, y, z), tmp = V(0, 0, 0), tmp2 = V(0, 0, 0), gridC = V(0, 0, 0);
   const sit = (id) => { try { return ctx.makeHero(id); } catch { return Promise.resolve(null); } };
@@ -161,7 +199,7 @@ export function createKart(ctx) {
 
   // ---------- the track: a closed Catmull-Rom spline sampled into a table (position, right, distance) ----------
   function buildTrack(flip) {
-    const P = TRACK_PTS.map(([x, z]) => V(flip ? -x : x, 0, z));
+    const P = TD.pts.map(([x, z]) => V(flip ? -x : x, 0, z));
     const curve = new THREE.CatmullRomCurve3(P, true, "centripetal"), N = 900, pts = curve.getSpacedPoints(N);
     const S = [], len = curve.getLength(); for (let i = 0; i < N; i++) { const p = pts[i], q = pts[(i + 1) % N], t = q.clone().sub(p).normalize(); S.push({ p, t, r: V(-t.z, 0, t.x), s: (i / N) * len }); }
     return { S, N, len, curve };
@@ -182,35 +220,72 @@ export function createKart(ctx) {
     scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1638); scene.fog = new THREE.Fog(0x0b1638, 120, ctx.low ? 320 : 520);
     cam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.5, 900);
     hemi = new THREE.HemisphereLight(0x9fd8ff, 0x1a2244, 1.25); scene.add(hemi); sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(80, 140, 40); scene.add(sun);
-    tracks = [buildTrack(false), buildTrack(true)]; track = tracks[0]; world = new THREE.Group(); scene.add(world); // (the pieces are built on the plain track; a mirror race flips `world` and drives on tracks[1])
+    world = new THREE.Group(); scene.add(world); // (the track's pieces sit in `world`: a mirror race flips it and drives on tracks[1])
     nightLight = new THREE.PointLight(0xbfe8ff, 0, 34, 1.6); scene.add(nightLight); // (the night rule's headlight: always there, dark by day, so no shader changes at the start)
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshLambertMaterial({ color: 0x173a3a })); ground.rotation.x = -Math.PI / 2; ground.position.set(20, -0.05, 110); world.add(ground);
-    const grid = new THREE.GridHelper(1000, 100, 0x2ee0b0, 0x1f5a5a); grid.position.set(20, 0, 110); grid.material.transparent = true; grid.material.opacity = 0.18; world.add(grid);
-    const rt = roadTex(); rt.repeat.set(1, 1); const road = ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt })); world.add(road);
-    const ct = curbTex(); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) world.add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
+    setTrack(wantTrack());
+  }
+  /// K5: build (or rebuild) the picked track's pieces in their own group; the last track's are let go (its geometry, materials, textures)
+  function setTrack(id) {
+    tid = TRACKS[id] ? id : "nexus"; TD = TRACKS[tid]; const LK = TD.look, tok = ++trackTok;
+    if (tg) { world.remove(tg); tg.traverse((o) => { if (o.geometry) o.geometry.dispose(); const m = o.material; if (m) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } }); }
+    tg = new THREE.Group(); world.add(tg); dress = null; skyCyl = null; lavaTex = null; mapFor = null;
+    tracks = [buildTrack(false), buildTrack(true)]; track = tracks[0];
+    scene.background.setHex(LK.bg); scene.fog.color.setHex(LK.bg); hemi.color.setHex(LK.hemi[0]); hemi.groundColor.setHex(LK.hemi[1]);
+    const [cx, cz] = TD.c, add = (m) => { tg.add(m); return m; };
+    const ground = add(new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshLambertMaterial({ color: LK.ground }))); ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -0.05, cz);
+    const grid = add(new THREE.GridHelper(1000, 100, LK.grid, LK.grid)); grid.position.set(cx, 0, cz); grid.material.transparent = true; grid.material.opacity = LK.gridO;
+    const rt = roadTex(); rt.repeat.set(1, 1); const road = add(ribbon(-ROAD / 2, ROAD / 2, 0.02, new THREE.MeshLambertMaterial({ map: rt })));
+    const ct = curbTex(); for (const [a, b] of [[-ROAD / 2 - 1.2, -ROAD / 2], [ROAD / 2, ROAD / 2 + 1.2]]) add(ribbon(a, b, 0.04, new THREE.MeshLambertMaterial({ map: ct })));
+    // K5: the strip between the curb and the wall — moon dust, snow, or (Magma Run) flowing lava that slows and bounces you
+    if (LK.edge === -1) { lavaTex = lavaTexOf(); const lm = new THREE.MeshBasicMaterial({ map: lavaTex }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, lm)); }
+    else if (LK.edge) { const em = new THREE.MeshLambertMaterial({ color: LK.edge }); for (const [a, b] of [[-WALL - 0.6, -ROAD / 2 - 1.2], [ROAD / 2 + 1.2, WALL + 0.6]]) add(ribbon(a, b, 0.03, em)); }
     // the walls: low glowing rails
-    const railM = new THREE.MeshBasicMaterial({ color: 0x38d8ff, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
-    for (const w of [-WALL, WALL]) { const m = ribbon(w, w + 0.01, 0, railM); const g = m.geometry, p = g.attributes.position; for (let i = 0; i < p.count; i++) if (i % 2) p.setY(i, 1.1); p.needsUpdate = true; world.add(m); }
+    const railM = new THREE.MeshBasicMaterial({ color: LK.rail, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+    for (const w of [-WALL, WALL]) { const m = ribbon(w, w + 0.01, 0, railM); const g = m.geometry, p = g.attributes.position; for (let i = 0; i < p.count; i++) if (i % 2) p.setY(i, 1.1); p.needsUpdate = true; add(m); }
     // neon arches every ~60 m (one InstancedMesh), the start gantry, boost pads
-    const archN = Math.floor(track.len / 60), arch = new THREE.InstancedMesh(new THREE.TorusGeometry(ROAD / 2 + 2, 0.35, 6, 32, Math.PI), new THREE.MeshBasicMaterial({ color: 0x2ee0b0 }), archN), o = new THREE.Object3D();
-    for (let k = 0; k < archN; k++) { const s = track.S[Math.floor((k / archN) * track.N)]; o.position.copy(s.p); o.lookAt(tmp.copy(s.p).add(s.t)); o.updateMatrix(); arch.setMatrixAt(k, o.matrix); arch.setColorAt(k, new THREE.Color(k % 2 ? 0x2ee0b0 : 0xff6fc8)); }
-    world.add(arch);
+    const archN = Math.floor(track.len / 60), arch = new THREE.InstancedMesh(new THREE.TorusGeometry(ROAD / 2 + 2, 0.35, 6, 32, Math.PI), new THREE.MeshBasicMaterial({ color: 0xffffff }), archN), o = new THREE.Object3D();
+    for (let k = 0; k < archN; k++) { const s = track.S[Math.floor((k / archN) * track.N)]; o.position.copy(s.p); o.lookAt(tmp.copy(s.p).add(s.t)); o.updateMatrix(); arch.setMatrixAt(k, o.matrix); arch.setColorAt(k, new THREE.Color(LK.arch[k % 2])); }
+    add(arch);
     const s0 = track.S[0], gantry = new THREE.Group(); for (const w of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 7, 0.8), new THREE.MeshLambertMaterial({ color: 0x1b2440 })); post.position.set(w * (ROAD / 2 + 1.5), 3.5, 0); gantry.add(post); }
     const bar = new THREE.Mesh(new THREE.BoxGeometry(ROAD + 4, 1.4, 0.6), new THREE.MeshBasicMaterial({ color: 0xffc23c })); bar.position.y = 7; gantry.add(bar);
     const chk = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, 2), new THREE.MeshBasicMaterial({ map: (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 16; const g = c.getContext("2d"); for (let x = 0; x < 16; x++) for (let y = 0; y < 2; y++) { g.fillStyle = (x + y) % 2 ? "#fff" : "#111"; g.fillRect(x * 8, y * 8, 8, 8); } const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; return t; })() }));
-    chk.rotation.x = -Math.PI / 2; chk.position.y = 0.05; gantry.add(chk); gantry.position.copy(s0.p); gantry.lookAt(tmp.copy(s0.p).add(s0.t)); world.add(gantry);
-    track.pads = [180, 420, 650].map((i) => { const s = track.S[i], m = new THREE.Mesh(new THREE.PlaneGeometry(5, 7), new THREE.MeshBasicMaterial({ color: 0xffc23c, transparent: true, opacity: 0.85 })); m.rotation.x = -Math.PI / 2; m.position.copy(s.p).addScaledVector(s.r, (i % 2 ? 3 : -3)).setY(0.06); m.rotation.z = Math.atan2(s.t.x, s.t.z) + Math.PI; world.add(m); return { i, lat: i % 2 ? 3 : -3, m }; });
-    // K6: grandstands, flags, the standings screen, the tunnel, more arches, the ramps, the start lights (world-kart-dress.js)
-    try { dress = makeDress(THREE, track, { WALL, ROAD, few: !!(ctx.low || ctx.coarse), low: !!ctx.low }); world.add(dress.g); dress.lights.set(0); glbSwap(); } catch (e) { dress = null; console.warn("kart dress:", e && e.message); }
-    // a skyline of glowing towers round the circuit (instanced, cheap)
-    const towers = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x24305a, emissive: 0x1a2a6a }), ctx.low ? 40 : 90);
-    for (let k = 0; k < towers.count; k++) { const a = (k / towers.count) * Math.PI * 2, r = 320 + (k * 37) % 120, h = 20 + (k * 53) % 70; o.position.set(20 + Math.cos(a) * r, h / 2, 110 + Math.sin(a) * r); o.rotation.set(0, a, 0); o.scale.set(10 + (k % 5) * 3, h, 10 + (k % 3) * 4); o.updateMatrix(); towers.setMatrixAt(k, o.matrix); }
-    world.add(towers);
-    // the sky: Meshy's neon city round the circuit on a tall open cylinder
-    try { const sky = new THREE.TextureLoader().load("/images/kart/sky.webp"); sky.colorSpace = THREE.SRGBColorSpace; sky.wrapS = THREE.RepeatWrapping; sky.repeat.set(3, 1);
-      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(700, 700, 420, 40, 1, true), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false, depthWrite: false })); cyl.position.set(20, 150, 110); world.add(cyl); skyCyl = cyl; } catch { /* the plain night colour */ }
-    try { const rd = new THREE.TextureLoader().load("/images/kart/road.webp", () => { road.material.map = rd; road.material.needsUpdate = true; }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = rd.wrapT = THREE.RepeatWrapping; rd.repeat.set(2, 1); rd.anisotropy = 4; } catch { /* the drawn road */ }
-    if (!ctx.low) props(arch, gantry, towers).catch((e) => console.warn("kart props:", e && e.message));
+    chk.rotation.x = -Math.PI / 2; chk.position.y = 0.05; gantry.add(chk); gantry.position.copy(s0.p); gantry.lookAt(tmp.copy(s0.p).add(s0.t)); add(gantry);
+    const padM = new THREE.MeshBasicMaterial({ color: 0xffc23c, transparent: true, opacity: 0.85 }), padG = new THREE.PlaneGeometry(5, 7);
+    track.pads = TD.pads.map((i) => { const s = track.S[i], m = new THREE.Mesh(padG, padM); m.rotation.x = -Math.PI / 2; m.position.copy(s.p).addScaledVector(s.r, (i % 2 ? 3 : -3)).setY(0.06); m.rotation.z = Math.atan2(s.t.x, s.t.z) + Math.PI; add(m); return { i, lat: i % 2 ? 3 : -3, m }; });
+    // K6: grandstands, flags, the standings screen, the tunnel, more arches, the ramps, the start lights (world-kart-dress.js) — K5: in this track's places
+    try { dress = makeDress(THREE, track, { WALL, ROAD, few: !!(ctx.low || ctx.coarse), low: !!ctx.low, stands: TD.stands, tunnel: TD.tunnel, ramps: TD.ramps, screen: TD.screen, c: TD.c }); add(dress.g); dress.lights.set(0); glbSwap(); } catch (e) { dress = null; console.warn("kart dress:", e && e.message); }
+    // the Nexus: a skyline of glowing towers round the circuit (instanced, cheap); the other tracks: their two Meshy props
+    let towers = null;
+    if (LK.skyline) { towers = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x24305a, emissive: 0x1a2a6a }), ctx.low ? 40 : 90);
+      for (let k = 0; k < towers.count; k++) { const a = (k / towers.count) * Math.PI * 2, r = 320 + (k * 37) % 120, h = 20 + (k * 53) % 70; o.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r); o.rotation.set(0, a, 0); o.scale.set(10 + (k % 5) * 3, h, 10 + (k % 3) * 4); o.updateMatrix(); towers.setMatrixAt(k, o.matrix); }
+      add(towers); }
+    // the sky: Meshy's panorama round the circuit on a tall open cylinder (the new tracks' are mirrored, so they wrap without a seam)
+    try { const sky = new THREE.TextureLoader().load(LK.sky + (ctx.ver || "")); sky.colorSpace = THREE.SRGBColorSpace; sky.wrapS = THREE.RepeatWrapping; sky.repeat.set(LK.skyRep, 1);
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(700, 700, 420, 40, 1, true), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false, depthWrite: false })); cyl.position.set(cx, 150, cz); add(cyl); skyCyl = cyl; } catch { /* the plain colour */ }
+    try { const rd = new THREE.TextureLoader().load(LK.road + (ctx.ver || ""), () => { if (tok !== trackTok) return; road.material.map = rd; road.material.needsUpdate = true; rt.dispose(); }); rd.colorSpace = THREE.SRGBColorSpace; rd.wrapS = THREE.RepeatWrapping; rd.wrapT = THREE.MirroredRepeatWrapping; rd.repeat.set(LK.roadRep, 1); rd.anisotropy = 4; } catch { /* the drawn road */ }
+    if (LK.skyline) { if (!ctx.low) props(arch, gantry, towers, tok).catch((e) => console.warn("kart props:", e && e.message)); }
+    else themeProps(tok).catch((e) => console.warn("kart props:", e && e.message));
+    if (rule) applyRule(); else applyLook();
+  }
+  /// the track's own colours (applyRule darkens them for the night rule)
+  function applyLook() { const night = rule === "night", bg = night ? 0x02040c : TD.look.bg; scene.background.setHex(bg); scene.fog.color.setHex(bg); }
+  /// Magma Run's lava strip: a glowing canvas that flows (its offset moves in tick)
+  function lavaTexOf() { const c = document.createElement("canvas"); c.width = 32; c.height = 128; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 32, 0); gr.addColorStop(0, "#ff4a10"); gr.addColorStop(0.5, "#ffb020"); gr.addColorStop(1, "#ff4a10"); g.fillStyle = gr; g.fillRect(0, 0, 32, 128);
+    for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(${90 + (i * 53) % 80},${10 + (i * 31) % 30},0,.55)`; g.beginPath(); g.ellipse((i * 13) % 32, (i * 41) % 128, 3 + (i % 4), 6 + (i % 5) * 2, 0, 0, 7); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; }
+  /// K5: a track's two Meshy props, each one InstancedMesh: tall ones along the road's sides, smaller ones scattered further out —
+  /// never on another stretch of road, the grandstands, the screen, the podium or the line; fewer on a phone, only the tall ones on low
+  async function themeProps(tok) {
+    const P0 = TD.look.props; if (!P0) return; const nA = ctx.low ? 8 : ctx.coarse ? 18 : 28, nB = ctx.low ? 0 : ctx.coarse ? 24 : 40;
+    const [A, B] = await Promise.all([load(P0.a).catch(() => null), nB ? load(P0.b).catch(() => null) : null]); if (tok !== trackTok || !scene || !tg) return;
+    const S = tracks[0].S, N = tracks[0].N, near = (a, b, n) => Math.min(Math.abs(a - b), N - Math.abs(a - b)) < n;
+    const busy = (i) => TD.stands.some(([a, b]) => i > a - 6 && i < b + 6) || near(i, TD.screen, 14) || near(i, TD.podium, 14) || near(i, 0, 12);
+    const clear = (x, z, m) => { for (let j = 0; j < N; j += 3) { const dx = S[j].p.x - x, dz = S[j].p.z - z; if (dx * dx + dz * dz < m * m) return false; } return true; };
+    const o = new THREE.Object3D(), put = (gl, spots, opts) => { if (!gl || !spots.length) return; for (const im of instOf(gl, spots.length, opts)) { spots.forEach(([x, z, yaw, k], n) => { o.position.set(x, 0, z); o.rotation.set(0, yaw, 0); o.scale.setScalar(k); o.updateMatrix(); im.setMatrixAt(n, o.matrix); }); im.frustumCulled = false; tg.add(im); } };
+    const sa = []; for (let k = 0; k < nA * 3 && sa.length < nA; k++) { const i = Math.floor(((k * 0.37 + 0.11) % 1) * N), sd = k % 2 ? 1 : -1, s = S[i], d = WALL + 3.5 + (k % 3) * 1.5; if (busy(i)) continue; const x = s.p.x + s.r.x * sd * d, z = s.p.z + s.r.z * sd * d; if (clear(x, z, WALL + 3)) sa.push([x, z, Math.atan2(s.t.x, s.t.z) + k, P0.ah * (0.8 + ((k * 7) % 5) * 0.1)]); }
+    const sb = []; for (let k = 0; k < nB * 4 && sb.length < nB; k++) { const i = Math.floor(((k * 0.6180339 + 0.05) % 1) * N), sd = (k * 5) % 3 ? 1 : -1, s = S[i], d = WALL + 8 + ((k * 37) % 50); if (busy(i)) continue; const x = s.p.x + s.r.x * sd * d, z = s.p.z + s.r.z * sd * d; if (clear(x, z, WALL + 5)) sb.push([x, z, k * 1.7, P0.bl * (0.7 + ((k * 13) % 7) * 0.15)]); }
+    put(A, sa, { h: 1 }); put(B, sb, { len: 1 });
+    load("boostpad").then((Bp) => { if (tok !== trackTok || !tg) return; for (const p of tracks[0].pads) { const g = fit(Bp.scene.clone(), { len: 6 }); g.position.copy(p.m.position).setY(0.02); g.rotation.y = p.m.rotation.z; tg.add(g); p.m.material.opacity = 0.35; } }).catch(() => { /* the drawn pads */ });
   }
   // K6's hook: a Meshy model listed in K6_GLB replaces the drawn start lights' frame / a ramp's wedge (the drawn lamps stay)
   function glbSwap() {
@@ -220,8 +295,8 @@ export function createKart(ctx) {
   }
   // one model → instanced copies (its fitted transform baked into the geometry)
   function instOf(gl, n, opts) { const w = fit(gl.scene, opts); w.updateMatrixWorld(true); const out = []; w.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone().applyMatrix4(o.matrixWorld); out.push(new THREE.InstancedMesh(g, o.material, n)); } }); return out; }
-  async function props(arch, gantry, towers) {
-    const [A, Tw, B] = await Promise.all(["arch", "tower", "boostpad"].map((f) => load(f).catch(() => null))); const G = null; /* (Meshy's truss arch stands on the line as the gantry too) */ if (!on && !scene) return;
+  async function props(arch, gantry, towers, tok) {
+    const [A, Tw, B] = await Promise.all(["arch", "tower", "boostpad"].map((f) => load(f).catch(() => null))); const G = null; /* (Meshy's truss arch stands on the line as the gantry too) */ if ((!on && !scene) || tok !== trackTok || !tg) return; const world = tg; /* (K5: into the track's own group) */
     const o = new THREE.Object3D();
     if (A) { const n = arch.count; A.scene.scale.z = 0.22; /* (Meshy's arch is as deep as it is wide: flattened along the road) */ const ms = instOf(A, n, { len: ROAD + 5 }); for (const im of ms) { for (let k = 0; k < n; k++) { arch.getMatrixAt(k, o.matrix); im.setMatrixAt(k, o.matrix); } world.add(im); } arch.visible = false; for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
     if (G) { const g = fit(G.scene, { len: ROAD + 6 }); g.position.copy(gantry.position); g.quaternion.copy(gantry.quaternion); world.add(g); for (const c of gantry.children) if (c.geometry && c.geometry.type === "BoxGeometry") c.visible = false; }
@@ -269,7 +344,7 @@ export function createKart(ctx) {
   async function makeRacer(i, heroId, isMe, racer) {
     const m = kartMesh(racer ? racer.color : COLORS[i % COLORS.length]), s = track.S[track.N - 6 - Math.floor(i / 2) * 7], lat = (i % 2 ? 3.6 : -3.6);
     const pos = s.p.clone().addScaledVector(s.r, lat), yaw = Math.atan2(s.t.x, s.t.z);
-    const k = { i, me: isMe, m, pos, yaw, vh: yaw, speed: 0, idx: track.N - 6 - Math.floor(i / 2) * 7, lap: 0, prog: 0, best: 0, drift: 0, driftDir: 0, charge: 0, boostT: 0, boostK: 0, nitro: 0, stall: 0, slip: 0, finish: 0, hero: null, lane: (i % 3 - 1) * 2.6, skill: 0.9 + ((i * 37) % 10) / 100, wob: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, tPrev: false, hopY: 0, st: 0, stV: 0, marks: new Float32Array(Math.ceil(((LAPS + 2) * 1100) / GAP_M)).fill(-1), mk: 0, pl: 0 };
+    const k = { i, me: isMe, m, pos, yaw, vh: yaw, speed: 0, idx: track.N - 6 - Math.floor(i / 2) * 7, lap: 0, prog: 0, best: 0, drift: 0, driftDir: 0, charge: 0, boostT: 0, boostK: 0, nitro: 0, stall: 0, slip: 0, finish: 0, hero: null, lane: (i % 3 - 1) * 2.6, skill: 0.9 + ((i * 37) % 10) / 100, wob: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, tPrev: false, hopY: 0, st: 0, stV: 0, marks: new Float32Array(Math.ceil(((LAPS + 2) * MAX_LEN) / GAP_M)).fill(-1), mk: 0, pl: 0 };
     m.g.position.copy(pos); m.g.rotation.y = yaw; scene.add(m.g); k.racer = racer || null;
     if (racer) { const b = await racerBody(racer); if (b) { for (const d of m.drawn) d.visible = false; m.g.add(b.kart); b.hero.obj.position.set(0, SEAT.y, SEAT.z); m.g.add(b.hero.obj); b.hero.play(CLIP.drive); k.hero = b.hero; k.kartObj = b.kart; return k; } }
     const h = await sit(heroId); if (h && h.obj) { h.obj.scale.multiplyScalar(0.78); h.obj.position.set(0, 0.62, -0.25); k.seat = [0, 0.62, -0.25]; m.g.add(h.obj); try { h.play("sit"); } catch { /* standing is fine */ } k.hero = h; }
@@ -288,7 +363,7 @@ export function createKart(ctx) {
   // ---------- the physics step (fixed 1/60 s) ----------
   function stepKart(k, inp, dt) {
     const offRoad = Math.abs(lateral(k.pos, k.idx)) > ROAD / 2 + 1.2; k.off = offRoad; const sp0 = k.speed;
-    let top = (k.boostT > 0 ? BOOST_TOP : TOP) * R.top * (offRoad && k.boostT <= 0 ? 0.55 : 1) * (k.me ? 1 : k.skill) * (k.slip > 1 ? 1.06 : 1);
+    let top = (k.boostT > 0 ? BOOST_TOP : TOP) * R.top * (offRoad && k.boostT <= 0 ? (TD.feel.lava ? 0.42 : 0.55) : 1) * (k.me ? 1 : k.skill) * (k.slip > 1 ? 1.06 : 1);
     if (k.stall > 0) { k.stall -= dt; top = 4; }
     if (k.magT > 0) top = Math.max(top, TOP * ITEM.magnet.top * R.top); if (k.spinT > 0) top = Math.min(top, 5); // (K3: the magnet pulls you up to TOP × 1.2 — under BOOST_TOP —; a spin-out crawls)
     if (inp.gas) k.speed += ACC * R.acc * dt * (k.speed > top ? -0.6 : 1); else k.speed -= DRAG * 18 * dt; // (1.7: off the gas the kart rolls down at ~6 m/s², was ~3: it felt like it kept going)
@@ -306,7 +381,7 @@ export function createKart(ctx) {
     if (rule === "nitro" && phase === "race") k.nitro = Math.min(2, k.nitro + dt * 0.05); // (the nitro rule: it fills by itself too)
     k.yaw -= turn * dt * Math.min(1, sp * 1.6 + 0.15);
     // the velocity's heading follows the kart's facing: tight on grip, loose in a drift
-    const grip = k.air ? 1 : k.drift ? 3.2 : offRoad ? 6 : 11; let dv = k.yaw - k.vh; dv = Math.atan2(Math.sin(dv), Math.cos(dv)); k.vh += dv * Math.min(1, grip * dt);
+    const grip = k.air ? 1 : (k.drift ? 3.2 : offRoad ? 6 : 11) * TD.feel.grip; /* (K5: Frost Drift's ice grips less — drifts carry) */ let dv = k.yaw - k.vh; dv = Math.atan2(Math.sin(dv), Math.cos(dv)); k.vh += dv * Math.min(1, grip * dt);
     if (inp.boost && k.nitro >= 1 && k.boostT <= 0.1) { k.nitro -= 1; boost(k, 1.6, 1, "Nitro!", 2); }
     k.pos.x += Math.sin(k.vh) * k.speed * dt; k.pos.z += Math.cos(k.vh) * k.speed * dt;
     k.idx = nearest(k.pos, k.idx); const s = track.S[k.idx], lat = lateral(k.pos, k.idx);
@@ -315,11 +390,12 @@ export function createKart(ctx) {
       if (edge > 0) { const road = Math.atan2(s.t.x, s.t.z), aim = road + Math.sign(lat) * 0.1; let dv = aim - k.yaw; dv = Math.atan2(Math.sin(dv), Math.cos(dv)); if (Math.abs(dv) < 1.4) { const f = Math.min(1, dt * 2.6 * Math.min(1, edge / 2.6)) * (k.drift ? 0.4 : 1); k.yaw += dv * f; k.vh += dv * f; } k.pos.addScaledVector(s.r, -Math.sign(lat) * Math.min(edge, 2.6) * 0.9 * dt); } }
     if (Math.abs(lat) > WALL) { // the wall: pushed back in, a bounce off it (harder the straighter you hit it), sparks, a thud and a buzz
       const side = Math.sign(lat), road = Math.atan2(s.t.x, s.t.z), into = Math.abs(Math.sin(k.vh - road)), hit = Math.min(1, into * 2.2 * (k.speed / TOP));
-      k.pos.addScaledVector(s.r, (Math.abs(lat) - WALL) * -side); k.speed *= into > 0.35 ? 0.72 : 0.9;
+      const lv = TD.feel.lava; k.pos.addScaledVector(s.r, (Math.abs(lat) - WALL + (lv ? 0.5 : 0)) * -side); k.speed *= lv ? (into > 0.35 ? 0.6 : 0.82) : into > 0.35 ? 0.72 : 0.9; /* (K5: Magma Run's lava edge throws you back harder) */
+      if (lv && k.me && clock - (k.lavaAt || -9) > 2) { k.lavaAt = clock; flash(T("Lava!")); if (fx) fx.burst(tmp2.copy(k.pos).addScaledVector(s.r, side * 1.2).setY(0.4), [0xff5a1a, 0xffb020, 0x2a1008], 14, 5, 5, 0.7); }
       if (into > 0.15) { k.vh = road + side * Math.min(0.12, 0.03 + into * 0.15); k.yaw = k.vh; }
       if (clock - (k.bumpAt || -9) > 0.25 && k.speed > 4) { k.bumpAt = clock; if (fx && (k.me || k.pos.distanceToSquared(me.pos) < 1600)) { const c = tmp2.copy(k.pos).addScaledVector(s.r, side * 0.9).setY(0.6); fx.burst(c, [0xffd36a, 0xff8a3a, 0xffffff], 6 + Math.round(hit * 10), 7, 3.5, 0.45); }
         if (k.me) { shake = 0.12 + hit * 0.45; buzz(Math.round(15 + hit * 45)); snd("kartBump", hit); } if (hit > 0.45) react(k, CLIP.lose, 1.1); } }
-    for (const p of tracks[0].pads) if (!k.air && Math.abs(k.idx - p.i) < 4 && Math.abs(lat - p.lat * mir) < 2.6 && k.boostT < 0.3) { boost(k, 0.9, 0.8, k.me ? "" : ""); if (rings && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) rings.at(k.pos, k.me ? 0xffc23c : 0x38d8ff); }
+    for (const p of tracks[0].pads || []) if (!k.air && Math.abs(k.idx - p.i) < 4 && Math.abs(lat - p.lat * mir) < 2.6 && k.boostT < 0.3) { boost(k, 0.9, 0.8, k.me ? "" : ""); if (rings && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) rings.at(k.pos, k.me ? 0xffc23c : 0x38d8ff); }
   }
   function boost(k, secs, kk, say, lv = 1) { k.boostT = Math.max(k.boostT, secs); k.boostK = kk; k.boostLv = lv;
     if (fx && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) { const b = at(k, 0, -1.8, tmp2); for (let j = 0; j < 8 + lv * 4; j++) { const a = (j / (8 + lv * 4)) * Math.PI * 2; fx.emit(b, Math.cos(a) * 4 - Math.sin(k.vh) * 6, 1 + Math.random(), Math.sin(a) * 4 - Math.cos(k.vh) * 6, SPARK[Math.max(1, lv)], 0.45); } }
@@ -327,16 +403,16 @@ export function createKart(ctx) {
   function hop(k) { k.hopY = 0.4; }
   function releaseDrift(k) { const lv = rule === "nodrift" ? 0 : lvOf(k.charge); /* (the nodrift rule: a drift gives no turbo) */ if (lv === 3) boost(k, 1.6, 1.2, "Ultra turbo!", 3); else if (lv === 2) boost(k, 1.15, 1, "Super turbo!", 2); else if (lv === 1) boost(k, 0.6, 0.6, "Mini turbo", 1); k.drift = 0; k.charge = 0; k.lv = 0; }
   // ---------- K6: the ramps, the air, tricks ----------
-  const GRAV = 21, TRICK_DUR = 0.55;
+  const GRAV = 21, TRICK_DUR = 0.55, grav = () => TD.feel.grav || GRAV; /* (K5: Lunar Loop's low gravity — longer airtime off a ramp) */
   function air(k, inp, s, lat, dt) {
     let onR = false; const along = s.s + (k.pos.x - s.p.x) * s.t.x + (k.pos.z - s.p.z) * s.t.z;
-    for (const r of RAMPS) { let d = along - tracks[0].S[r.i].s; if (d < -track.len / 2) d += track.len; if (d > track.len / 2) d -= track.len;
+    for (const r of TD.ramps) { let d = along - tracks[0].S[r.i].s; if (d < -track.len / 2) d += track.len; if (d > track.len / 2) d -= track.len;
       if (d >= 0 && d < RAMP.len && Math.abs(lat - r.lat * mir) < RAMP.w / 2) { onR = true; if (!k.air) k.y = (d / RAMP.len) * RAMP.h; } }
     if (!k.air && !onR && k.y > 0.02) { // off the lip (or off its side): airborne
       k.air = 1; k.vy = k.onR && k.speed > 6 ? (k.speed * RAMP.h) / RAMP.len + 1.6 : 0; k.trickT = -1; k.tPrev = true; if (k.drift) releaseDrift(k);
       if ((!k.me || autoMe) && k.vy > 3 && (autoMe || Math.random() < 0.45)) k.trickAt = clock + 0.08; } // (the computer racers trick sometimes; the tests' autopilot always)
     k.onR = onR;
-    if (k.air) { k.vy -= GRAV * dt; k.y += k.vy * dt; const want = !!(inp.drift || inp.trick);
+    if (k.air) { k.vy -= grav() * dt; k.y += k.vy * dt; const want = !!(inp.drift || inp.trick);
       if (k.trickT < 0 && k.y > 0.4 && ((want && !k.tPrev) || (k.trickAt && clock >= k.trickAt))) startTrick(k);
       if (k.trickT >= 0) k.trickT += dt;
       if (k.y <= 0) land(k); }
@@ -357,7 +433,7 @@ export function createKart(ctx) {
   function iconTex(id) { const t = new THREE.TextureLoader().load(icon(id)); t.colorSpace = THREE.SRGBColorSpace; return t; }
   /// the boxes: one InstancedMesh (Meshy's box once it's in, a drawn glass cube till then), rows across the road
   function makeBoxes() {
-    const n = ITEM.rows.length * ITEM.per, c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createLinearGradient(0, 0, 64, 64);
+    const n = 3 * ITEM.per /* (three rows on every track) */, c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), gr = x.createLinearGradient(0, 0, 64, 64);
     gr.addColorStop(0, "#5ff0ff"); gr.addColorStop(1, "#b46bff"); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); x.fillStyle = "#fff"; x.font = "900 44px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("?", 32, 35);
     const qt = new THREE.CanvasTexture(c); qt.colorSpace = THREE.SRGBColorSpace;
     const drawn = new THREE.InstancedMesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshBasicMaterial({ map: qt, transparent: true, opacity: 0.88 }), n); drawn.frustumCulled = false; scene.add(drawn);
@@ -369,7 +445,7 @@ export function createKart(ctx) {
   }
   function placeBoxes() {
     if (!boxes) return; const on0 = itemsNow(); let n = 0;
-    for (const ri of ITEM.rows) { const s = track.S[ri]; for (let j = 0; j < ITEM.per; j++, n++) { const lat = (j - (ITEM.per - 1) / 2) * ITEM.gap; boxes.pos[n * 2] = s.p.x + s.r.x * lat; boxes.pos[n * 2 + 1] = s.p.z + s.r.z * lat; boxes.t[n] = 0; boxes.grow[n] = 1; } }
+    for (const ri of TD.rows) { const s = track.S[ri]; for (let j = 0; j < ITEM.per; j++, n++) { const lat = (j - (ITEM.per - 1) / 2) * ITEM.gap; boxes.pos[n * 2] = s.p.x + s.r.x * lat; boxes.pos[n * 2 + 1] = s.p.z + s.r.z * lat; boxes.t[n] = 0; boxes.grow[n] = 1; } }
     for (const im of boxes.ims) im.visible = on0;
   }
   function drawBoxes(dt) {
@@ -401,7 +477,7 @@ export function createKart(ctx) {
   /// a box: pops, comes back in ITEM.respawn s; an empty hand gets an item (weighted by place)
   function boxStep(k) {
     if (!boxes || k.air) return; const N = track.N;
-    for (let r = 0; r < ITEM.rows.length; r++) { const d = (k.idx - ITEM.rows[r] + N) % N; if (d > 5 && d < N - 5) continue;
+    for (let r = 0; r < TD.rows.length; r++) { const d = (k.idx - TD.rows[r] + N) % N; if (d > 5 && d < N - 5) continue;
       for (let j = 0; j < ITEM.per; j++) { const i = r * ITEM.per + j; if (boxes.t[i] > 0) continue; const dx = k.pos.x - boxes.pos[i * 2], dz = k.pos.z - boxes.pos[i * 2 + 1]; if (dx * dx + dz * dz > 1.9 * 1.9) continue;
         boxes.t[i] = ITEM.respawn; itemLog.box++;
         if (fx && near(k)) fx.burst(tmp2.set(boxes.pos[i * 2], 1.2, boxes.pos[i * 2 + 1]), [0x5ff0ff, 0xb46bff, 0xffffff, 0xffc23c], 14, 7, 4, 0.5);
@@ -502,6 +578,7 @@ export function createKart(ctx) {
   function tick(dt, t) {
     if (!on || performance.now() < freezeUntil) return; /* (K6: the photo finish's freeze-frame — nothing moves, the scene stays drawn) */ dt = Math.min(dt, 0.1); if (realT && phase === "race") dt = Math.max(dt, Math.min(1, (performance.now() - goWall) / 1000 - clock - 0.3)); /* (realT: the browser test catches the race up to the wall clock on a slow machine, never past it) */
     const rdt = dt; if (slowT > 0) { slowT -= dt; dt *= 0.3; } // (K6: taking 1st — a short slow motion)
+    if (lavaTex) lavaTex.offset.y -= dt * 0.18; // (K5: Magma Run's lava flows)
     if (phase === "pick") { pickCam(dt); for (const k of karts) if (k.hero && k.hero.update) k.hero.update(dt, t); return; }
     if (phase === "count") { cd -= dt; paintCount(); if (cd <= 0) { phase = "race"; clock = 0; goWall = performance.now(); lightsOff = 2.2; for (const k of karts) if (!k.me) k.speed = 6; const inp = input(); if (inp.gas && me.startSpeed > 0.9 && me.startSpeed < 1.6) boost(me, 1.0, 0.9, "Start boost!"); else if (me.startSpeed >= 1.6) { me.stall = 0.7; flash(T("Stalled!")); snd("kartStall"); buzz(60); if (fx) for (let j = 0; j < 14; j++) fx.emit(at(me, (Math.random() - 0.5) * 0.8, -1.7, tmp2), (Math.random() - 0.5) * 2, 1.5 + Math.random(), (Math.random() - 0.5) * 2, 0x777c88, 0.9); } if (opts.autogas && ctx.coarse) { gasLatch = true; paintGas(); } } else { const inp = input(); me.startSpeed = inp.gas ? me.startSpeed + dt : 0; } }
     if (phase === "race" || phase === "done") {
@@ -603,7 +680,7 @@ export function createKart(ctx) {
   function paintGaps(ord0) { const el = ui.querySelector(".wk-gap"), [a, b] = el.children;
     if (phase === "race" && mode !== "ta" && !me.finish) { const i = ord0.indexOf(me), A = ord0[i - 1], B = ord0[i + 1], ga = A ? gapTo(A.marks, me.prog, clock) : null, gb = B ? gapTo(me.marks, B.prog, clock) : null; lastGaps = { a: ga, b: gb };
       a.innerHTML = A && ga != null ? `▲ ${esc(A.racer ? A.racer.name : "")} <i>−${ga.toFixed(1)} s</i>` : ""; b.innerHTML = B && gb != null ? `▼ ${esc(B.racer ? B.racer.name : "")} <i>+${gb.toFixed(1)} s</i>` : "";
-      if (!ctx.low && !ctx.reduce && !cineDone && me.lap === LAPS && me.idx > 770 && me.idx < 880 && ((ga != null && ga < 1) || (gb != null && gb < 1))) { cineDone = true; cineT = 1.5; const s0 = track.S[me.idx]; cineSide = (Math.cos(me.yaw) * s0.r.x - Math.sin(me.yaw) * s0.r.z) * lateral(me.pos, me.idx) > 0 ? -1 : 1; } } // (the last corner of the last lap, someone within 1 s: a side camera)
+      if (!ctx.low && !ctx.reduce && !cineDone && me.lap === LAPS && me.idx > TD.last[0] + 10 && me.idx < TD.last[1] - 10 && ((ga != null && ga < 1) || (gb != null && gb < 1))) { cineDone = true; cineT = 1.5; const s0 = track.S[me.idx]; cineSide = (Math.cos(me.yaw) * s0.r.x - Math.sin(me.yaw) * s0.r.z) * lateral(me.pos, me.idx) > 0 ? -1 : 1; } } // (the last corner of the last lap, someone within 1 s: a side camera)
     else if (a.textContent || b.textContent) a.textContent = b.textContent = ""; }
   /// the minimap: the track's outline once per track, then the racers as dots in their colours (you bigger), 10 times a second
   function drawMap() { const cv = ui.querySelector(".wk-map"); if (!cv || !track) return; const x = cv.getContext("2d"), W = cv.width;
@@ -645,7 +722,7 @@ export function createKart(ctx) {
   function applyRule(plain) {
     rule = !plain && mode === "daily" ? daily.rule : ""; mir = rule === "mirror" ? -1 : 1; track = tracks[mir < 0 ? 1 : 0]; world.scale.x = mir;
     R = rule === "turbo" ? { top: 1.15, acc: 1.2 } : { top: 1, acc: 1 };
-    const night = rule === "night", bg = night ? 0x02040c : 0x0b1638;
+    const night = rule === "night", bg = night ? 0x02040c : TD.look.bg;
     scene.background.setHex(bg); scene.fog.color.setHex(bg); scene.fog.far = night ? 210 : ctx.low ? 320 : 520;
     if (hemi) hemi.intensity = night ? 0.3 : 1.25;
     if (sun) sun.intensity = night ? 0.15 : 1.6;
@@ -655,7 +732,7 @@ export function createKart(ctx) {
     if (dress && dress.screen) dress.screen.mesh.scale.x = mir; // (K6: the standings screen reads the right way round in a mirrored race)
   }
   const ghostOf = (gs) => { const a = ghostDec(gs); return a.length > 5 ? a : null; };
-  function localGhost() { try { const j = JSON.parse(localStorage.getItem(GHOST + "nexus") || "null"); return j && j.g && j.t > 0 ? j : null; } catch { return null; } }
+  function localGhost() { try { const j = JSON.parse(localStorage.getItem(GHOST + tid) || "null"); return j && j.g && j.t > 0 ? j : null; } catch { return null; } }
   function makeGhost(data, tint, label) {
     const pts = ghostOf(data.g); if (!pts || !scene) return null;
     const src = karts.find((k) => k.racer && k.racer.id === data.racer) || karts.find((k) => k.me), col = new THREE.Color(tint);
@@ -672,9 +749,9 @@ export function createKart(ctx) {
   let ghostTok = 0;
   async function loadGhosts() {
     clearGhosts(); if (mode !== "ta") return; const tok = ++ghostTok, s = ctx.sess && ctx.sess(), mine = localGhost();
-    const get = (q) => fetch("/api/social?world=kart-ghost&track=nexus&" + q, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const [srv, top] = await Promise.all([s ? get("who=me&wallet=" + s.wallet) : null, get("who=top")]);
-    if (tok !== ghostTok || !on || mode !== "ta") return;
+    const get = (q) => fetch("/api/social?world=kart-ghost&track=" + tid + "&" + q, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const tr0 = tid, [srv, top] = await Promise.all([s ? get("who=me&wallet=" + s.wallet) : null, get("who=top")]);
+    if (tok !== ghostTok || !on || mode !== "ta" || tr0 !== tid) return;
     const best = [mine, srv].filter((x) => x && x.g).sort((a, b) => a.t - b.t)[0], add = (d, tint, label) => { const g = d && makeGhost(d, tint, label); if (g) ghosts.push(g); };
     add(best, 0x38d8ff, T("Your best")); if (top && top.g && !(best && Math.abs(top.t - best.t) < 0.002)) add(top, 0xffc23c, T("Week #1"));
     paintGhosts();
@@ -684,7 +761,7 @@ export function createKart(ctx) {
   /// signed in: the race opened on the server as the countdown starts (its clock checks the end); a failure is said, the race goes on
   function raceStart() {
     raceP = null; const s = ctx.post && ctx.sess ? ctx.sess() : null; if (!s) return;
-    raceP = ctx.post({ action: "world-kart-start", ...s, track: "nexus", mode, racer: me && me.racer ? me.racer.id : "" })
+    raceP = ctx.post({ action: "world-kart-start", ...s, track: tid, mode, racer: me && me.racer ? me.racer.id : "" })
       .then((r) => { if (r && r.ok && r.j && r.j.raceId) return r.j; throw new Error((r && r.j && r.j.error) || "start"); })
       .catch((e) => { console.warn("kart start:", e && e.message); say(T("Couldn't reach the server — this race won't count")); return null; });
   }
@@ -697,20 +774,20 @@ export function createKart(ctx) {
   function done() {
     phase = "done"; flash(T("Finish!")); const pl = place(), time = me.finish, marks = [0]; for (let n = 2; n <= LAPS + 1; n++) marks.push(lapAt[n] != null ? lapAt[n] : time);
     const laps = marks.slice(1).map((x, i) => x - marks[i]), g = ghostEnc(rec), ranked = mode !== "daily", racer = me.racer || RACERS[0];
-    let best = 0; try { best = +localStorage.getItem(BEST) || 0; } catch { best = 0; } const nb = ranked && (!best || time < best); if (nb) try { localStorage.setItem(BEST, String(time)); } catch { /* private */ }
-    if (ranked) { const lg = localGhost(); if (!lg || time < lg.t) try { localStorage.setItem(GHOST + "nexus", JSON.stringify({ t: +time.toFixed(3), g, racer: racer.id })); } catch { /* private: no ghost kept */ } }
+    const bk = tid === "nexus" ? BEST : BEST + "." + tid; /* (K5: a best per track; the Nexus keeps its old key) */ let best = 0; try { best = +localStorage.getItem(bk) || 0; } catch { best = 0; } const nb = ranked && (!best || time < best); if (nb) try { localStorage.setItem(bk, String(time)); } catch { /* private */ }
+    if (ranked) { const lg = localGhost(); if (!lg || time < lg.t) try { localStorage.setItem(GHOST + tid, JSON.stringify({ t: +time.toFixed(3), g, racer: racer.id })); } catch { /* private: no ghost kept */ } }
     const endP = signed() && raceP ? raceEnd({ pl, time, laps, g }) : Promise.resolve(null);
     lastRes = { pl, time, laps, mode, rule };
     const card = () => { if (!on || !ui) return; const c = document.createElement("div"); c.className = "wk-res";
-      const head = mode === "daily" ? `${T("Daily challenge")} · ${T(RULE_NAME[rule] || "")}` : `${T("ARCIRCLE Nexus Circuit")} · ${T(MODE_NAME[mode])}`, fast = Math.min(...laps);
+      const head = mode === "daily" ? `${T("Daily challenge")} · ${T(RULE_NAME[rule] || "")} · ${T(TD.name)}` : `${T(TD.name)} · ${T(MODE_NAME[mode])}`, fast = Math.min(...laps);
       c.innerHTML = `<div class="wk-res-in"><small>${esc(head)}</small><h2>${esc(mode === "ta" ? fmt(time) : ord(pl))}</h2><p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${nb ? `<em>${esc(T("New best!"))}</em> ` : ""}<i class="wk-best">${fmt(nb ? time : best || time)}</i></b></p>
         <ol class="wk-laps">${laps.map((x, i) => `<li class="${x === fast ? "fast" : ""}"><span>${esc(T("Lap"))} ${i + 1}</span><b>${fmt(x)}</b></li>`).join("")}</ol>
         <section class="wk-arcl">${signed() ? `<b>${esc(T("Saving…"))}</b>` : `<b>${esc(T("Sign in to earn ARCL"))}</b><small>${esc(T("Guests race for fun: no ARCL, no board"))}</small>`}</section><section class="wk-ach" hidden></section>
         ${mode === "ta" ? "" : standings()}<section class="wk-week"></section>
         <div class="wk-res-btns"><button type="button" class="wk-go" data-again>${esc(T("Race again"))}</button>${ctx.share ? `<button type="button" class="wk-out" data-share>📸 ${esc(T("Share"))}</button>` : ""}<button type="button" class="wk-out" data-leave>${esc(T("Leave"))}</button></div><button type="button" class="wk-chg" data-modes>${esc(T("Change racer or mode"))}</button></div>`;
       ui.appendChild(c); c.querySelector("[data-modes]").onclick = () => { c.remove(); if (eng) { eng.stop(); eng = null; } toPick(); }; if (eng) { eng.stop(); eng = null; } c.querySelector("[data-again]").onclick = () => { c.remove(); reset(); }; if (ctx.Snd && ctx.Snd.win) ctx.Snd.win();
-      const sh = c.querySelector("[data-share]"); if (sh) sh.onclick = () => { try { ctx.share({ kind: "kart", tag: "ARCIRCLE KART · " + T(mode === "daily" ? "Daily" : MODE_NAME[mode]).toUpperCase(), title: mode === "ta" ? fmt(time) : ord(pl), sub: `${racer.name} · ${T("ARCIRCLE Nexus Circuit")}`, art: "/images/games/kart-art.webp", cover: true, accent: pl === 1 ? "#ffc23c" : "#38d8ff",
-        rows: [[T("Time"), fmt(time), "⏱️"], [T("Best lap"), fmt(fast), "⚡"], [T("Best"), fmt(nb ? time : best || time), "🏁"], ...(mode === "ta" ? [] : [[T("Place"), ord(pl), "🏆"]])], text: T("I raced the ARCIRCLE Nexus Circuit in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?", { t: fmt(time), r: racer.name }) }); } catch (e) { console.warn("kart share:", e && e.message); } };
+      const sh = c.querySelector("[data-share]"); if (sh) sh.onclick = () => { try { ctx.share({ kind: "kart", tag: "ARCIRCLE KART · " + T(mode === "daily" ? "Daily" : MODE_NAME[mode]).toUpperCase(), title: mode === "ta" ? fmt(time) : ord(pl), sub: `${racer.name} · ${T(TD.name)}`, art: "/images/games/kart-art.webp", cover: true, accent: pl === 1 ? "#ffc23c" : "#38d8ff",
+        rows: [[T("Time"), fmt(time), "⏱️"], [T("Best lap"), fmt(fast), "⚡"], [T("Best"), fmt(nb ? time : best || time), "🏁"], ...(mode === "ta" ? [] : [[T("Place"), ord(pl), "🏆"]])], text: T("I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?", { k: T(TD.name), t: fmt(time), r: racer.name }) }); } catch (e) { console.warn("kart share:", e && e.message); } };
       endP.then((j) => paintReward(c, j), (e) => { console.warn("kart end:", e && e.message); say(T("Couldn't save the race — no ARCL this time")); paintReward(c, null, true); });
     };
     finishSeq(card);
@@ -727,7 +804,7 @@ export function createKart(ctx) {
   function podiumStart(tok, card) {
     if (!pod) { let lt = null; try { lt = new THREE.TextureLoader().load("/images/kart/logo.webp"); lt.colorSpace = THREE.SRGBColorSpace; } catch { lt = null; } pod = makePodium(THREE, lt); scene.add(pod.g);
       if (K6_GLB.includes("podium") && !ctx.low) load("podium").then((gl) => { if (!pod) return; pod.g.add(fit(gl.scene, { len: 7.2 })); for (const c of pod.g.children) if (c.userData.drawn) c.visible = false; }).catch(() => { /* the drawn podium */ }); } // (the hook for raw/kart-k2/models/podium.glb once packed)
-    const S0 = track.S[PODIUM_I], side = -outSide(track.S, PODIUM_I, OUTSIDE[0] * mir), c = S0.p.clone().addScaledVector(S0.r, side * (WALL + 9)), f = S0.r.clone().multiplyScalar(-side); // (on the infield; f: from the podium toward the road)
+    const S0 = track.S[TD.podium], side = -outSide(track.S, TD.podium, TD.c[0] * mir, TD.c[1]), c = S0.p.clone().addScaledVector(S0.r, side * (WALL + 9)), f = S0.r.clone().multiplyScalar(-side); // (on the infield; f: from the podium toward the road)
     pod.g.position.copy(c); pod.g.rotation.set(0, Math.atan2(f.x, f.z), 0); pod.g.visible = true;
     const ord0 = order(), last = ord0.length > 3 ? ord0[ord0.length - 1] : null;
     const put = (k, x, y, clip, alt) => { const h = k.hero; if (!h || !h.obj) return; if (!k.seatPos) k.seatPos = h.obj.position.clone(); k.onPod = true; pod.g.add(h.obj); h.obj.position.set(x, y, 0); h.obj.rotation.set(0, 0, 0); if (h.has) { h.after = null; h.play(clip); } else try { h.play(alt); } catch { /* standing is fine */ } };
@@ -757,7 +834,7 @@ export function createKart(ctx) {
         if (j.newBest && j.best) { const b = c.querySelector(".wk-best"); if (b) b.textContent = fmt(j.best); }
         const ach = (j.newAch || []).filter((a) => ACH_NAME[a]); if (ach.length) { const a = c.querySelector(".wk-ach"); a.hidden = false; a.innerHTML = ach.map((id) => `<p>🏆 ${esc(T("Title unlocked: {x}", { x: T(ACH_NAME[id]) }))}</p>`).join(""); buzz([30, 30, 60]); if (ctx.onAch) try { ctx.onAch(ach); } catch { /* the town reads them again */ } } } }
     const daily0 = mode === "daily", place0 = j ? (daily0 ? j.dailyRank : j.rank) : null;
-    fetch(daily0 ? "/api/social?world=kart-daily" : "/api/social?world=kart-top&track=nexus", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((b) => { if (!b || !c.isConnected) return; const top = (b.top || []).slice(0, 5), el = c.querySelector(".wk-week");
+    fetch(daily0 ? "/api/social?world=kart-daily" : "/api/social?world=kart-top&track=" + tid, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((b) => { if (!b || !c.isConnected) return; const top = (b.top || []).slice(0, 5), el = c.querySelector(".wk-week");
       el.innerHTML = `<h4>${esc(T(daily0 ? "Today's daily board" : "This week's board"))}</h4>${top.length ? `<ol class="wk-st">${top.map((x, n) => `<li class="${place0 === n + 1 ? "me" : ""}"><b>${n + 1}</b>${x.racer ? `<img src="/images/kart/card-${esc(x.racer)}.webp" alt="" width="28" height="36">` : ""}<span>${esc(x.name || x.w)}</span><i>${fmt(x.t)}</i></li>`).join("")}</ol>` : `<p class="wk-empty">${esc(T("Be the first on the board!"))}</p>`}${place0 ? `<p class="wk-mine">${esc(T("Your place: {n}", { n: "#" + place0 }))}</p>` : ""}`; }).catch(() => { /* no board this time */ });
   }
 
@@ -768,7 +845,7 @@ export function createKart(ctx) {
   /// back to the pick screen after a race: the plain track, the karts on the grid, no ghosts
   function toPick() { podEnd(); if (keysEl) { keysEl.remove(); keysEl = null; } ghostTok++; clearGhosts(); raceP = null; mode = mode || "race"; rule = ""; mir = 1; track = tracks[0]; applyRule(true); grid(); for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); } showPick(me && me.racer ? me.racer.id : RACERS[0].id); }
   function grid() {
-    for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: rule === "nitro" ? 2 : 0, stall: 0, slip: 0, finish: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, hopY: 0, mk: 0, pl: 0, reactAt: -9, item: "", rollT: 0, useAt: 0, spinT: 0, safeT: 0, shieldT: 0, magT: 0, magTo: null, usePrev: false, spinCk: true }); k.marks.fill(-1); if (k.bub) k.bub.visible = false; k.m.g.visible = mode !== "ta" || k.me; }
+    for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: rule === "nitro" ? 2 : 0, stall: 0, slip: 0, finish: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, hopY: 0, mk: 0, pl: 0, reactAt: -9, item: "", rollT: 0, useAt: 0, spinT: 0, safeT: 0, shieldT: 0, magT: 0, magTo: null, usePrev: false, spinCk: true }); k.marks.fill(-1); if (k.bub) k.bub.visible = false; k.m.g.visible = mode !== "ta" || k.me; k.m.g.position.copy(k.pos); k.m.g.rotation.set(0, k.yaw, 0); } // (K5: the body too — the pick screen doesn't run the draw loop, and a new track's grid is elsewhere)
   }
   async function reset() {
     podEnd(); finished = []; clock = 0; acc = 0; lapAt = []; rec = []; grid(); clearItems(); placeBoxes(); slotShown = "-"; if (ui) ui.classList.toggle("noitems", !itemsNow()); paintItem(); // (K3: fresh boxes, nothing on the road, the slot empty — none of it in Time Attack)
@@ -788,7 +865,7 @@ export function createKart(ctx) {
     try { boxes = makeBoxes(); iPool = makePool(); } catch (e) { boxes = iPool = null; console.warn("kart items:", e && e.message); } // (K3: no items rather than no race)
     const ids = ["custom-aron", "custom-lumi", "custom-nex"];
     flash(T("Loading racers…"));
-    fetch("/api/social?world=kart-daily", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && RULES.includes(j.rule)) { daily = { day: j.day, seed: j.seed, rule: j.rule }; dailyTop = j.top || []; paintModes(); } }).catch(() => { /* the device's own day */ });
+    fetch("/api/social?world=kart-daily", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && RULES.includes(j.rule)) { daily = { day: j.day, seed: j.seed, rule: j.rule, track: TRACKS[j.track] ? j.track : daily.track }; dailyTop = j.top || []; if (on && phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); } }).catch(() => { /* the device's own day */ });
     karts = await Promise.all(RACERS.map((r, i) => makeRacer(i, ids[i % 3], false, r))); me = karts[0];
     addEventListener("keydown", kd); addEventListener("keyup", ku); addEventListener("resize", onResize);
     on = true; listenTilt(); document.body.classList.add("wp-kart"); onResize(); ctx.st.view(scene, cam); ctx.st.solo(tick);
@@ -800,20 +877,27 @@ export function createKart(ctx) {
   let pickEl = null, picked = "", pickFill = null;
   function showPick(id) {
     phase = "pick"; picked = id; ui.classList.add("picking"); clearItems(); if (boxes) for (const im of boxes.ims) im.visible = false; mode = mode || "race"; rule = ""; world.scale.x = 1; mir = 1; track = tracks[0]; clearGhosts();
+    if (wantTrack() !== tid) { setTrack(wantTrack()); grid(); } // (K5: the Daily races the day's track)
     if (!pickFill) { pickFill = new THREE.DirectionalLight(0xffffff, 1.5); scene.add(pickFill, pickFill.target); } pickFill.visible = true;
     pickEl = document.createElement("div"); pickEl.className = "wk-pick";
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
-      <div class="wk-modes" role="radiogroup" aria-label="${esc(T("Mode"))}"></div><p class="wk-mode-l"></p>
+      <div class="wk-tracks" role="radiogroup" aria-label="${esc(T("Track"))}"></div><div class="wk-modes" role="radiogroup" aria-label="${esc(T("Mode"))}"></div><p class="wk-mode-l"></p>
       <button type="button" class="wk-go wk-race" data-race><i class="wk-flag"></i><span>${esc(T("Race!"))}</span><em></em></button><button type="button" class="wk-optb" data-opts aria-label="${esc(T("Settings"))}" title="${esc(T("Settings"))}">⚙</button>`;
     ui.appendChild(pickEl); paintModes(); sideHint();
-    pickEl.addEventListener("click", (e) => { if (e.target.closest("[data-opts]")) return openOpts(); const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); const m = e.target.closest("[data-mode]"); if (m) setMode(m.dataset.mode); if (e.target.closest("[data-race]")) pick(picked); });
+    pickEl.addEventListener("click", (e) => { if (e.target.closest("[data-opts]")) return openOpts(); const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); const m = e.target.closest("[data-mode]"); if (m) setMode(m.dataset.mode); const tk = e.target.closest("[data-track]"); if (tk && !tk.disabled) chooseTrack(tk.dataset.track); if (e.target.closest("[data-race]")) pick(picked); });
     choose(id);
   }
-  function paintModes() { if (!pickEl) return; const box = pickEl.querySelector(".wk-modes"), ln = pickEl.querySelector(".wk-mode-l");
+  /// K5: the track chooser — four cards with the track's art; in the Daily only the day's track
+  function paintTracks() { if (!pickEl) return; const box = pickEl.querySelector(".wk-tracks"), dl = mode === "daily";
+    box.innerHTML = TRACK_IDS.map((id) => { const t = TRACKS[id], onT = id === tid, lock = dl && id !== daily.track; return `<button type="button" class="wk-trk${onT ? " on" : ""}${lock ? " lock" : ""}" role="radio" aria-checked="${onT}" data-track="${id}"${lock ? " disabled" : ""}><img src="/images/kart/tracks/${id}-card.webp" alt="" width="160" height="80"><b>${esc(T(t.short || t.name))}</b><small>${esc(dl && !lock ? T("Today's track") : T(t.line))}</small></button>`; }).join(""); }
+  function pickVis() { for (const k of karts) k.m.g.visible = !k.racer || k.racer.id === picked; }
+  function chooseTrack(id) { if (!TRACKS[id] || mode === "daily" || phase !== "pick") return; ownTrack = id; try { localStorage.setItem(TRACK, id); } catch { /* this visit */ }
+    if (id !== tid) { setTrack(id); grid(); pickVis(); } paintTracks(); if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); }
+  function paintModes() { if (!pickEl) return; paintTracks(); const box = pickEl.querySelector(".wk-modes"), ln = pickEl.querySelector(".wk-mode-l");
     box.innerHTML = ["race", "ta", "daily"].map((m) => `<button type="button" class="wk-mode${m === mode ? " on" : ""}" role="radio" aria-checked="${m === mode}" data-mode="${m}"><b>${esc(T(MODE_NAME[m]))}</b>${m === "daily" ? `<small>${esc(T(RULE_NAME[daily.rule]))}</small>` : ""}</button>`).join("");
     ln.textContent = mode === "daily" ? T(RULE_LINE[daily.rule]) : T(MODE_LINE[mode]); }
-  function setMode(m) { if (!MODE_NAME[m]) return; mode = m; try { localStorage.setItem(MODE, m); } catch { /* the default next time */ } paintModes(); if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); }
+  function setMode(m) { if (!MODE_NAME[m]) return; mode = m; try { localStorage.setItem(MODE, m); } catch { /* the default next time */ } if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); }
   function choose(id) {
     picked = id; for (const k of karts) k.m.g.visible = !k.racer || k.racer.id === id; if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
     const k = karts.find((x) => x.racer && x.racer.id === id); if (k && k.hero && k.hero.has) { const r = k.racer; k.hero.after = CLIP.drive; k.hero.play(r.yes && k.hero.has(r.yes) ? r.yes : CLIP.wave, { once: true }); }
@@ -854,8 +938,8 @@ export function createKart(ctx) {
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
     pickEl = null; pickFill = null; if (ui) { ui.remove(); ui = null; } document.body.classList.remove("wp-kart");
     if (scene) scene.traverse((o) => { if (o.geometry && !o.isSkinnedMesh) o.geometry.dispose(); const m = o.material; if (m && !o.isSkinnedMesh) for (const x of [].concat(m)) { if (x.map) x.map.dispose(); x.dispose(); } });
-    scene = null; karts = []; me = null; world = null; tracks = null; nightLight = hemi = sun = skyCyl = null;
+    scene = null; karts = []; me = null; world = null; tracks = null; tg = null; lavaTex = null; trackTok++; nightLight = hemi = sun = skyCyl = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule }; paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => RAMPS.map((r) => r.i), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
 }
