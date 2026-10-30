@@ -2148,6 +2148,8 @@ st.on(() => { try { landTick(false); } catch { /* still loading */ } });
 const texRest = (() => {
   if (!coarse) return { tick() {}, count: () => 0 };
   let rested = [], back = [];
+  /* a texture's upload size: a compressed one's own mip bytes, else RGBA with a third more for mipmaps */
+  const texBytes = (t) => { if (t.isCompressedTexture) { let b = 0; for (const m of t.mipmaps || []) b += (m.data && m.data.byteLength) || 0; return b; } const im = t.image; return im && im.width ? im.width * im.height * 5.33 : 0; };
   const texOf = (m, out) => { for (const k in m) { const v = m[k]; if (v && v.isTexture && !v.isRenderTargetTexture && !v.isVideoTexture) out.add(v); } };
   const LANDR = /^(land-|rq-hall|rq-sky-realm|rq-back)/;
   function landTex() { const out = new Set(); for (const c of planet.children) if (LANDR.test(c.name) && !c.visible) c.traverse((o) => { if (o.isMesh || o.isPoints || o.isSprite || o.isLine) for (const m of [].concat(o.material || [])) if (m) texOf(m, out); }); return out; }
@@ -2165,7 +2167,7 @@ const texRest = (() => {
     if (mode !== "hub" || landNow !== land0) { const wasLand = land0; land0 = mode === "hub" ? landNow : null; at0 = now; done = false;
       if (land0 === "" && wasLand && rested.length) try { const L = landTex(); const still = []; for (const t of rested) (L.has(t) ? still : back).push(t); rested = still; } catch { /* they come back when drawn */ } } /* (back in town: the town's own go up again, a few a frame) */
     if (!done && now - at0 > 8000) { done = true; try { rest(); } catch (e) { console.warn("texRest", e); } }
-    if (back.length) { for (let i = 0; i < 6 && back.length; i++) { const t = back.pop(); t.userData.rested = false; try { st.renderer.initTexture(t); } catch { /* drawn when it's needed */ } } }
+    if (back.length) { let bytes = 0; while (back.length && (bytes === 0 || bytes < 4e6)) { const t = back.pop(); t.userData.rested = false; bytes += texBytes(t) || 1; try { st.renderer.initTexture(t); } catch { /* drawn when it's needed */ } } } /* (perf batch 8: by size, ~4 MB a frame, at least one) */
   }, count: () => rested.length };
 })();
 st.on(() => { try { texRest.tick(); } catch { /* still loading */ } });
