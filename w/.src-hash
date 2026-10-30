@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 6f4721c8356af34f
+=======
+b90d3c878d70905a
+>>>>>>> 9787bd1c (Perf batch 5 and 6: fewer draw calls with the same look, and Meshy's scammer bodies swapped in — the Jurassic gate's stone, moss and lamps merged (41 meshes → 6; the ∞ and the swirl kept apart), no PointLight on the Jurassic gate or the mine cart on phones (decided at build time), the plaza Studio's cabinets, pads and kiosk merged (51 → 32 meshes; the pads breathe by one shared opacity instead of a scale each), Creator City's kiosk stand merged, the Partner Village's high board and beam on their own never-culled planet child so the clearing itself can be far-culled, the bounty board one wood mesh + a paper plane (5 → 2 calls), 6 far pins on phones (14 on computers), the skyline on phones from 4 tower models instead of 14; the cage-fight scammers get Meshy's one-mesh bodies when they've all loaded (12–14 meshes → 1 each; never mid-fight, a caged one stays switched off) and a tint is one material copy a source material, not one a mesh; rebuilt)

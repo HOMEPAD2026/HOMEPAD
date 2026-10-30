@@ -364,7 +364,8 @@ export function meshyVillains(kit, loader, ver = "", wait = 5000) {
   const jobs = Object.entries(MESHY_VILLAIN).map(([name, file]) => new Promise((ok) => {
     try { loader().load(`/models/world/scammers/${file}.glb${ver}`, (g) => { try { place(kit, name, meshyVillain(g.scene, name === "EyeDrone")); } catch (e) { console.warn("scammer", file, e); } ok(); }, undefined, () => ok()); } catch { ok(); }
   }));
-  return Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, wait))]).then(() => kit);
+  const all = Promise.all(jobs); kit.meshyScamReady = all.then(() => kit); /* (perf batch 6: world-play.js swaps them in on the scammers already standing) */
+  return Promise.race([all, new Promise((r) => setTimeout(r, wait))]).then(() => kit);
 }
 function place(kit, name, v) {
   const [y0] = SIZE[name] || [0, 2], have = new THREE.Box3().setFromObject(v.scene), ext = have.getSize(new THREE.Vector3()), k = (name === "Trilobite" ? 2.8 : 2) / Math.max(0.01, ext.x, ext.y, ext.z);

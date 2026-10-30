@@ -235,7 +235,8 @@ export function makeCreatorCity({ THREE, K, planet, T = (s) => s, low = false, v
   // HUB 2 (2026-10-28): the Creator Hub's kiosk by the way in (world-studiohub.js kiosk) — walk up → the hub on the web
   { const o = new THREE.Group(), [x, z] = polar(14, land.r - 14); o.position.set(x, 0, z); o.rotation.y = Math.atan2(-x, -z); g.add(o);
     const cv = (w, h) => { if (typeof document === "undefined") return null; const c = document.createElement("canvas"); c.width = w; c.height = h; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.userData = { cv: c }; return t; };
-    kiosk(THREE, o, neon, std(0x16233a, { roughness: 0.35, metalness: 0.6 }), std(0x9fb2c8, { roughness: 0.25, metalness: 0.75 }), cv, T, { push: (f) => spins.push((dt, t) => f(t)) });
+    kiosk(THREE, o, neon, std(0x16233a, { roughness: 0.35, metalness: 0.6 }), std(0x9fb2c8, { roughness: 0.25, metalness: 0.75 }), cv, T, { push: (f) => spins.push((dt, t) => f(t)) }).userData.keep = true;
+    if (K.mergeStatic) K.mergeStatic(o); /* (perf batch 5: the stand's post and frame as one mesh; the turning ring kept) */
     const sd = new THREE.Group(); sd.userData.radius = 0.8; o.add(sd); solids.push(sd); door(o, "hubk", 0x39d3ff, 1.8); }
   let shown = false;
   return {

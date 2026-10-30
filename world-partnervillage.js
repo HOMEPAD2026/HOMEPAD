@@ -30,15 +30,18 @@ export function makePartnerVillage({ THREE, K, planet, T, ver = "", low = false,
   const toPlaza = Math.atan2(-V.x, -V.z), gx = Math.sin(toPlaza) * V.r, gz = Math.cos(toPlaza) * V.r;
   const gate = K.makeArch(TEAL); gate.scale.setScalar(1.35); gate.position.set(gx, 0, gz); gate.rotation.y = toPlaza; root.add(gate);
   const sign = K.label(T("Partner Village"), { accent: "#38e1d6", size: 1.1, sub: T("Official partners of ARCIRCLE WORLD") }); sign.position.set(gx, 8, gz); root.add(sign);
+  // perf batch 5: the high board and the beam on a planet child of their own at the same spot (never far-culled: they're what the
+  // plaza sees), so the clearing's own cull sphere is small and farCull can hide it from the plaza (~26 m, not ~45)
+  const sky = new THREE.Group(); sky.name = "partnervillage-sky"; sky.position.copy(root.position); planet.add(sky);
   const board = (() => { if (typeof document === "undefined") return null; const cv = document.createElement("canvas"); cv.width = 1024; cv.height = 300; const g = cv.getContext("2d");
     const bg = g.createLinearGradient(0, 0, 0, 300); bg.addColorStop(0, "rgba(6,22,30,.93)"); bg.addColorStop(1, "rgba(2,8,14,.93)"); g.beginPath(); g.roundRect(8, 8, 1008, 284, 44); g.fillStyle = bg; g.fill();
     g.lineWidth = 8; const bd = g.createLinearGradient(0, 0, 1024, 0); bd.addColorStop(0, "#2f8cff"); bd.addColorStop(0.5, "#38e1d6"); bd.addColorStop(1, "#7cf5c8"); g.strokeStyle = bd; g.stroke();
     g.textAlign = "center"; g.textBaseline = "middle"; g.shadowColor = "#38e1d6"; g.shadowBlur = 22; g.fillStyle = "#ffffff"; g.font = "900 104px Sora, 'Segoe UI', sans-serif"; g.fillText(T("PARTNER VILLAGE"), 512, 112, 960);
     g.shadowBlur = 0; g.fillStyle = "#9ff6ee"; g.font = "800 52px Sora, 'Segoe UI', sans-serif"; g.fillText("KAIRO " + T("Finance Hub") + " · " + T("Official partner"), 512, 226, 940);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(16, 4.7), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.set(0, 21, -4); m.renderOrder = 11; root.add(m);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(16, 4.7), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false })); m.position.set(0, 21, -4); m.renderOrder = 11; sky.add(m);
     const qp = new THREE.Quaternion(); m.onBeforeRender = (r, sc, cam) => { root.getWorldQuaternion(qp); m.quaternion.copy(qp.invert().multiply(cam.quaternion)); m.updateMatrixWorld(); }; return m; })();
-  const beam = K.makeBeacon ? K.makeBeacon(TEAL, 55) : null; if (beam) root.add(beam);
+  const beam = K.makeBeacon ? K.makeBeacon(TEAL, 55) : null; if (beam) sky.add(beam);
   // the plots round the square, leaving the gate's side open
   const slots = PARTNERS.length, a0 = toPlaza + Math.PI - 1.5, span = 3.0;
   const plotAt = (i) => { const a = a0 + (span * i) / (slots - 1); return { x: Math.sin(a) * V.plotR, z: Math.cos(a) * V.plotR, a }; };
