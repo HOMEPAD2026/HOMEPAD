@@ -6381,7 +6381,7 @@ html.wp-less .wk-race,html.wp-less .wk-race::before,html.wp-less .wk-race em{ani
 .wk-lines{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;background:repeating-conic-gradient(from 0deg at 50% 52%,rgba(255,255,255,0) 0deg 4deg,rgba(220,245,255,.55) 4deg 4.5deg,rgba(255,255,255,0) 4.5deg 9deg,rgba(220,245,255,.3) 9deg 9.4deg);-webkit-mask:radial-gradient(ellipse at 50% 52%,transparent 34%,#000 78%);mask:radial-gradient(ellipse at 50% 52%,transparent 34%,#000 78%);animation:wkLines .22s linear infinite}
 .wk-lines.boost{background:repeating-conic-gradient(from 0deg at 50% 52%,rgba(255,255,255,0) 0deg 3.5deg,rgba(255,190,90,.65) 3.5deg 4.2deg,rgba(255,255,255,0) 4.2deg 8deg,rgba(120,220,255,.45) 8deg 8.5deg)}
 /* KQ: Meshy's speed lines (raw/kart-kq img/speed-lines) over the drawn ones, added in light; a boost warms them */
-.wk-lines,.wk-lines.boost{background:url("/images/kart/fx/speed-lines.webp?v=1") 50% 52%/cover no-repeat;mix-blend-mode:screen}
+.wk-lines,.wk-lines.boost{background:url("/images/kart/fx/speed-lines.webp?v=1") 50% 52%/cover no-repeat;mix-blend-mode:screen;-webkit-mask:radial-gradient(ellipse 62% 58% at 50% 54%,transparent 62%,#000 100%);mask:radial-gradient(ellipse 62% 58% at 50% 54%,transparent 62%,#000 100%)}
 .wk-lines.boost{filter:sepia(.35) saturate(1.6) brightness(1.15)}
 @keyframes wkLines{0%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.04) rotate(1.2deg)}100%{transform:scale(1) rotate(0deg)}}
 html.wp-less .wk-lines{display:none}

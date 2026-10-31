@@ -12,7 +12,7 @@
 /// road: [roughness, env intensity]; props: [file, kind, desktop count, height or length (m), lateral from the wall (m)]
 export const KQ = {
   nexus: { sun: [0xffd6b0, 2.1, 200, 18], hemi: [0xd8dcff, 0x2c2c3c, 1.05], fog: 0x8b5063, exp: 1.12, grade: "saturate(1.14) contrast(1.05)", road: [0.38, 0.55],
-    props: [["nexus/neon-tree", "side", 30, 8, 3.2], ["nexus/banner-pole", "stands", 14, 8.5, 1.4], ["nexus/tyre-stack", "apex", 10, 1.5, 0.9], ["nexus/billboard", "mark", 4, 10, 7]] },
+    props: [["nexus/neon-tree", "side", 30, 8, 3.2], ["nexus/banner-pole", "stands", 14, 8.5, 1.4], ["nexus/tyre-stack", "apex", 10, 1.5, 0.9], ["nexus/billboard", "mark", 4, 10, 17]] },
   moon: { sun: [0xd9d0ff, 1.8, 140, 26], hemi: [0xdfe2ff, 0x2a2c48, 1.15], fog: 0x384b8b, exp: 1.12, grade: "saturate(1.16) contrast(1.04)", road: [0.3, 0.75],
     props: [["moon/crystal", "side", 30, 3.6, 2.2], ["moon/dish", "far", 10, 7, 9], ["moon/float-rock", "sky", 9, 12, 0]] },
   ice: { sun: [0xfff2dc, 2.3, 60, 22], hemi: [0xeaf6ff, 0x6a86a6, 1.1], fog: 0xa4c5d3, exp: 1.08, grade: "saturate(1.12) contrast(1.05)", road: [0.32, 0.6],
@@ -33,8 +33,10 @@ export function flameOf({ sp = 0, boost = false, lv = 1, charge = 0, racing = tr
   if (boost) return { len: 2.6 + 0.8 * Math.min(3, lv), op: 1 };
   const base = Math.max(0, sp - 0.15) / 0.85; return { len: 0.35 + 1.15 * base + Math.min(0.6, charge * 0.25), op: 0.16 + 0.5 * base + Math.min(0.3, charge * 0.12) };
 }
-/// the screen's speed lines: nothing under 70 % of the top speed, full at the top; a boost lifts them
-export const streakOf = (sp, boost, lv = 1) => Math.max(boost ? 0.5 + 0.15 * lv : 0, Math.min(1, Math.max(0, (sp - 0.7) / 0.3)));
+/// the screen's speed lines: nothing under 80 % of the top speed, full at the top; a boost lifts them
+export const streakOf = (sp, boost, lv = 1) => Math.max(boost ? 0.5 + 0.15 * lv : 0, Math.min(1, Math.max(0, (sp - 0.8) / 0.2)));
+/// the screen overlay's opacity: half of the streaks' (KQ review: it covered half the frame)
+export const overlayOf = (v) => 0.5 * v;
 const TINT = [0xffffff, 0xffffff, 0xffc890, 0xe0a8ff]; // (by boost level: the texture's own blue-white, an orange nitro, a purple ultra)
 
 /// the side of the track a corner bends away from at sample i (+1 = the right-hand vector r), and how sharply (radians over ±6 samples)
@@ -53,7 +55,7 @@ export function flameMesh(THREE, tex) {
     const q = vert ? [[x, y - w, 0], [x, y + w, 0], [x, y + w, -1], [x, y - w, -1]] : [[x - w, y, 0], [x + w, y, 0], [x + w, y, -1], [x - w, y, -1]];
     for (const p of q) P.push(...p); U.push(0, 0, 0, 1, 1, 1, 1, 0); I.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4; }
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I);
-  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false, premultipliedAlpha: false }));
   m.position.z = NOZ_Z; m.frustumCulled = false; m.renderOrder = 4; m.visible = false; return m;
 }
 /// (additive on black: no fog, or the fog colour fills the quad)
@@ -118,7 +120,7 @@ export function propSpots(S, N, TD, cfg, { coarse = false, low = false, WALL = 1
   // the track's own kinds
   for (const [file, kind, n0, size, lat] of cfg.props) {
     const lm = kind === "mark" || kind === "sky", n = kind === "arches" ? (low ? 0 : arches.length) : cnt(n0, lm); if (!n) continue; const key = file;
-    if (kind === "arches") { for (const i of arches) { const s = S[i]; (out[key] = out[key] || []).push([s.p.x, s.p.z, yawTo(s.t.x, s.t.z), ROAD + 7, i]); } continue; }
+    if (kind === "arches") { for (const i of arches) { const s = S[i]; (out[key] = out[key] || []).push([s.p.x, s.p.z, yawTo(s.t.x, s.t.z), ROAD + 5, i]); } continue; }
     if (kind === "sky") { for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2 + 0.4, r = 120 + ((k * 53) % 90); (out[key] = out[key] || []).push([TD.c[0] + Math.cos(a) * r, TD.c[1] + Math.sin(a) * r, k * 1.3, size * (0.7 + ((k * 7) % 5) * 0.15), 22 + ((k * 29) % 30)]); } continue; }
     let c = 0;
     for (let k = 0; k < n * 6 && c < n; k++) {
@@ -131,7 +133,7 @@ export function propSpots(S, N, TD, cfg, { coarse = false, low = false, WALL = 1
       else { i = Math.floor(((k * 0.7548777 + 0.03) % 1) * N); sd = k % 2 ? 1 : -1; d = WALL + lat + ((k * 13) % 3) * 1.4; } // "side": both sides of the road
       if (kind !== "stands" && kind !== "crowd" ? busy(i) : near(i, TD.screen, 12) || near(i, TD.podium, 12) || near(i, 0, 10)) continue;
       const s = S[i], x = s.p.x + s.r.x * sd * d, z = s.p.z + s.r.z * sd * d;
-      if (!clear(x, z, WALL + Math.min(lat, 2) * 0.5 + 0.3) || !free(x, z, r)) continue;
+      if (!clear(x, z, kind === "mark" ? WALL + 12 : WALL + Math.min(lat, 2) * 0.5 + 0.3) || !free(x, z, r)) continue; // (a tall board never near any stretch of road: one stood in the chase camera's view)
       yaw = kind === "side" || kind === "far" ? k * 2.399 : yawTo(-s.r.x * sd, -s.r.z * sd) + (kind === "crowd" ? ((k * 5) % 7 - 3) * 0.12 : 0);
       if (kind === "crowd") scl = size * (0.85 + ((k * 3) % 5) * 0.07);
       put(key, x, z, yaw, scl, i, r); c++;

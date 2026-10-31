@@ -44,7 +44,7 @@
 // size. Low graphics / phones: fewer props, no side camera on low; reduce-motion: no slow motion, no drone sweep.
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
 //        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
-import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf } from "./world-kart-kq.js";
+import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf, overlayOf } from "./world-kart-kq.js";
 import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
@@ -354,23 +354,40 @@ export function createKart(ctx) {
   function cutRibbon(mesh, skip) { const ix = mesh.geometry.index.array, keep = []; for (let i = 0; i < track.N; i++) { if (skip(i)) continue; for (let j = 0; j < 6; j++) keep.push(ix[i * 6 + j]); } mesh.geometry.setIndex(keep); }
   /// KQ: Meshy's trackside props for the picked track (world-kart-kq.js propSpots: where; here: load, fit, instance — each kind ONE
   /// InstancedMesh per part); Meshy's grandstands replace the drawn blocks, the ice arches the drawn rings; glowing kinds lit by their own colours
-  const KQ_FIT = { "shared/grandstand": [1, 1, 1], "shared/fence": [1, 2.2 / 4 / 0.72, 1], "shared/arch-gate": [1, 0.55, 0.5], "ice/ice-arch": [1, 0.8, 0.45] };
-  const KQ_GLOW = { "nexus/neon-tree": 0.7, "moon/crystal": 0.75, "volcano/obsidian": 0.45, "volcano/lava-lantern": 0.6, "ice/ice-arch": 0.4, "nexus/banner-pole": 0.25 };
+  const KQ_FIT = { "shared/grandstand": [1, 1, 1], "shared/fence": [1, 2.2 / 4 / 0.72, 1], "shared/arch-gate": [1, 0.55, 0.5], "ice/ice-arch": [1, 0.62, 0.14] }; // (KQ review: the ice arches slim — a thin clear-blue band over the road, not a blob)
+  const KQ_GLOW = { "nexus/neon-tree": 0.7, "moon/crystal": 0.75, "volcano/obsidian": 0.45, "volcano/lava-lantern": 0.6, "nexus/banner-pole": 0.25 };
   async function kqDress(tok, arch, archAt) {
     const Q = KQ[tid], sp = propSpots(tracks[0].S, tracks[0].N, TD, Q, { coarse: !!ctx.coarse, low: !!ctx.low, WALL, ROAD, arches: archAt }), keys = Object.keys(sp).filter((k) => sp[k].length);
     const file = (k) => (k === "stand" ? KQ_SHARED.stand : k === "fence" ? KQ_SHARED.fence : k === "gate" ? KQ_SHARED.gate : k === "blimp" ? KQ_SHARED.blimp : k);
     const gls = await Promise.all(keys.map((k) => load(file(k)).catch(() => null))); if (tok !== trackTok || !scene || !tg) return;
     const o = new THREE.Object3D(), d0 = dress;
     keys.forEach((k, n) => { const gl = gls[n], spots = sp[k], f = file(k); if (!gl) return;
-      gl.scene.traverse((x) => { if (x.isMesh) for (const m of [].concat(x.material)) { if (!m || !("roughness" in m)) continue; m.envMapIntensity = 0.6; const gw = KQ_GLOW[f]; if (gw && m.map && !m.emissiveMap) { m.emissiveMap = m.map; m.emissive.setRGB(gw, gw, gw); m.needsUpdate = true; } } });
+      gl.scene.traverse((x) => { if (x.isMesh) for (const m of [].concat(x.material)) { if (!m || !("roughness" in m)) continue; if (!m.map) console.warn("kart kq: no colour map on", f); m.envMapIntensity = 0.6; if (f === "ice/ice-arch") { m.transparent = false; m.opacity = 1; m.depthWrite = true; m.roughness = 0.15; m.envMapIntensity = 1.1; } const gw = KQ_GLOW[f]; if (gw && m.map && !m.emissiveMap) { m.emissiveMap = m.map; m.emissive.setRGB(gw, gw, gw); m.needsUpdate = true; } } });
       if (k === "blimp") { const b = fit(gl.scene, { len: 1 }); b.scale.setScalar(spots[0][3]); tg.add(b); kqMove.push({ kind: "blimp", o: b, c: spots[0] }); kqIn[k] = 1; return; }
       const flat = k === "stand" || k === "fence" || k === "gate" || f === "ice/ice-arch", sc = KQ_FIT[f] || [1, 1, 1], ims = instOf(gl, spots.length, flat ? { len: 1 } : { h: 1 });
       const set = (im, j, [x, z, yaw, size], y = 0) => { o.position.set(x, y, z); o.rotation.set(0, yaw, 0); o.scale.set(size * sc[0], size * sc[1], size * sc[2]); o.updateMatrix(); im.setMatrixAt(j, o.matrix); };
       for (const im of ims) { spots.forEach((q, j) => set(im, j, q, f === "moon/float-rock" ? q[4] : 0)); im.frustumCulled = false; tg.add(im); }
       if (f === "moon/float-rock") kqMove.push({ kind: "rocks", ims, spots, set });
       kqIn[k] = spots.length;
+      if (k === "stand") try { kqIn.crowd = kqCrowd(ims, spots); } catch (e) { console.warn("kart kq crowd:", e && e.message); }
       if (k === "stand" && d0 && d0.standMeshes && dress === d0) for (const m of d0.standMeshes) m.visible = false; // (Meshy's stands in place of the drawn blocks)
       if (f === "ice/ice-arch" && arch) arch.visible = false; });
+  }
+  /// KQ: people on Meshy's grandstands — its crowd texture smears at a distance, so small figures in colours sit on its steps:
+  /// the steps found once by casting down on the fitted model (upward faces under the roof), the same seats on every stand; one InstancedMesh
+  function kqCrowd(ims, spots) {
+    const src = ims[0], g = new THREE.Mesh(src.geometry, new THREE.MeshBasicMaterial()), rc = new THREE.Raycaster(), dn = new THREE.Vector3(0, -1, 0), o3 = new THREE.Vector3();
+    src.geometry.computeBoundingBox(); const bb = src.geometry.boundingBox, top = bb.max.y, seats = [];
+    for (let xi = 0; xi < 24; xi++) for (let zi = 0; zi < 10; zi++) { const x = bb.min.x + (bb.max.x - bb.min.x) * (0.04 + (0.92 * (xi + 0.5)) / 24), z = bb.min.z + (bb.max.z - bb.min.z) * ((zi + 0.5) / 10);
+      rc.set(o3.set(x, top + 1, z), dn); const hs = rc.intersectObject(g, false).filter((h) => h.face && h.face.normal.y > 0.6 && h.point.y > top * 0.12 && h.point.y < top * 0.86); if (hs.length) seats.push([x, hs[0].point.y, z]); }
+    g.material.dispose(); if (!seats.length) return 0;
+    const per = Math.min(seats.length, ctx.coarse ? 70 : 120), pick = []; for (let j = 0; j < per; j++) pick.push(seats[Math.floor((j * seats.length) / per)]);
+    const CC = [0xff6fc8, 0x38d8ff, 0xffc23c, 0x5fe05a, 0xffffff, 0x9b6bff, 0xff7a2e, 0x2ee0b0, 0xff3d6e], col = new THREE.Color();
+    const pg = new THREE.BoxGeometry(0.42, 0.62, 0.34); pg.translate(0, 0.31, 0);
+    const im = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ color: 0xffffff }), pick.length * spots.length), o = new THREE.Object3D(), M = new THREE.Matrix4(); let c = 0;
+    spots.forEach(([x, z, yaw, size], n) => { M.compose(o3.set(x, 0, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(size, size, size));
+      pick.forEach(([px, py, pz], j) => { o.position.set(px, py, pz).applyMatrix4(M); o.rotation.set(0, yaw, 0); o.scale.set(1, 0.85 + ((j * 7 + n) % 5) * 0.08, 1); o.updateMatrix(); im.setMatrixAt(c, o.matrix); im.setColorAt(c, col.setHex(CC[(j * 5 + n * 3) % CC.length])); c++; }); });
+    im.count = c; im.frustumCulled = false; tg.add(im); return c;
   }
   /// KQ: the blimp's slow lap of the sky, the floating rocks' bob (a few matrices a frame)
   function kqTick(dt) { if (!kqMove.length) return; const t = performance.now() / 1000;
@@ -774,7 +791,7 @@ export function createKart(ctx) {
     if (phase === "race" && lastPlace && pl !== lastPlace && clock > 2) { posEl.classList.remove("up", "down"); void posEl.offsetWidth; posEl.classList.add(pl < lastPlace ? "up" : "down");
       if (pl < lastPlace) { snd("kartPass"); buzz(12); if (pl === 1 && clock - cutAt > 10) { cutAt = clock; cutIn(T("1ST!")); if (!ctx.reduce) slowT = 0.3; buzz([20, 30, 40]); } } } // (K6: taking 1st — a 0.3 s slow motion and the cut-in, 10 s apart)
     lastPlace = pl;
-    if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : Math.max(streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1), me.slip > 0.5 ? 0.35 : 0); /* (KQ: Meshy's speed lines from 70 % of the top speed) */ ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
+    if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : overlayOf(Math.max(streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1), me.slip > 0.5 ? 0.35 : 0)); /* (KQ: Meshy's speed lines from 70 % of the top speed) */ ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
     ui.querySelector(".wk-spd b").textContent = Math.round(me.speed * 3.6); ui.querySelector(".wk-spd").style.setProperty("--s", Math.min(1, me.speed / BOOST_TOP).toFixed(3)); /* (KX1: the dial's arc fills with the speed) */ const s = ui.querySelectorAll(".wk-ni s"); s[0].style.setProperty("--f", Math.min(1, me.nitro)); s[1].style.setProperty("--f", Math.max(0, Math.min(1, me.nitro - 1))); }
   let lastCd = -1;
   function paintCount() { const n = Math.ceil(cd); if (n === lastCd || !ui) return; lastCd = n; const el = ui.querySelector(".wk-cd"); el.textContent = n > 3 ? "" : n > 0 ? String(n) : T("GO!"); el.classList.toggle("go", n <= 0); el.classList.remove("on"); void el.offsetWidth; if (n <= 3) el.classList.add("on"); if (n <= 0) setTimeout(() => { if (el.classList.contains("go")) { el.classList.remove("on"); el.textContent = ""; } }, 1100);

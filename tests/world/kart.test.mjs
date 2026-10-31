@@ -186,5 +186,5 @@ r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400
     check(fs2.existsSync(`${ROOT}/images/kart/tracks/${id}-sky.webp`) && fs2.existsSync(`${ROOT}/images/kart/tracks/${id}-road.webp`) && T0.look.sky.endsWith(`${id}-sky.webp`) && T0.look.road.endsWith(`${id}-road.webp`), `KQ ${id}: its own Meshy sky and road`); }
   const f0 = Q.flameOf({ sp: 0.3 }), f1 = Q.flameOf({ sp: 1 }), fb = Q.flameOf({ sp: 1, boost: true, lv: 3 });
   check(f0.len < f1.len && f1.len < fb.len && f0.op < f1.op && fb.op === 1, `KQ: the flames grow with speed and a boost (${f0.len.toFixed(2)} → ${f1.len.toFixed(2)} → ${fb.len.toFixed(2)} m)`);
-  check(Q.streakOf(0.6, false) === 0 && Q.streakOf(1, false) === 1 && Q.streakOf(0.5, true, 1) > 0.5, "KQ: speed lines from 70 % of the top speed, a boost lifts them"); }
+  check(Q.streakOf(0.78, false) === 0 && Q.streakOf(1, false) > 0.99 && Q.streakOf(0.5, true, 1) > 0.5 && Q.overlayOf(1) <= 0.5, "KQ: speed lines from 80 % of the top speed, a boost lifts them, the screen overlay at half"); }
 console.log(ok, "pass", bad, "fail"); process.exit(bad ? 1 : 0);
