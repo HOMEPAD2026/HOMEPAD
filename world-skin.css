@@ -6404,7 +6404,8 @@ html.wp-pcphone .wk-mode{min-width:0;flex:1;height:40px;padding:0 8px}html.wp-pc
 .wk-gh{position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:12.5px;pointer-events:none}
 .wk-gh span{padding:4px 10px;border-radius:999px;background:rgba(6,14,38,.66);border:1px solid rgba(56,216,255,.35);white-space:nowrap}.wk-gh b{color:#ffc23c;font-variant-numeric:tabular-nums;margin-left:4px}
 .wk.picking .wk-gh{display:none}
-.wk-res-in{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.wk-res-in{max-height:calc(100% - 28px);overflow-y:auto;overscroll-behavior:contain} /* (2026-10-31, a player's phone: the card is sized from its own box — .wk is zoomed 2.2× on the phone page, so 100dvh inside it was 2.2 screens tall and the card ran off the top and bottom) */
+.wk-res{padding:max(10px,env(safe-area-inset-top,0px)) 0 max(10px,env(safe-area-inset-bottom,0px));box-sizing:border-box}
 .wk-laps{list-style:none;display:flex;gap:6px;margin:10px 0 0;padding:0}.wk-laps li{flex:1;padding:6px 4px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;flex-direction:column;gap:2px;font-size:12px}
 .wk-laps li span{opacity:.7}.wk-laps li b{font-size:14px;font-variant-numeric:tabular-nums}.wk-laps li.fast{outline:1px solid rgba(255,194,60,.7)}.wk-laps li.fast b{color:#ffc23c}
 .wk-arcl{margin:12px 0 0;padding:10px;border-radius:12px;background:rgba(255,194,60,.08);border:1px solid rgba(255,194,60,.3);display:flex;flex-direction:column;gap:3px}

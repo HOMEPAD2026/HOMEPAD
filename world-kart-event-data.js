@@ -10,7 +10,7 @@
 // The game and the server only keep the tally; the GMs pay every prize by hand after the event (?world=kart-event-gm).
 //
 // THE WINDOW — set START to the deploy time and END to START + 72 h (both UTC, both here, nowhere else):
-export const EVENT_START = "2026-11-01T00:00:00Z", EVENT_END = "2026-11-04T00:00:00Z";
+export const EVENT_START = "2026-10-31T13:40:00Z", EVENT_END = "2026-11-03T13:40:00Z";
 
 export const KEV = {
   START: Date.parse(EVENT_START), END: Date.parse(EVENT_END),
