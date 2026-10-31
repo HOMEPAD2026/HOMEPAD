@@ -903,7 +903,7 @@ export function createKart(ctx) {
   /// KX2: who you just passed (their face slides back from your place) or who passed you (a red ▼ with their face)
   function passChip(k, up) { const el = ui && ui.querySelector(".wk-pass"); if (!el || !k) return; const img = el.querySelector("img");
     if (k.racer) img.src = `/images/kart/card-${k.racer.id}.webp`; img.style.display = k.racer ? "" : "none";
-    const top = ui.querySelector(".wk-top"); if (top) { const r = top.getBoundingClientRect(); el.style.left = Math.max(4, r.left - 64) + "px"; el.style.top = (r.top + r.height / 2) + "px"; } /* (beside the race bar, on its left — placed once a pass, not every frame) */ el.querySelector("b").textContent = up ? "▲" : "▼"; el.classList.remove("up", "down", "on"); void el.offsetWidth; el.classList.add(up ? "up" : "down", "on"); if (up) kx2.passChip++; else kx2.passedFlash++; }
+    const top = ui.querySelector(".wk-top"); if (top) { const r = top.getBoundingClientRect(), u = ui.getBoundingClientRect(), e = el.getBoundingClientRect(), z = el.offsetWidth ? e.width / el.offsetWidth : 1; /* (z: the phone layout zooms the HUD — the box's px back into the HUD's own) */ el.style.left = Math.max(4, (r.left - u.left) / z - el.offsetWidth - 8) + "px"; el.style.top = ((r.top - u.top + r.height / 2) / z) + "px"; } /* (beside the race bar, on its left — placed once a pass, not every frame) */ el.querySelector("b").textContent = up ? "▲" : "▼"; el.classList.remove("up", "down", "on"); void el.offsetWidth; el.classList.add(up ? "up" : "down", "on"); if (up) kx2.passChip++; else kx2.passedFlash++; }
 
   // ---------- HUD ----------
   const fmt = (s) => { const m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r < 10 ? "0" : ""}${r.toFixed(2)}`; };
