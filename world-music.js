@@ -16,7 +16,7 @@ const FADE = 2.5;
 
 export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, on = () => true, list = PLAYLIST, rnd = Math.random } = {}) {
   let ctx = null, master = null, cur = null, vol = volume, started = false, order = [], last = "", dipT = 0, failed = 0;
-  let analyser = null, fbuf = null, slow = 0, beat = 0; // the beat: bass energy against its own running average (the town's lights pulse with it)
+  let analyser = null, fbuf = null, slow = 0, beat = 0, held = false; // the beat: bass energy against its own running average (the town's lights pulse with it); held: a game plays its own music (KART's) and the playlist waits
   // a fresh shuffle once the last one is used up; never the track that just played first
   function nextName() {
     if (!order.length) { order = list.slice(); for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; } if (order.length > 1 && order[0] === last) order.push(order.shift()); }
@@ -35,7 +35,7 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
   }
   function fadeTo(t, v, secs = FADE) { const g = t.g.gain, now = ctx.currentTime; g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(v, now + secs); }
   function playNext() {
-    if (!ctx || !started) return;
+    if (!ctx || !started || held) return;
     const name = nextName(); last = name;
     const next = track(name), prev = cur; cur = next;
     next.a.play().catch(() => {});
@@ -58,9 +58,17 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
     if (!started) { start(); }
     if (!ctx) return;
     if (ctx.state !== "running" && !document.hidden) ctx.resume().catch(() => {});
-    if (on() && vol > 0) { if (!cur) playNext(); else if (cur.a.paused) cur.a.play().catch(() => {}); }
+    if (on() && vol > 0 && !held) { if (!cur) playNext(); else if (cur.a.paused) cur.a.play().catch(() => {}); }
   }
-  const unlocked = () => !!ctx && ctx.state === "running" && (!(on() && vol > 0) || (cur && !cur.a.paused));
+  /// a game's own music (KART, world-kart-music.js): hold(true) fades the playlist out and pauses it, hold(false) brings it back
+  function hold(v) {
+    v = !!v; if (v === held) return; held = v; if (!ctx) return;
+    if (held) { if (cur) { const c = cur; fadeTo(c, 0, 0.4); setTimeout(() => { if (held && cur === c) c.a.pause(); }, 500); } }
+    else if (on() && vol > 0) { if (!cur) playNext(); else { if (cur.a.paused) cur.a.play().catch(() => {}); fadeTo(cur, 1, 1.2); } }
+  }
+  /// the AudioContext and the music's volume node (Settings → Music, the note button, Sound off all act on it) for a game's own synth
+  const bus = () => (ctx && master ? { ctx, out: master } : null);
+  const unlocked = () => !!ctx && ctx.state === "running" && (!(on() && vol > 0) || held || (cur && !cur.a.paused));
   /// where you are ("calm", "hunt", "boss"): the playlist plays the same everywhere, so this only keeps the old call working
   function set() {}
   /// the music dips to depth for secs (under a fanfare or a knockout), then comes back
@@ -74,7 +82,7 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
     vol = Math.max(0, Math.min(1, k)); if (!master) return;
     const live = on() && vol > 0;
     master.gain.setTargetAtTime(live ? vol : 0, ctx.currentTime, 0.2);
-    if (live) { if (ctx.state === "suspended" && !document.hidden) ctx.resume().catch(() => {}); if (!cur) playNext(); else if (cur.a.paused) cur.a.play().catch(() => {}); }
+    if (live) { if (ctx.state === "suspended" && !document.hidden) ctx.resume().catch(() => {}); if (held) return; if (!cur) playNext(); else if (cur.a.paused) cur.a.play().catch(() => {}); }
     else if (cur) { const c = cur; setTimeout(() => { if (!(on() && vol > 0) && cur === c) c.a.pause(); }, 700); }
   }
   /// 0…1: how hard the beat is hitting right now (0 when the music is off or paused)
@@ -88,9 +96,9 @@ export function createMusic({ base = "/audio/music/", ver = "", volume = 0.55, o
   /// into the new list's first one (nothing changes when it's the list already playing)
   function setList(l) {
     if (!l || !l.length || l.join() === list.join()) return; list = l.slice(); order = []; last = ""; failed = 0;
-    if (started && on() && vol > 0) { if (cur) cur.done = true; playNext(); }
+    if (started && on() && vol > 0 && !held) { if (cur) cur.done = true; playNext(); }
   }
   /// skip to another track
   function skip() { if (cur) { cur.done = true; } playNext(); }
-  return { start, unlock, unlocked, set, setList, victory, duck, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
+  return { start, unlock, unlocked, hold, bus, set, setList, victory, duck, setVolume, skip, level, refresh: () => setVolume(vol), state: () => ({ started, held, playing: cur && cur.name, paused: cur ? cur.a.paused : true, order: order.slice() }) };
 }

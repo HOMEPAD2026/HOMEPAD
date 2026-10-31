@@ -45,6 +45,7 @@
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
 //        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
 import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf, overlayOf } from "./world-kart-kq.js";
+import { createKartMusic } from "./world-kart-music.js";
 import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
@@ -112,9 +113,33 @@ export const tierOf = (place, n) => { const f = n > 1 ? (place - 1) / (n - 1) : 
 export const itemFor = (place, n, r = Math.random()) => { const w = ITEM_W[tierOf(place, n)]; let sum = 0; for (const k of ITEMS) sum += w[k]; let x = Math.max(0, Math.min(0.999999, r)) * sum; for (const k of ITEMS) { if (!w[k]) continue; x -= w[k]; if (x < 0) return k; } return ITEMS.filter((k) => w[k]).pop(); };
 /// items only where racers meet: Race and the Daily, never Time Attack
 export const itemsOn = (mode) => mode === "race" || mode === "daily";
+// ---- KX2's feel (pure: tests/world/kart.test.mjs) ----
+/// PERFECT drift starts: for each sample of a track's table, the steer a drift must start with to count as PERFECT there
+/// (+1 / −1), or 0. A sample is in a corner's window when the road is still nearly straight there (under PERFECT.flat
+/// radians between the tangents PERFECT.w samples behind and ahead) and a real corner (over PERFECT.bend) begins
+/// PERFECT.from–PERFECT.to samples ahead; the steer is the corner's way (the tangents' cross product: +1 = steer right).
+export const PERFECT = { w: 10, flat: 0.28, bend: 0.45, from: 4, to: 16, turbo: 0.5, aiP: 0.15 };
+export function perfectTable(S, N) {
+  const ang = new Float32Array(N), way = new Int8Array(N), out = new Int8Array(N);
+  for (let i = 0; i < N; i++) { const a = S[(i - PERFECT.w + N) % N].t, b = S[(i + PERFECT.w) % N].t; ang[i] = Math.acos(Math.max(-1, Math.min(1, a.x * b.x + a.z * b.z))); way[i] = Math.sign(a.x * b.z - a.z * b.x) || 1; }
+  for (let i = 0; i < N; i++) { if (ang[i] >= PERFECT.flat) continue; for (let j = PERFECT.from; j <= PERFECT.to; j++) { const q = (i + j) % N; if (ang[q] > PERFECT.bend) { out[i] = way[q]; break; } } }
+  return out;
+}
+/// a kart-to-kart bump: the closing speed along the line between them (n: from A to B, unit) → the impulse each takes (equal
+/// karts, a little bounce: e), 0 when they're already parting
+export const BUMP = { e: 0.35, side: 0.55, min: 2.5 };
+export const bumpJ = (vax, vaz, vbx, vbz, nx, nz, e = BUMP.e) => { const rel = (vax - vbx) * nx + (vaz - vbz) * nz; return rel > 0 ? (rel * (1 + e)) / 2 : 0; };
+/// items that can be held behind your kart (hold Use): a shield or a rug there takes one rocket from behind
+export const HOLDABLE = { shield: 1, rug: 1 };
+export const HOLD_S = 0.28;
+/// the computer racers' catch-up on the leader (KX2's balance check): past `free` metres behind the leader, +1 % top speed
+/// every `per` metres, at most `lead`
+export const RUBBER = { free: 40, per: 500, lead: 0.07 };
+/// a rocket's hit: the kart pops up and bounces (seconds; drawn only — the physics keeps the road)
+export const POP = 0.9;
 /// the items' numbers: box rows (track samples, clear of the ramps, pads, tunnel and the last corner), timings; the pump is a boost
 /// (BOOST_TOP at most) and the magnet pulls you to TOP × magnet.top (under BOOST_TOP) — so the server's minLap holds with items
-export const ITEM = { rows: [140, 330, 600], per: 5, gap: 3.1, respawn: 3, roll: 0.9, spin: 1.0, safe: 1.6, shield: 6, rocketV: 62, rocketLife: 7, bombFuse: 1.4, bombR: 6, rugLife: 25, rugR: 1.8, pump: { secs: 2.2, k: 1 }, magnet: { secs: 2.2, top: 1.2 } };
+export const ITEM = { rows: [140, 330, 600], per: 5, gap: 3.1, respawn: 1.5, /* (KX2's balance check: 3 s left the back of the pack driving through boxes the pack had just taken) */ roll: 0.9, spin: 1.0, safe: 1.6, shield: 6, rocketV: 62, rocketLife: 7, bombFuse: 1.4, bombR: 6, rugLife: 25, rugR: 1.8, pump: { secs: 2.2, k: 1 }, magnet: { secs: 2.2, top: 1.2 } };
 const RACE_DAY = 5, ARCL_DAY = 2500; // (shown on the result card; the server's KART.DAY_RACES / DAY_ARCL decide)
 const ROAD = 16, WALL = ROAD / 2 + 3.2, STEP = 1 / 60, BEST = "arc.kart.best", MODE = "arc.kart.mode", TRACK = "arc.kart.track", GHOST = "arc.kart.ghost.", KEYS = "arc.kart.keys", SIDE = "arc.kart.side";
 export const TOP = 34;
@@ -145,6 +170,10 @@ Object.assign(LW.tr, { "Nexus Circuit": "Nexus Pisti", "Lunar Loop": "Ay Halkas�
 Object.assign(LW.ko, { "Grab a box!": "상자를 먹어요!", "BEST LAP": "베스트 랩", "No best yet": "아직 기록 없음", "This week #{n}": "이번 주 {n}위", "Not on this week's board yet": "아직 이번 주 순위에 없어요" });
 Object.assign(LW.zh, { "Grab a box!": "去撞道具箱！", "BEST LAP": "最快单圈", "No best yet": "暂无最佳成绩", "This week #{n}": "本周第 {n} 名", "Not on this week's board yet": "还没进入本周排行榜" });
 Object.assign(LW.tr, { "Grab a box!": "Kutu topla!", "BEST LAP": "EN İYİ TUR", "No best yet": "Henüz rekor yok", "This week #{n}": "Bu hafta {n}.", "Not on this week's board yet": "Henüz bu haftanın sıralamasında yoksun" });
+// KX2's words
+Object.assign(LW.ko, { "Hold behind": "뒤에 들고 있기", "Rocket blocked!": "로켓을 막았다!", "Perfect drift!": "퍼펙트 드리프트!" });
+Object.assign(LW.zh, { "Hold behind": "举在身后", "Rocket blocked!": "挡住了火箭！", "Perfect drift!": "完美漂移！" });
+Object.assign(LW.tr, { "Hold behind": "Arkada tut", "Rocket blocked!": "Roket engellendi!", "Perfect drift!": "Kusursuz drift!" });
 const COLORS = [0x38d8ff, 0xff6fc8, 0x9b6bff, 0xffc23c, 0x5fe05a];
 // the five racers (the owner's CRYPTO LEGENDS key art); clip names as the Meshy rigs have them
 export const RACERS = [
@@ -171,6 +200,9 @@ export function createKart(ctx) {
   // KQ: the track sky's environment maps (one a track, made once a visit), the effects' pictures, the puffs / streaks pools, the stage's exposure + the canvas grade to give back, the props that move (blimp, floating rocks), the pick's turntable
   let envs = {}, fxTex = null, puffs = null, streaks = null, expo0 = null, grade0 = null, kqMove = [], pickStage = null, kqIn = {};
   const lightLog = []; let atmo = null, glbIn = { lights: false, ramp: 0, podium: false }, podGl = null, boxU = { uT: { value: 0 } }, grabN = 0, topCache = {};
+  // KX2: the music, the intro, the drift trails, the stickers, the 1st-place finish's confetti, the balance sim
+  let kmus = null, introT = 0, tagsEl = null, trails = null, stickers = null, confT = 0, confAt = 0, simOn = false, simLog = null, vigAt = 0, pTab = null;
+  const kx2 = { perfect: 0, perfectAi: 0, pops: 0, rugged: 0, flashes: 0, shock: 0, bumps: 0, bumpBuzz: 0, held: 0, heldBlocks: 0, passChip: 0, passedFlash: 0, waves: [], intro: 0, introSkip: 0, flares: 0, trailPts: 0, vig: 0, standUp: 0, conf: 0, clips: {} };
   let boxes = null, iPool = null, iOrd = [], slotShown = "", rollIc = -1, meItems = true, itemLog = { box: 0, used: {}, hits: 0, spins: 0, spinReact: 0, blocked: 0, spinClips: [] };
   const NOINP = Object.freeze({ steer: 0, gas: 0, brake: 0, drift: 0, boost: 0, trick: false }), BRAKEINP = Object.freeze({ steer: 0, gas: 0, brake: 1, drift: 0, boost: 0, trick: false });
   try { opts = optsOf(localStorage.getItem(OPTS), ctx.coarse); } catch { /* the defaults */ }
@@ -180,7 +212,7 @@ export function createKart(ctx) {
   const signed = () => !!(ctx.sess && ctx.sess()), active = () => (mode === "ta" ? karts.filter((k) => k.me) : karts);
   const V = (x, y, z) => new THREE.Vector3(x, y, z), tmp = V(0, 0, 0), tmp2 = V(0, 0, 0), gridC = V(0, 0, 0);
   const sit = (id) => { try { return ctx.makeHero(id); } catch { return Promise.resolve(null); } };
-  const buzz = (p) => { try { if (ctx.buzz && (keys.size || Object.values(touch).some(Boolean))) ctx.buzz(p); } catch { /* no vibration */ } }, snd = (n, ...a) => { try { if (ctx.Snd && ctx.Snd[n]) ctx.Snd[n](...a); } catch { /* no sound */ } };
+  const buzz = (p) => { if (simOn) return; try { if (ctx.buzz && (keys.size || Object.values(touch).some(Boolean))) ctx.buzz(p); } catch { /* no vibration */ } }, snd = (n, ...a) => { if (simOn) return; try { if (ctx.Snd && ctx.Snd[n]) ctx.Snd[n](...a); } catch { /* no sound */ } };
   const LV = [0, 0.8, 1.9, 3.0], SPARK = [0x4a4e58, 0x38c8ff, 0xffa63a, 0xc46bff], lvOf = (c) => (c >= LV[3] ? 3 : c >= LV[2] ? 2 : c >= LV[1] ? 1 : 0);
   // a point on a kart in the world (lx right, lz forward, in the kart's frame)
   const at = (k, lx, lz, out) => { const c = Math.cos(k.yaw), s = Math.sin(k.yaw); return out.set(k.pos.x + lx * c + lz * s, 0.2, k.pos.z - lx * s + lz * c); };
@@ -207,12 +239,46 @@ export function createKart(ctx) {
     let n = 0; return { add(p, yaw) { o.position.set(p.x, 0.035, p.z); o.rotation.set(0, yaw, 0); o.updateMatrix(); im.setMatrixAt(n++ % N, o.matrix); im.instanceMatrix.needsUpdate = true; } };
   }
 
+  /// KX2: the drift's glowing tails — a ribbon from each rear wheel of every kart (nk karts × 2) in ONE mesh: each ribbon a
+  /// ring of the last M points (its age, the drift step's colour), rebuilt every frame as a flat strip that thins and fades
+  function makeTrails(nk) {
+    const M = 16, NR = nk * 2, LIFE = 0.42, P = new Float32Array(NR * M * 2 * 3), C = new Float32Array(NR * M * 2 * 3), idx = [];
+    for (let r = 0; r < NR; r++) for (let j = 0; j < M - 1; j++) { const a = (r * M + j) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(P, 3)); g.setAttribute("color", new THREE.BufferAttribute(C, 3)); g.setIndex(idx);
+    const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false }));
+    mesh.frustumCulled = false; mesh.renderOrder = 3; scene.add(mesh);
+    const H = new Float32Array(NR * M * 4).fill(-1), head = new Int16Array(NR), col = new THREE.Color(); let live = false; // (H: x, z, age, colour hex as a number)
+    return { mesh, n: nk,
+      push(r, x, z, hex) { if (r < 0 || r >= NR) return; const h = head[r], o = (r * M + h) * 4; if (!(H[o + 2] >= 0 && H[o + 2] < LIFE)) for (let j = 0; j < M; j++) { const q = (r * M + j) * 4; H[q] = x; H[q + 1] = z; H[q + 2] = LIFE + 1; } /* (a new tail: the old points gathered under it, dead, so no strip runs back to where the last one ended) */ else if (H[o + 2] < 0.05) { const dx = x - H[o], dz = z - H[o + 1]; if (dx * dx + dz * dz < 0.25) return; } const n = (h + 1) % M, q = (r * M + n) * 4; head[r] = n; H[q] = x; H[q + 1] = z; H[q + 2] = 0; H[q + 3] = hex; live = true; kx2.trailPts++; },
+      step(dt, y = 0.3) { if (!live) return; let any = false;
+        for (let r = 0; r < NR; r++) { const h = head[r];
+          for (let j = 0; j < M; j++) { const k = (h - j + M) % M, o = (r * M + k) * 4, v = (r * M + j) * 6; let age = H[o + 2]; if (age >= 0) { age += dt; H[o + 2] = age; }
+            const f = age >= 0 && age < LIFE ? 1 - age / LIFE : 0; if (f > 0) any = true;
+            const k2 = (k - 1 + M) % M, o2 = (r * M + k2) * 4, ok2 = H[o2 + 2] >= 0 && H[o2 + 2] < LIFE; let tx = ok2 ? H[o] - H[o2] : 0, tz = ok2 ? H[o + 1] - H[o2 + 1] : 1; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
+            const w = 0.2 * f * (j === 0 ? 0.6 : 1); P[v] = H[o] - tz * w; P[v + 1] = y; P[v + 2] = H[o + 1] + tx * w; P[v + 3] = H[o] + tz * w; P[v + 4] = y; P[v + 5] = H[o + 1] - tx * w;
+            col.setHex(f > 0 ? H[o + 3] : 0); const b = f * f * 1.7; C[v] = C[v + 3] = col.r * b; C[v + 1] = C[v + 4] = col.g * b; C[v + 2] = C[v + 5] = col.b * b; } }
+        g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true; if (!any) live = false; } };
+  }
+  /// KX2: the stickers over a kart (RUGGED! when a rug pull spins it, PERFECT! on a perfect drift start): a few sprites with
+  /// Meshy's cut-outs, popping in and floating up; drawn over everything so the chase camera always reads them
+  function makeStickers() {
+    const TL = new THREE.TextureLoader(), mat = (f) => { const t = TL.load(`/images/kart/fx/${f}.webp${ctx.ver || ""}`); t.colorSpace = THREE.SRGBColorSpace; return new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, fog: false, toneMapped: false }); };
+    const M = { rugged: [mat("rugged"), 4.2, 239 / 640], perfect: [mat("perfect"), 3.6, 151 / 640] }, pool = [];
+    for (let i = 0; i < 4; i++) { const o = new THREE.Sprite(M.rugged[0]); o.visible = false; o.renderOrder = 20; o.center.set(0.5, 0); scene.add(o); pool.push({ o, t: 0, k: null, w: 1, h: 1 }); }
+    return { pool, show(k, kind) { const m = M[kind]; if (!m) return; let s0 = pool.find((x) => x.k === k && x.t > 0) || pool.find((x) => x.t <= 0) || pool[0]; s0.o.material = m[0]; s0.k = k; s0.t = 1.3; s0.w = m[1]; s0.h = m[1] * m[2]; s0.o.visible = true; },
+      step(dt) { for (const x of pool) { if (x.t <= 0) continue; x.t -= dt; if (x.t <= 0 || !x.k) { x.o.visible = false; x.k = null; continue; } const u = 1.3 - x.t, pop = u < 0.18 ? 0.2 + (u / 0.18) * 1.0 : u < 0.3 ? 1.2 - ((u - 0.18) / 0.12) * 0.2 : 1, a = Math.min(1, x.t / 0.3);
+        x.o.position.set(x.k.pos.x, x.k.y + 2.3 + u * 0.7, x.k.pos.z); x.o.scale.set(x.w * pop, x.h * pop, 1); x.o.material.opacity = a; } },
+      clear() { for (const x of pool) { x.t = 0; x.k = null; x.o.visible = false; } } };
+  }
+  /// KX2: the edge glow that pulses in the drift step's colour (you only)
+  function vig(lv) { const el = ui && ui.querySelector(".wk-vig"); if (!el || ctx.low) return; el.style.setProperty("--vc", ["", "#38c8ff", "#ffa63a", "#c46bff"][lv] || "#38c8ff"); el.classList.remove("on"); void el.offsetWidth; el.classList.add("on"); kx2.vig++; }
+
   // ---------- the track: a closed Catmull-Rom spline sampled into a table (position, right, distance) ----------
   function buildTrack(flip) {
     const P = TD.pts.map(([x, z]) => V(flip ? -x : x, 0, z));
     const curve = new THREE.CatmullRomCurve3(P, true, "centripetal"), N = 900, pts = curve.getSpacedPoints(N);
     const S = [], len = curve.getLength(); for (let i = 0; i < N; i++) { const p = pts[i], q = pts[(i + 1) % N], t = q.clone().sub(p).normalize(); S.push({ p, t, r: V(-t.z, 0, t.x), s: (i / N) * len }); }
-    return { S, N, len, curve };
+    return { S, N, len, curve, perf: perfectTable(S, N) }; // (KX2: where a drift start is PERFECT)
   }
   // the nearest table index around a guess (karts move a few samples a step)
   function nearest(pos, guess) { let best = guess, bd = Infinity; for (let k = -24; k <= 24; k++) { const i = (guess + k + track.N) % track.N, d = track.S[i].p.distanceToSquared(pos); if (d < bd) { bd = d; best = i; } } return best; }
@@ -461,7 +527,7 @@ export function createKart(ctx) {
   }
 
   // ---------- input ----------
-  const kd = (e) => { if (!on) return; const c = e.code; keys.add(c); if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(c)) e.preventDefault(); if (c === "Escape") leave(); };
+  const kd = (e) => { if (!on) return; const c = e.code; if (phase === "intro" && c !== "Escape") endIntro(true); keys.add(c); if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(c)) e.preventDefault(); if (c === "Escape") leave(); };
   const ku = (e) => keys.delete(e.code);
   function input() {
     const L0 = keys.has("KeyA") || keys.has("ArrowLeft") || touch.l, R0 = keys.has("KeyD") || keys.has("ArrowRight") || touch.r;
@@ -481,10 +547,11 @@ export function createKart(ctx) {
     k.speed = Math.max(0, Math.min(k.speed, top + 6)); if (k.speed > top) k.speed -= (k.speed - top) * 2 * dt;
     const sp = k.speed / TOP;
     // drift: starts with a direction held at speed, ends when let go → the turbo it charged
-    if (inp.drift && !k.drift && !k.air && Math.abs(inp.steer) > 0 && k.speed > 14) { k.drift = 1; k.driftDir = Math.sign(inp.steer); k.charge = 0; if (k.me) hop(k); }
+    if (inp.drift && !k.drift && !k.air && Math.abs(inp.steer) > 0 && k.speed > 14) { k.drift = 1; k.driftDir = Math.sign(inp.steer); k.charge = 0; if (k.me) hop(k);
+      const pw = track.perf ? track.perf[k.idx] : 0; if (pw && pw === k.driftDir && (k.aiPerf || (k.me && !autoMe)) && clock - (k.perfAt ?? -9) > 2.5 && rule !== "nodrift") perfectStart(k); } /* (the computers — and the tests' autopilot — only when they meant to: k.aiPerf) */ // (KX2: a drift started right at a corner's entry, the corner's way: PERFECT)
     if (k.drift && (!inp.drift || k.speed < 8)) releaseDrift(k);
     let turn;
-    if (k.drift) { turn = k.driftDir * (1.05 + 0.55 * inp.steer * k.driftDir) * 1.45; k.charge += dt * (0.6 + 0.8 * Math.abs(inp.steer)) * (sp > 0.5 ? 1 : 0.4); k.nitro = Math.min(2, k.nitro + dt * (rule === "nitro" ? 0.3 : 0.12)); const lv = lvOf(k.charge); if (lv > (k.lv || 0)) { k.lv = lv; if (k.me) { snd("kartSpark", lv); buzz(10 + lv * 8); } } }
+    if (k.drift) { turn = k.driftDir * (1.05 + 0.55 * inp.steer * k.driftDir) * 1.45; k.charge += dt * (0.6 + 0.8 * Math.abs(inp.steer)) * (sp > 0.5 ? 1 : 0.4); k.nitro = Math.min(2, k.nitro + dt * (rule === "nitro" ? 0.3 : 0.12)); const lv = lvOf(k.charge); if (lv > (k.lv || 0)) { k.lv = lv; if (k.me) { snd("kartSpark", lv); buzz(10 + lv * 8); vig(lv); } } }
     else turn = inp.steer * (2.2 - 0.9 * Math.min(1, sp));
     if (k.air) turn *= 0.35; k.st = inp.steer;
     if (rule === "nitro" && phase === "race") k.nitro = Math.min(2, k.nitro + dt * 0.05); // (the nitro rule: it fills by itself too)
@@ -493,6 +560,7 @@ export function createKart(ctx) {
     const grip = k.air ? 1 : (k.drift ? 3.2 : offRoad ? 6 : 11) * TD.feel.grip; /* (K5: Frost Drift's ice grips less — drifts carry) */ let dv = k.yaw - k.vh; dv = Math.atan2(Math.sin(dv), Math.cos(dv)); k.vh += dv * Math.min(1, grip * dt);
     if (inp.boost && k.nitro >= 1 && k.boostT <= 0.1) { k.nitro -= 1; boost(k, 1.6, 1, "Nitro!", 2); }
     k.pos.x += Math.sin(k.vh) * k.speed * dt; k.pos.z += Math.cos(k.vh) * k.speed * dt;
+    if (k.px || k.pz) { k.pos.x += k.px * dt; k.pos.z += k.pz * dt; const f = Math.exp(-5 * dt); k.px *= f; k.pz *= f; if (Math.abs(k.px) + Math.abs(k.pz) < 0.05) k.px = k.pz = 0; } // (KX2: a bump's shove, easing off)
     k.idx = nearest(k.pos, k.idx); const s = track.S[k.idx], lat = lateral(k.pos, k.idx);
     air(k, inp, s, lat, dt);
     if (k.me && opts.assist && !autoMe && !k.air && k.speed > 5) { const edge = Math.abs(lat) - (WALL - 2.6); /* (K6: steering assist — near a wall the kart is turned gently back along the road and eased in) */
@@ -510,7 +578,9 @@ export function createKart(ctx) {
     if (fx && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) { const b = at(k, 0, -1.8, tmp2); for (let j = 0; j < 8 + lv * 4; j++) { const a = (j / (8 + lv * 4)) * Math.PI * 2; fx.emit(b, Math.cos(a) * 4 - Math.sin(k.vh) * 6, 1 + Math.random(), Math.sin(a) * 4 - Math.cos(k.vh) * 6, SPARK[Math.max(1, lv)], 0.45); } }
     if (k.me) { shake = 0.18 + lv * 0.06; camBack = 1.2 + lv * 0.5; if (say) flash(T(say)); snd("kartTurbo", lv); buzz(20 + lv * 15); } }
   function hop(k) { k.hopY = 0.4; }
-  function releaseDrift(k) { const lv = rule === "nodrift" ? 0 : lvOf(k.charge); /* (the nodrift rule: a drift gives no turbo) */ if (lv === 3) boost(k, 1.6, 1.2, "Ultra turbo!", 3); else if (lv === 2) boost(k, 1.15, 1, "Super turbo!", 2); else if (lv === 1) boost(k, 0.6, 0.6, "Mini turbo", 1); k.drift = 0; k.charge = 0; k.lv = 0; }
+  /// KX2: a PERFECT drift start — the first spark step at once, a small turbo, the PERFECT! sticker over the kart
+  function perfectStart(k) { k.perfAt = clock; k.charge = Math.max(k.charge, LV[1]); boost(k, PERFECT.turbo, 0.7, "", 1); if (k.me) { kx2.perfect++; snd("kartSpark", 3); buzz([12, 20, 12]); vig(1); } else kx2.perfectAi++; if (stickers && !simOn && near(k, 3600)) stickers.show(k, "perfect"); }
+  function releaseDrift(k) { const lv = rule === "nodrift" ? 0 : lvOf(k.charge); /* (the nodrift rule: a drift gives no turbo) */ if (lv >= 1) { k.flareT = 0.4; if (k.me) kx2.flares++; } /* (KX2: the flames flare as the turbo fires) */ if (lv === 3) boost(k, 1.6, 1.2, "Ultra turbo!", 3); else if (lv === 2) boost(k, 1.15, 1, "Super turbo!", 2); else if (lv === 1) boost(k, 0.6, 0.6, "Mini turbo", 1); k.drift = 0; k.charge = 0; k.lv = 0; }
   // ---------- K6: the ramps, the air, tricks ----------
   const GRAV = 21, TRICK_DUR = 0.55, grav = () => TD.feel.grav || GRAV; /* (K5: Lunar Loop's low gravity — longer airtime off a ramp) */
   function air(k, inp, s, lat, dt) {
@@ -533,7 +603,7 @@ export function createKart(ctx) {
     if (k.me) { shake = Math.max(shake, 0.14); snd("kartBump", 0.35); buzz(18); }
     if (fx && (k.me || (me && k.pos.distanceToSquared(me.pos) < 900))) fx.burst(at(k, 0, 0, tmp2), [0xcfeeff, 0x38d8ff], 8, 6, 1.5, 0.35); }
   /// a racer's reaction: the rig's own clip once, never over a one-shot, back to driving after (4 s apart unless forced)
-  function react(k, clip, dur, force) { const h = k.hero; if (!h || !h.has || !h.busy || !h.has(clip) || h.busy() || (!force && clock - (k.reactAt ?? -9) < 4)) return false;
+  function react(k, clip, dur, force) { const h = k.hero; if (!h || k.onPod || !h.has || !h.busy || !h.has(clip) || h.busy() || (!force && clock - (k.reactAt ?? -9) < 4)) return false;
     k.reactAt = clock; h.after = CLIP.drive; h.play(clip, { once: true, dur }); if (k.me) { k6log.push(clip); if (k6log.length > 16) k6log.shift(); } return true; }
 
   // ---------- K3: item boxes and the six items (rocket, bomb, magnet, pump, rug, shield) — only in Race and the Daily ----------
@@ -575,17 +645,19 @@ export function createKart(ctx) {
     const sp = (id, n, sz) => { const m = new THREE.SpriteMaterial({ map: iconTex(id), transparent: true, depthWrite: false }), a = []; for (let i = 0; i < n; i++) { const o = new THREE.Sprite(m); o.scale.setScalar(sz); o.visible = false; scene.add(o); a.push({ o, on: false }); } return a; };
     const rugM = new THREE.MeshBasicMaterial({ map: iconTex("rug"), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 }), rugG = new THREE.PlaneGeometry(2.6, 2.6); rugG.rotateX(-Math.PI / 2);
     const rugs = []; for (let i = 0; i < 6; i++) { const o = new THREE.Mesh(rugG, rugM); o.visible = false; o.position.y = 0.06; scene.add(o); rugs.push({ o, on: false }); }
-    return { rockets: sp("rocket", 6, 1.7), bombs: sp("bomb", 4, 1.5), rugs, bubG: new THREE.SphereGeometry(1, 18, 12), bubM: new THREE.MeshBasicMaterial({ color: 0x7ff6ff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }) };
+    const heldM = { rug: new THREE.SpriteMaterial({ map: iconTex("rug"), transparent: true, depthWrite: false }), shield: new THREE.SpriteMaterial({ map: iconTex("shield"), transparent: true, depthWrite: false }) }; // (KX2: a held item behind the kart)
+    return { heldM, rockets: sp("rocket", 6, 1.7), bombs: sp("bomb", 4, 1.5), rugs, bubG: new THREE.SphereGeometry(1, 18, 12), bubM: new THREE.MeshBasicMaterial({ color: 0x7ff6ff, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }) };
   }
   const free = (a) => { for (const x of a) if (!x.on) return x; let o = a[0]; for (const x of a) if ((x.age || 0) > (o.age || 0)) o = x; return o; }; // (a free slot, or the oldest)
   /// a point on the road from a progress (laps × length + metres) and a lateral offset
   function roadAt(prog, lat, out) { const L0 = track.len, d = ((prog % L0) + L0) % L0, i = Math.min(track.N - 1, Math.floor((d / L0) * track.N)), s = track.S[i]; return out.set(s.p.x + s.r.x * lat, 0, s.p.z + s.r.z * lat); }
   const near = (k, d2 = 1600) => k.me || (me && k.pos.distanceToSquared(me.pos) < d2);
-  function clearItems() { if (iPool) for (const a of [iPool.rockets, iPool.bombs, iPool.rugs]) for (const x of a) { x.on = false; x.o.visible = false; } }
+  function clearItems() { if (iPool) for (const a of [iPool.rockets, iPool.bombs, iPool.rugs]) for (const x of a) { x.on = false; x.o.visible = false; } if (stickers) stickers.clear(); for (const k of karts) dropHeld(k); }
   /// the racer just ahead of k / just behind it in the order of this step
   const aheadOf = (k) => { const i = iOrd.indexOf(k); return i > 0 ? iOrd[i - 1] : null; }, behindOf = (k) => { const i = iOrd.indexOf(k); return i >= 0 && i < iOrd.length - 1 ? iOrd[i + 1] : null; };
   function give(k, id) {
-    const n = active().length, pl = Math.max(1, iOrd.indexOf(k) + 1); k.item = ITEMS.includes(id) ? id : itemFor(pl, n); k.rollT = ITEM.roll; k.useAt = clock + ITEM.roll + 0.6 + Math.random() * 2.4;
+    const n = active().length, pl = Math.max(1, iOrd.indexOf(k) + 1); k.item = ITEMS.includes(id) ? id : itemFor(pl, n); k.rollT = ITEM.roll; k.useAt = clock + ITEM.roll + 0.6 + Math.random() * 2.4; k.aiHold = Math.random() < 0.5;
+    if (simLog) { const g = (simLog.give[pl] = simLog.give[pl] || {}); g[k.item] = (g[k.item] || 0) + 1; }
     if (k.me) { rollIc = -1; buzz(10); }
   }
   /// a box: pops, comes back in ITEM.respawn s; an empty hand gets an item (weighted by place)
@@ -601,7 +673,10 @@ export function createKart(ctx) {
   /// a hit: a shield takes it; otherwise a spin-out (~1 s, the racer holds their head), a short safe time after so hits never chain
   function hitKart(k, by, kind) {
     if (!k || k.finish || k.safeT > 0 || k.spinT > 0) return false;
-    if (k.shieldT > 0) { k.shieldT = 0; if (k.bub) k.bub.visible = false; itemLog.blocked++; if (fx && near(k)) fx.burst(tmp2.copy(k.pos).setY(1.2), [0x7ff6ff, 0xffffff], 18, 8, 4, 0.5); if (near(k, 900)) snd("kartShieldPop"); if (k.me) { flash(T("Blocked!")); buzz(20); } return false; }
+    if (k.shieldT > 0) { k.shieldT = 0; k.bubFlash = 0.35; kx2.flashes++; if (rings && near(k)) { rings.at(k.pos, 0x7ff6ff, 1.3); rings.at(k.pos, 0xffffff, 0.8); } itemLog.blocked++; /* (KX2: the bubble flares bright and bursts as it takes the hit) */ if (fx && near(k)) fx.burst(tmp2.copy(k.pos).setY(1.2), [0x7ff6ff, 0xffffff], 18, 8, 4, 0.5); if (near(k, 900)) snd("kartShieldPop"); if (k.me) { flash(T("Blocked!")); buzz(20); } return false; }
+    if (simLog && iOrd[0] === k) simLog.leadHits++; if (simLog) simLog.hits++;
+    k.spinN = kind === "rug" ? 3 : 2; if (kind === "rocket") { k.popT = POP; kx2.pops++; } if (kind === "rug") { kx2.rugged++; if (stickers && !simOn && near(k, 3600)) stickers.show(k, "rugged"); } // (KX2: a rocket throws the kart up, a rug pull spins it three times under RUGGED!)
+    if (kmus && near(k, 900)) kmus.duck(0.4, 0.7);
     k.spinT = ITEM.spin; k.safeT = ITEM.safe; k.spinCk = false; k.speed *= 0.4; k.boostT = 0; k.magT = 0; if (k.drift) { k.drift = 0; k.charge = 0; k.lv = 0; }
     if (react(k, CLIP.lose, 1.1, true)) itemLog.spinReact++; itemLog.spins++;
     if (by && by !== k) { itemLog.hits++; react(by, CLIP.win, 1.4, true); if (by.me) { flash(T("Hit!")); snd("kartPass"); buzz(15); } }
@@ -622,9 +697,25 @@ export function createKart(ctx) {
     else if (id === "pump") { boost(k, ITEM.pump.secs, ITEM.pump.k, k.me ? "Pump!" : "", 2); if (loud) snd("kartPump"); if (fx && near(k)) for (let j = 0; j < 12; j++) fx.emit(at(k, (Math.random() - 0.5) * 2, -1.4, tmp2), (Math.random() - 0.5) * 2, 3 + Math.random() * 3, (Math.random() - 0.5) * 2, j % 2 ? 0x2ee07a : 0x9dffb0, 0.8); }
     if (k.me) buzz(18); return true;
   }
+  /// KX2: the Use control — a tap uses the item; held with a shield or a rug, the item stays behind your kart (HOLD_S in) until
+  /// you let go (then it's used as a tap would), and blocks one rocket from behind meanwhile
+  function useInput(k, want) {
+    if (want && !k.usePrev) { k.pressAt = clock; if (k.item && !HOLDABLE[k.item]) useItem(k); }
+    else if (want && !k.holdIt && k.item && HOLDABLE[k.item] && !(k.rollT > 0) && clock - (k.pressAt ?? clock) >= HOLD_S) startHold(k);
+    else if (!want && k.usePrev) { if (k.holdIt) releaseHold(k); else if (k.item && HOLDABLE[k.item]) useItem(k); }
+    k.usePrev = want;
+  }
+  function startHold(k) { if (!iPool || !k.item || !HOLDABLE[k.item]) return; k.holdIt = k.item; kx2.held++; if (!k.heldS) { k.heldS = new THREE.Sprite(iPool.heldM[k.item]); k.heldS.scale.setScalar(1.3); k.heldS.position.set(0, 0.9, -2.7); k.m.g.add(k.heldS); } k.heldS.material = iPool.heldM[k.item]; k.heldS.visible = true; if (k.me) { snd("kartItem"); buzz(12); } }
+  function dropHeld(k) { k.holdIt = ""; if (k.heldS) k.heldS.visible = false; }
+  function releaseHold(k) { dropHeld(k); useItem(k); }
+  /// a rocket from behind meets the held item: both gone, a flash, no spin
+  function blockHeld(k) { const id = k.holdIt; dropHeld(k); k.item = ""; kx2.heldBlocks++; itemLog.blocked++; if (simLog) simLog.heldBlocks++;
+    if (rings && near(k)) rings.at(k.pos, id === "shield" ? 0x7ff6ff : 0xff4f8a, 1.1); if (fx && near(k)) fx.burst(at(k, 0, -2.6, tmp2).setY(1), [0xffffff, 0x7ff6ff, 0xffc23c], 18, 8, 4, 0.5); if (near(k, 900)) snd("kartShieldPop"); if (k.me) { flash(T("Rocket blocked!")); buzz(25); } }
   /// the computer racers' items: simple, fair rules — wait a moment after the roulette, use it when it makes sense (or after a while)
   function aiItem(k) {
+    if (k.holdIt) { if (clock > k.holdUntil || !behindOf(k)) releaseHold(k); return; } // (KX2: a held shield / rug, let go after a while)
     if (!k.item || k.rollT > 0 || k.spinT > 0 || clock < k.useAt) return; const A = aheadOf(k), Bh = behindOf(k), late = clock > k.useAt + 6, id = k.item;
+    if (HOLDABLE[id] && k.aiHold && Bh && k.prog - Bh.prog < 70) { startHold(k); k.holdUntil = clock + 6 + Math.random() * 8; return; } // (sometimes they hold it behind them)
     const ok = id === "rocket" ? !!A || late : id === "magnet" ? (A && A.prog - k.prog < 80) || late : id === "bomb" ? (A && A.prog - k.prog < 35) || (Bh && k.prog - Bh.prog < 30) || late : id === "rug" ? (Bh && k.prog - Bh.prog < 30) || late : id === "shield" ? clock > k.useAt + 1.5 : true;
     if (ok) useItem(k);
   }
@@ -634,7 +725,7 @@ export function createKart(ctx) {
     if (k.spinT > 0) { k.spinT -= dt; if (!k.spinCk && ITEM.spin - k.spinT > 0.45) { k.spinCk = true; if (k.hero && k.hero.mixer && itemLog.spinClips.length < 24) itemLog.spinClips.push(k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join("+")); } }
     if (phase !== "race" || k.finish) return;
     boxStep(k);
-    if (k.me && autoMe && !meItems) { /* (the browser test uses your items itself) */ } else if (k.me && !autoMe) { const want = keys.has("KeyE") || !!touch.item; if (want && !k.usePrev) useItem(k); k.usePrev = want; } else aiItem(k);
+    if (k.me && autoMe && !meItems) { /* (the browser test uses your items itself) */ } else if (k.me && !autoMe) useInput(k, keys.has("KeyE") || !!touch.item); else aiItem(k);
     if (k.magT > 0) { k.magT -= dt; const A = k.magTo; if (A && !A.finish && A.prog > k.prog) { const la = lateral(A.pos, k.idx), lk = lateral(k.pos, k.idx), dl = Math.max(-4 * dt, Math.min(4 * dt, la - lk)); k.pos.addScaledVector(track.S[k.idx].r, dl);
         if (fx && near(k) && Math.random() < 0.6) { const u = Math.random(); fx.emit(tmp2.set(k.pos.x + (A.pos.x - k.pos.x) * u, 1.1, k.pos.z + (A.pos.z - k.pos.z) * u), 0, 0.5, 0, u < 0.5 ? 0xff4f8a : 0x7fe8ff, 0.25); } } }
   }
@@ -642,7 +733,7 @@ export function createKart(ctx) {
   function projStep(dt) {
     if (!iPool) return; const ka = active();
     for (const r of iPool.rockets) { if (!r.on) continue; r.age += dt; r.life -= dt; r.prog += ITEM.rocketV * dt; const T0 = r.target;
-      if (T0 && !T0.finish) { const tl = lateral(T0.pos, T0.idx); r.lat += Math.max(-9 * dt, Math.min(9 * dt, tl - r.lat)); if (r.prog >= T0.prog - 1.2) { hitKart(T0, r.owner, "rocket"); if (fx && near(T0)) fx.burst(tmp2.copy(T0.pos).setY(1.2), [0xff8a3a, 0xffd36a, 0xffffff], 22, 9, 5, 0.6); if (near(T0, 900)) snd("kartBlast", 0.7); r.on = false; r.o.visible = false; continue; } }
+      if (T0 && !T0.finish) { const tl = lateral(T0.pos, T0.idx); r.lat += Math.max(-9 * dt, Math.min(9 * dt, tl - r.lat)); if (r.prog >= T0.prog - 1.2) { if (T0.holdIt && !T0.finish) blockHeld(T0); else hitKart(T0, r.owner, "rocket"); if (fx && near(T0)) fx.burst(tmp2.copy(T0.pos).setY(1.2), [0xff8a3a, 0xffd36a, 0xffffff], 22, 9, 5, 0.6); if (near(T0, 900)) snd("kartBlast", 0.7); r.on = false; r.o.visible = false; continue; } }
       else if (r.target) r.target = null;
       roadAt(r.prog, r.lat, r.o.position); r.o.position.y = 1.1 + Math.sin(r.age * 20) * 0.08;
       if (fx && me && r.o.position.distanceToSquared(me.pos) < 4900) { fx.emit(r.o.position, (Math.random() - 0.5) * 1.5, 0.5 + Math.random(), (Math.random() - 0.5) * 1.5, Math.random() < 0.5 ? 0xff8a3a : 0xfff0c0, 0.35); }
@@ -653,8 +744,8 @@ export function createKart(ctx) {
       roadAt(b.prog, b.lat, b.o.position); b.o.position.y = b.y; const pulse = b.landed ? 1.5 + Math.max(0, Math.sin(b.age * (b.fuse < 0.6 ? 40 : 14))) * 0.25 : 1.5; b.o.scale.setScalar(pulse);
       if (b.landed && b.fuse <= 0) { b.on = false; b.o.visible = false; const c = b.o.position;
         for (const k of ka) if ((k !== b.owner || b.age > 2.5) && k.pos.distanceToSquared(c) < ITEM.bombR * ITEM.bombR) hitKart(k, b.owner, "bomb");
-        if (fx && me && c.distanceToSquared(me.pos) < 6400) { fx.burst(tmp2.copy(c).setY(1), [0xff5a2a, 0xffa63a, 0xffe08a, 0x444850], 40, 14, 9, 0.8); if (rings) rings.at(c, 0xff8a3a); }
-        if (me) { const d2 = c.distanceToSquared(me.pos); if (d2 < 3600) snd("kartBlast", d2 < 400 ? 1 : 0.5); if (d2 < 400) shake = Math.max(shake, 0.3); } } }
+        if (fx && me && c.distanceToSquared(me.pos) < 6400) { fx.burst(tmp2.copy(c).setY(1), [0xff5a2a, 0xffa63a, 0xffe08a, 0x444850], 40, 14, 9, 0.8); if (rings) { rings.at(c, 0xff8a3a, ITEM.bombR / 2.6); rings.at(c, 0xfff0c0, ITEM.bombR / 4); } } // (KX2: a shockwave ring as wide as the blast)
+        if (me) { const d2 = c.distanceToSquared(me.pos); if (d2 < 3600) snd("kartBlast", d2 < 400 ? 1 : 0.5); if (d2 < 900) { const kk = 1 - Math.sqrt(d2) / 30; shake = Math.max(shake, 0.22 + 0.45 * kk); buzz(Math.round(20 + 40 * kk)); kx2.shock++; if (kmus) kmus.duck(0.35, 0.7); } } } } // (KX2: the screen shakes with how near it went off)
     for (const r of iPool.rugs) { if (!r.on) continue; r.age += dt; r.life -= dt; if (r.life <= 0) { r.on = false; r.o.visible = false; continue; }
       for (const k of ka) { if ((k === r.owner && r.age < 1.2) || k.air) continue; const dx = k.pos.x - r.o.position.x, dz = k.pos.z - r.o.position.z; if (dx * dx + dz * dz < ITEM.rugR * ITEM.rugR) { hitKart(k, r.owner, "rug"); r.on = false; r.o.visible = false; if (fx && near(k)) fx.burst(tmp2.copy(r.o.position).setY(0.5), [0xff4f8a, 0xffc23c], 12, 6, 3, 0.5); break; } } }
   }
@@ -665,7 +756,8 @@ export function createKart(ctx) {
     else if (me.item) want = me.item;
     if (want === slotShown) return; const was = slotShown; slotShown = want;
     const id = want.startsWith("r:") ? want.slice(2) : want; sl.style.backgroundImage = id ? `url(${icon(id)})` : ""; const box = sl.closest(".wk-item, .wk-it");
-    if (box) { box.classList.toggle("has", !!want && !want.startsWith("r:")); box.classList.toggle("rolling", want.startsWith("r:")); box.classList.toggle("empty", !want); } // (KX1: empty — a faint glass '?' box)
+    if (box) { box.classList.toggle("has", !!want && !want.startsWith("r:")); box.classList.toggle("rolling", want.startsWith("r:")); box.classList.toggle("empty", !want); }
+    if (box) box.classList.toggle("held", !!me.holdIt); // (KX2: held behind the kart) // (KX1: empty — a faint glass '?' box)
     if (want) grabHint(false);
     if (want && !want.startsWith("r:") && was.startsWith("r:")) { snd("kartItem"); if (box) { box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop"); } }
   }
@@ -680,19 +772,45 @@ export function createKart(ctx) {
     let a = Math.atan2(tgt.x - k.pos.x, tgt.z - k.pos.z) - k.yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
     const bend = Math.abs(Math.atan2(Math.sin(Math.atan2(look.t.x, look.t.z) - Math.atan2(track.S[k.idx].t.x, track.S[k.idx].t.z)), 1));
     k.wob = Math.max(0, k.wob - STEP); if (Math.random() < 0.0015) k.wob = 0.5; // a small mistake now and then
-    const gap = me ? (me.prog - k.prog) : 0, rb = Math.max(-0.12, Math.min(0.1, gap / 400)); // a light rubber band
-    k.skill = Math.max(0.82, Math.min(1.04, (0.9 + ((k.i * 37) % 10) / 100) + rb)) * (rule === "nodrift" ? 0.94 : 1); // (the nodrift rule: the computer racers a little slower)
+    const gap = me ? (me.prog - k.prog) : 0, rb = Math.max(-0.12, Math.min(0.1, gap / 400)) + Math.min(RUBBER.lead, Math.max(0, leadProg - k.prog - RUBBER.free) / RUBBER.per); // a light rubber band (KX2: and a little more for whoever is far behind the leader — the back of the pack could never catch up)
+    k.skill = Math.max(0.82, Math.min(1.04 + RUBBER.lead, (0.9 + ((k.i * 37) % 10) / 100) + rb)) * (rule === "nodrift" ? 0.94 : 1); // (the nodrift rule: the computer racers a little slower)
+    const pw = track.perf ? track.perf[k.idx] : 0; if (pw && !k.inPW) k.aiPerf = Math.random() < PERFECT.aiP; k.inPW = !!pw; // (KX2: a computer racer nails a corner's entry now and then)
+    if (pw && k.aiPerf && !k.drift && !k.air && k.speed > 16 && !k.wob) return { steer: pw * Math.max(0.6, Math.min(1, Math.abs(-a * 2.4))), gas: 1, brake: 0, drift: true, boost: false };
     return { steer: Math.max(-1, Math.min(1, -a * 2.4 + (k.wob ? Math.sin(clock * 9) * 0.6 : 0))), gas: 1, brake: bend > 0.9 && k.speed > 26 ? 1 : 0, drift: bend > 0.6 && k.speed > 22 && !k.wob, boost: k.nitro >= 1 && bend < 0.2 };
   }
 
   // ---------- laps: progress = laps × length + the distance along; a lap counts when you cross the line going forward ----------
   function laps(k, prevIdx) {
-    const N = track.N; if (prevIdx > N * 0.8 && k.idx < N * 0.2) { k.lap++; if (k.me && lapAt[k.lap] == null) lapAt[k.lap] = clock; if (k.me && k.lap >= 2 && k.lap <= LAPS) { if (k.lap === LAPS) { finalLap = true; banner(T("FINAL LAP")); } else flash(`${T("Lap")} ${k.lap}/${LAPS}`); snd("kartLap", k.lap === LAPS); buzz(25); } }
+    const N = track.N; if (prevIdx > N * 0.8 && k.idx < N * 0.2) { k.lap++; if (k.me && lapAt[k.lap] == null) lapAt[k.lap] = clock; if (k.me && k.lap >= 2 && k.lap <= LAPS) { if (k.lap === LAPS) { finalLap = true; banner(T("FINAL LAP")); if (kmus) kmus.final(true); } else flash(`${T("Lap")} ${k.lap}/${LAPS}`); snd("kartLap", k.lap === LAPS); buzz(25); } }
     else if (prevIdx < N * 0.2 && k.idx > N * 0.8) k.lap--;
     k.prog = k.lap * track.len + track.S[k.idx].s; if (phase === "race" && k.prog > 0) k.mk = markAt(k.marks, k.mk, k.prog, clock); // (K6: the gaps' marks)
-    if (k.lap > LAPS && !k.finish) { k.finish = clock; finished.push(k); const pl = finished.length;
+    if (k.lap > LAPS && !k.finish) { k.finish = clock; finished.push(k); const pl = finished.length; dropHeld(k);
+      if (simOn) { if (simLog) simLog.fin.push(k); return; }
+      if (k.me) { if (kmus) kmus.fanfare(pl); if (pl === 1) { k.standT = 3.4; kx2.standUp++; confT = 0.75; confAt = 0; kx2.conf++; if (!ctx.reduce) slowT = Math.max(slowT, 0.6); } } // (KX2: crossing 1st — slow motion, the racer stands up cheering, confetti cannons at the line; the fanfare)
       react(k, pl === 1 ? CLIP.cheer : pl <= 3 ? CLIP.win : CLIP.lose, pl === 1 ? 3.5 : 2.5, true); // (K6: the win → Victory_Cheer)
       if (k.me) { buzz([50, 40, 90]); if (fx) for (let j = 0; j < 3; j++) fx.burst(tmp2.copy(k.pos).setY(1.5 + j * 0.6), [0xffd36a, 0x38d8ff, 0xff6fc8, 0x5fe05a, 0xffffff], 18, 9, 7, 1.3); if (checker) checker.burst(tmp2.copy(k.pos).setY(1.6)); done(); } }
+  }
+
+  /// one fixed step of the race (1/60 s): every kart, the items, bumps, slipstreams (KX2: its own function, so the balance sim runs it without drawing)
+  let leadProg = 0;
+  function physStep() {
+    clock += STEP; leadProg = 0; for (const k of karts) if (k.prog > leadProg) leadProg = k.prog;
+    const itOn = !!iPool && itemsNow(); if (itOn) iOrd = order(); // (K3: the order once a step, for the items' weights and targets)
+    for (const k of active()) { if (k.finish && !k.me) { k.speed *= 0.99; } const prev = k.idx, inp = k.spinT > 0 ? NOINP : k.me ? (phase === "done" ? BRAKEINP : autoMe ? aiInput(k) : input()) : aiInput(k); /* (autoMe: the tests drive you with the computer's line; a spin-out takes the wheel for its second) */ stepKart(k, inp, STEP); laps(k, prev); if (itOn) itemStep(k, STEP); }
+    if (itOn) projStep(STEP);
+    // kart ↔ kart: circles push apart (KX2: with weight); a slipstream right behind another
+    if (phase === "race" && !me.finish && rec.length < GHOST_MAX && clock >= rec.length * GHOST_DT) rec.push([me.pos.x, me.pos.z, me.yaw]); // (the ghost: a sample every 0.2 s)
+    const ka = active(); for (let a = 0; a < ka.length; a++) for (let b = a + 1; b < ka.length; b++) { const A = ka[a], B = ka[b], dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz); if (d < 2.4 && d > 0.01 && Math.abs(A.y - B.y) < 1) { const nx = dx / d, nz = dz / d, push = (2.4 - d) / 2; A.pos.x -= nx * push; A.pos.z -= nz * push; B.pos.x += nx * push; B.pos.z += nz * push;
+      // KX2: a bump with weight — the closing speed along the line between them becomes an impulse: a shove sideways that
+      // eases off (px / pz), the one behind loses some speed, the one hit gains a little (never past TOP); sparks, a thud, a buzz
+      const sa = Math.sin(A.vh), ca = Math.cos(A.vh), sb = Math.sin(B.vh), cb = Math.cos(B.vh), j = bumpJ(sa * A.speed, ca * A.speed, sb * B.speed, cb * B.speed, nx, nz);
+      if (j > BUMP.min && phase === "race") { const fa = Math.max(0, nx * sa + nz * ca), fb = Math.max(0, nx * sb + nz * cb), jj = Math.min(j, 14);
+        A.px = (A.px || 0) - nx * jj * BUMP.side; A.pz = (A.pz || 0) - nz * jj * BUMP.side; B.px = (B.px || 0) + nx * jj * BUMP.side; B.pz = (B.pz || 0) + nz * jj * BUMP.side;
+        A.speed = Math.max(0, A.speed - jj * fa * 0.6); const top0 = TOP * R.top; if (B.speed < top0) B.speed = Math.min(top0, B.speed + jj * fb * 0.4); kx2.bumps++;
+        if (fx && !simOn && (A.me || B.me || (me && A.pos.distanceToSquared(me.pos) < 900))) { const c = tmp2.set((A.pos.x + B.pos.x) / 2, 0.6, (A.pos.z + B.pos.z) / 2); fx.burst(c, [0xffd36a, 0xffffff, 0xff8a3a], 6 + Math.round(jj), 8, 3, 0.4); }
+        const front = A.prog > B.prog ? A : B; if (jj > 4) react(front, CLIP.lose, 1.0);
+        if ((A.me || B.me) && clock - (me.bumpAt || -9) > 0.3) { me.bumpAt = clock; shake = Math.max(shake, 0.12 + Math.min(0.35, jj * 0.03)); snd("kartBump", Math.min(1, jj / 9)); buzz(Math.round(18 + Math.min(40, jj * 4))); kx2.bumpBuzz++; } } } } // (K6: hit from behind → Head_Hold_in_Pain)
+    for (const A of ka) { let behind = false; for (const B of ka) if (A !== B) { const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz), f = (dx * Math.sin(A.vh) + dz * Math.cos(A.vh)) / (d || 1); if (d < 14 && d > 3 && f > 0.95) behind = true; } A.slip = behind ? A.slip + STEP : 0; }
   }
 
   function tick(dt, t) {
@@ -702,18 +820,10 @@ export function createKart(ctx) {
     if (atmo) atmo.step(dt, performance.now() / 1000); // (KX1: the track's air)
     if (expo0 != null) try { ctx.st.renderer.toneMappingExposure = KQ[tid].exp; } catch { /* the stage's own */ } // (KQ: the town's day / night clock keeps writing its own exposure — the race holds the track's)
     if (phase === "pick") { pickCam(dt); for (const k of karts) if (k.hero && k.hero.update) k.hero.update(dt, t); return; }
+    if (phase === "intro") { introT -= rdt; paintTags(); if (introT <= 0) endIntro(); } // (KX2: the grid's intro — the camera passes, each racer waves)
     if (phase === "count") { cd -= dt; paintCount(); if (cd <= 0) { phase = "race"; clock = 0; goWall = performance.now(); lightsOff = 2.2; for (const k of karts) if (!k.me) k.speed = 6; const inp = input(); if (inp.gas && me.startSpeed > 0.9 && me.startSpeed < 1.6) boost(me, 1.0, 0.9, "Start boost!"); else if (me.startSpeed >= 1.6) { me.stall = 0.7; flash(T("Stalled!")); snd("kartStall"); buzz(60); if (fx) for (let j = 0; j < 14; j++) fx.emit(at(me, (Math.random() - 0.5) * 0.8, -1.7, tmp2), (Math.random() - 0.5) * 2, 1.5 + Math.random(), (Math.random() - 0.5) * 2, 0x777c88, 0.9); } if (opts.autogas && ctx.coarse) { gasLatch = true; paintGas(); } } else { const inp = input(); me.startSpeed = inp.gas ? me.startSpeed + dt : 0; } }
     if (phase === "race" || phase === "done") {
-      acc += dt; while (acc >= STEP) { acc -= STEP; clock += STEP;
-        const itOn = !!iPool && itemsNow(); if (itOn) iOrd = order(); // (K3: the order once a step, for the items' weights and targets)
-        for (const k of active()) { if (k.finish && !k.me) { k.speed *= 0.99; } const prev = k.idx, inp = k.spinT > 0 ? NOINP : k.me ? (phase === "done" ? BRAKEINP : autoMe ? aiInput(k) : input()) : aiInput(k); /* (autoMe: the tests drive you with the computer's line; a spin-out takes the wheel for its second) */ stepKart(k, inp, STEP); laps(k, prev); if (itOn) itemStep(k, STEP); }
-        if (itOn) projStep(STEP);
-        // kart ↔ kart: circles push apart; a slipstream right behind another
-        if (phase === "race" && !me.finish && rec.length < GHOST_MAX && clock >= rec.length * GHOST_DT) rec.push([me.pos.x, me.pos.z, me.yaw]); // (the ghost: a sample every 0.2 s)
-        const ka = active(); for (let a = 0; a < ka.length; a++) for (let b = a + 1; b < ka.length; b++) { const A = ka[a], B = ka[b], dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz); if (d < 2.4 && d > 0.01 && Math.abs(A.y - B.y) < 1) { const push = (2.4 - d) / 2; A.pos.x -= (dx / d) * push; A.pos.z -= (dz / d) * push; B.pos.x += (dx / d) * push; B.pos.z += (dz / d) * push;
-          if (phase === "race" && Math.abs(A.speed - B.speed) > 7) { const front = A.prog > B.prog ? A : B; react(front, CLIP.lose, 1.0); if ((A.me || B.me) && clock - (me.bumpAt || -9) > 0.4) { me.bumpAt = clock; shake = Math.max(shake, 0.2); snd("kartBump", 0.5); buzz(25); } } } } // (K6: hit from behind → Head_Hold_in_Pain)
-        for (const A of ka) { let behind = false; for (const B of ka) if (A !== B) { const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz), f = (dx * Math.sin(A.vh) + dz * Math.cos(A.vh)) / (d || 1); if (d < 14 && d > 3 && f > 0.95) behind = true; } A.slip = behind ? A.slip + STEP : 0; }
-      }
+      acc += dt; while (acc >= STEP) { acc -= STEP; physStep(); }
     }
     const racing = phase === "race" || phase === "done", inpMe = me ? input() : null;
     for (const k of karts) { // draw: the body squats under the throttle, dives under the brake, leans in the turns and harder in a drift, shakes off the road
@@ -724,8 +834,12 @@ export function createKart(ctx) {
       k.roll = (k.roll || 0) + (roll - (k.roll || 0)) * Math.min(1, dt * 8);
       const bob = racing && k.speed > 2 ? Math.sin(clock * 31 + k.i) * (k.off ? 0.06 : 0.012) * Math.min(1, sp + 0.3) : 0;
       k.hopY = Math.max(0, k.hopY - dt * 3); g.position.x = k.pos.x; g.position.z = k.pos.z; g.position.y = k.y + k.hopY + (k.air ? 0 : bob); g.rotation.order = "YXZ"; g.rotation.y = k.yaw; g.rotation.x = k.pitch; g.rotation.z = k.roll;
-      if (k.spinT > 0) { const u = 1 - k.spinT / ITEM.spin; g.rotation.y += Math.PI * 4 * u * (2 - u); } // (K3: a spin-out — two turns, slowing; the camera keeps your heading)
-      if (k.bub && k.bub.visible) { const p = 1 + Math.sin(clock * 9) * 0.04; k.bub.scale.set(1.9 * p, 1.5 * p, 2.3 * p); k.bub.material.opacity = k.shieldT < 1.2 ? 0.1 + 0.12 * (Math.sin(clock * 30) > 0 ? 1 : 0) : 0.22; } // (blinks in its last second)
+      if (k.spinT > 0) { const u = 1 - k.spinT / ITEM.spin; g.rotation.y += Math.PI * 2 * (k.spinN || 2) * u * (2 - u); }
+      let popY = 0; if (k.popT > 0) { const was = k.popT; k.popT -= dt; const u = Math.min(1, 1 - Math.max(0, k.popT) / POP); popY = u < 0.62 ? 2.6 * Math.sin((Math.PI * u) / 0.62) : 0.5 * Math.sin((Math.PI * (u - 0.62)) / 0.38); g.position.y += popY; g.rotation.x += Math.sin(u * Math.PI) * 0.5; g.rotation.z += Math.sin(u * Math.PI * 2) * 0.25; // (KX2: a rocket throws the kart up — an arc, a tumble, a smaller bounce)
+        if (1 - was / POP < 0.62 && u >= 0.62 && fx && near(k)) { fx.burst(tmp2.copy(k.pos).setY(0.3), [0xcfd6e6, 0xffd36a, 0xffffff], 12, 7, 2, 0.4); if (k.me) { shake = Math.max(shake, 0.25); snd("kartBump", 0.7); buzz(30); } } }
+      if (k.bubFlash > 0 && k.bub) { k.bubFlash -= dt; const f = Math.max(0, k.bubFlash / 0.35); k.bub.visible = f > 0; k.bub.material.opacity = 0.9 * f; const s1 = 1 + (1 - f) * 0.7; k.bub.scale.set(1.9 * s1, 1.5 * s1, 2.3 * s1); } // (KX2: a blocked hit — the bubble flares and bursts)
+      if (k.racer && k.hero && k.hero.obj && !k.onPod) { const up = k.standT > 0 ? 0.42 : 0; if (k.standT > 0) k.standT -= dt; const y0 = k.hero.obj.position.y, y1 = SEAT.y + up; if (Math.abs(y1 - y0) > 0.002) k.hero.obj.position.y = y0 + (y1 - y0) * Math.min(1, dt * 6); } // (KX2: the winner stands up in the seat to cheer) // (K3: a spin-out — two turns, slowing; the camera keeps your heading)
+      if (k.bub && k.bub.visible && !(k.bubFlash > 0)) { const p = 1 + Math.sin(clock * 9) * 0.04; k.bub.scale.set(1.9 * p, 1.5 * p, 2.3 * p); k.bub.material.opacity = k.shieldT < 1.2 ? 0.1 + 0.12 * (Math.sin(clock * 30) > 0 ? 1 : 0) : 0.22; } // (blinks in its last second)
       if (k.trickT >= 0) { const u = Math.min(1, k.trickT / TRICK_DUR), e = u * u * (3 - 2 * u), a2 = Math.PI * 2 * e; if (k.trickKind === 0) g.rotation.x -= a2; else if (k.trickKind === 1) g.rotation.y += a2; else g.rotation.z += a2; } // (a flip, a spin or a barrel roll)
       if (k.kartObj) k.kartObj.rotation.y = k.stV * -0.06; if (k.hero && k.hero.obj && !k.onPod) k.hero.obj.rotation.z = k.stV * 0.13; // (the kart turns in, the racer leans into the turn)
       if (k.me && k.off && racing && k.speed > 6 && clock - (k.rumbleAt || 0) > 0.35) { k.rumbleAt = clock; buzz(8); }
@@ -734,10 +848,12 @@ export function createKart(ctx) {
         const lv = k.drift ? lvOf(k.charge) : Math.max(1, k.boostLv || 1), hex = SPARK[lv], side = k.drift ? k.driftDir : 0;
         for (const lx of [-0.9, 0.9]) { if (!k.me && Math.random() < 0.5) continue; const w = at(k, lx, -1.2, tmp2); fx.emit(w, -Math.sin(k.vh) * 3 + (Math.random() - 0.5) * 2 + side * 1.5 * Math.cos(k.vh), 1.2 + Math.random() * 2.2, -Math.cos(k.vh) * 3 + (Math.random() - 0.5) * 2, k.drift ? hex : (Math.random() < 0.5 ? 0xffa63a : 0xffe08a), k.drift ? 0.32 : 0.22); }
         if (skid && k.drift && clock - (k.skidAt || 0) > 0.05) { k.skidAt = clock; for (const lx of [-0.85, 0.85]) skid.add(at(k, lx, -1.15, tmp2), k.vh); }
+        if (trails && k.drift && lv >= 1 && k.tr < trails.n) for (let w = 0; w < 2; w++) { const p0 = at(k, w ? 0.88 : -0.88, -1.25, tmp2); trails.push(k.tr * 2 + w, p0.x, p0.z, hex); } // (KX2: long glowing tails from the rear wheels)
       }
       for (const w of k.m.wheels) w.rotation.x += k.speed * dt / 0.42; k.m.wheels[0].rotation.y = k.m.wheels[1].rotation.y = k.stV * -0.4;
-      if (k.m.fl && g.visible) { const bo = k.boostT > 0; flameSet(k.m.fl, flameOf({ sp, boost: bo, lv: k.boostLv || 1, charge: k.drift ? k.charge : 0, racing }), k.boostLv || 1, bo, 0.88 + Math.random() * 0.24); } // (KQ: two blue-white jets, long and bright on a boost)
-      k.m.sh.position.y = 0.03 - (k.y + k.hopY) ; k.m.sh.visible = g.visible; // (the contact shadow stays on the road under a jump)
+      if (k.m.fl && g.visible) { const bo = k.boostT > 0; flameSet(k.m.fl, flameOf({ sp, boost: bo, lv: k.boostLv || 1, charge: k.drift ? k.charge : 0, racing }), k.boostLv || 1, bo, 0.88 + Math.random() * 0.24);
+        if (k.flareT > 0) { k.flareT -= dt; const f = Math.max(0, k.flareT / 0.4); k.m.fl.visible = true; k.m.fl.scale.x *= 1 + 0.6 * f; k.m.fl.scale.y *= 1 + 0.6 * f; k.m.fl.scale.z *= 1 + 1.1 * f; k.m.fl.material.opacity = 1; } } // (KX2: the drift's turbo fires — the flames flare) // (KQ: two blue-white jets, long and bright on a boost)
+      k.m.sh.position.y = 0.03 - (k.y + k.hopY + popY); k.m.sh.visible = g.visible; // (the contact shadow stays on the road under a jump)
       if (puffs && g.visible && (!racing || k.speed < 5 || k.stall > 0) && (k.me || (me && k.pos.distanceToSquared(me.pos) < 900)) && Math.random() < (k.stall > 0 ? 0.7 : 0.16)) { const nz = nozzles()[Math.random() < 0.5 ? 0 : 1], c = Math.cos(k.yaw), sn = Math.sin(k.yaw); tmp2.set(k.pos.x + nz[0] * c + nz[2] * sn, k.y + nz[1], k.pos.z - nz[0] * sn + nz[2] * c); puffs.emit(tmp2, -sn * 0.8 + (Math.random() - 0.5) * 0.4, 0.5 + Math.random() * 0.4, -c * 0.8 + (Math.random() - 0.5) * 0.4, k.stall > 0 ? 1.1 : 0.8, k.stall > 0 ? 1.1 : 0.7); } // (KQ: exhaust puffs at idle, a cough on a stall)
       if (k.hero && k.hero.update && g.visible) k.hero.update(dt, t);
     }
@@ -747,6 +863,7 @@ export function createKart(ctx) {
     if (me) camK6(rdt);
     if (streaks && me) { const v = phase === "race" ? streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1) : 0; streaks.step(dt, v, (i) => { const j = (me.idx + 8 + Math.floor(Math.random() * 26)) % track.N, q = track.S[j], sd = i % 2 ? 1 : -1, l = sd * (ROAD / 2 - 0.6 - Math.random() * 2.4); return [q.p.x + q.r.x * l, q.p.z + q.r.z * l, Math.atan2(q.t.x, q.t.z)]; }); } // (KQ: thin streaks whip past along the road's edges at speed)
     if (topView && me) { cam.position.set(me.pos.x - Math.sin(me.yaw) * 18, 16, me.pos.z - Math.cos(me.yaw) * 18); cam.lookAt(me.pos.x + Math.sin(me.yaw) * 10, 0, me.pos.z + Math.cos(me.yaw) * 10); } // (the tests' look from above)
+    if (trails) trails.step(dt); if (stickers) stickers.step(dt); confTick(dt);
     if (fx) fx.step(dt); if (puffs) puffs.step(dt); kqTick(dt); if (rings) rings.step(dt); if (checker) checker.step(dt); if (racing || phase === "count") drawBoxes(dt);
     k6Tick(rdt);
     if (racing || phase === "count") ghostTick();
@@ -760,6 +877,34 @@ export function createKart(ctx) {
     paintHud();
   }
 
+  // ---------- KX2: the music, the intro, the line's confetti ----------
+  function musicOn(start) { // the race's music: the town's playlist held, the track's loop from its first bar
+    const m = ctx.music ? (() => { try { return ctx.music(); } catch { return null; } })() : null;
+    if (!kmus) kmus = createKartMusic({ bus: () => { if (!m) return null; let b = m.bus && m.bus(); if (!b && m.start) { try { m.start(); } catch { /* no sound */ } b = m.bus && m.bus(); } return b; }, on: () => { try { return ctx.musicOn ? !!ctx.musicOn() : true; } catch { return false; } }, low: !!ctx.low });
+    if (m && m.hold) m.hold(true); if (start) kmus.start(tid);
+  }
+  function musicOff(gone) { if (kmus) { if (gone) { kmus.stop(); kmus = null; } else kmus.stopLoop(0.4); } try { const m = ctx.music && ctx.music(); if (m && m.hold) m.hold(false); } catch { /* the town's music */ } }
+  const INTRO = 2.8;
+  /// the grid from the back row to the front
+  let introKs = [], tagEls = [];
+  const introOrder = () => introKs;
+  function paintTags() { if (!tagsEl || !cam) return; const W = innerWidth, H = innerHeight;
+    for (let j = 0; j < introKs.length; j++) { const k = introKs[j], el = tagEls[j]; if (!el) continue; tmp.set(k.pos.x, 2.55, k.pos.z).project(cam); const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.1 && Math.abs(tmp.y) < 1.1;
+      el.style.opacity = vis ? "1" : "0"; if (vis) el.style.transform = `translate(${((tmp.x + 1) / 2) * W}px,${((1 - tmp.y) / 2) * H}px) translate(-50%,-100%)`; } }
+  function startIntro() {
+    phase = "intro"; introT = INTRO; kx2.intro++; for (const k of karts) k.waved = false; ui.classList.add("intro"); introKs = active().slice().sort((a, b) => b.i - a.i);
+    tagsEl = document.createElement("div"); tagsEl.className = "wk-tags"; tagsEl.innerHTML = active().map((k) => `<span class="wk-tag${k.me ? " me" : ""}" data-t="${k.i}" style="--c:#${(k.racer ? k.racer.color : COLORS[k.i % COLORS.length]).toString(16).padStart(6, "0")}">${k.racer ? `<img src="/images/kart/card-${k.racer.id}.webp" alt="" width="22" height="28">` : ""}<b>${esc(k.racer ? k.racer.name : "—")}</b></span>`).join("") + `<em>${esc(T("Tap to skip"))}</em>`;
+    ui.appendChild(tagsEl); tagEls = introKs.map((k) => tagsEl.querySelector(`[data-t="${k.i}"]`));
+  }
+  function endIntro(skip) { if (phase !== "intro") return; if (skip) kx2.introSkip++; introT = 0; phase = "count"; cd = 3.2; lastCd = -1; ui.classList.remove("intro"); if (tagsEl) { tagsEl.remove(); tagsEl = null; } for (const k of karts) if (k.hero && k.hero.has && k.hero.busy && k.hero.busy() && skip) { k.hero.after = null; k.hero.play(CLIP.drive); } if (cam && cam.fov !== 62) { cam.fov = 62; cam.updateProjectionMatrix(); } }
+  /// crossing the line 1st: confetti cannons from both sides of the line for a moment
+  function confTick(dt) { if (confT <= 0 || !fx || !track) return; confT -= dt; confAt -= dt; if (confAt > 0) return; confAt = 0.12; const s0 = track.S[0];
+    for (const sd of [-1, 1]) { const x = s0.p.x + s0.r.x * sd * (WALL - 0.8), z = s0.p.z + s0.r.z * sd * (WALL - 0.8); for (let j = 0; j < 9; j++) fx.emit(tmp2.set(x, 1.2, z), -s0.r.x * sd * (5 + Math.random() * 5) + (Math.random() - 0.5) * 4, 7 + Math.random() * 6, -s0.r.z * sd * (5 + Math.random() * 5) + (Math.random() - 0.5) * 4, [0xffd36a, 0x38d8ff, 0xff6fc8, 0x5fe05a, 0xffffff, 0xc46bff][j % 6], 1.4); } }
+  /// KX2: who you just passed (their face slides back from your place) or who passed you (a red ▼ with their face)
+  function passChip(k, up) { const el = ui && ui.querySelector(".wk-pass"); if (!el || !k) return; const img = el.querySelector("img");
+    if (k.racer) img.src = `/images/kart/card-${k.racer.id}.webp`; img.style.display = k.racer ? "" : "none";
+    const top = ui.querySelector(".wk-top"); if (top) { const r = top.getBoundingClientRect(); el.style.left = Math.max(4, r.left - 64) + "px"; el.style.top = (r.top + r.height / 2) + "px"; } /* (beside the race bar, on its left — placed once a pass, not every frame) */ el.querySelector("b").textContent = up ? "▲" : "▼"; el.classList.remove("up", "down", "on"); void el.offsetWidth; el.classList.add(up ? "up" : "down", "on"); if (up) kx2.passChip++; else kx2.passedFlash++; }
+
   // ---------- HUD ----------
   const fmt = (s) => { const m = Math.floor(s / 60), r = s - m * 60; return `${m}:${r < 10 ? "0" : ""}${r.toFixed(2)}`; };
   const ord = (n) => T(["1st", "2nd", "3rd", "4th", "5th"][n - 1] || n + "th");
@@ -768,13 +913,14 @@ export function createKart(ctx) {
   function makeUi() {
     ui = document.createElement("div"); ui.className = "wk"; ui.setAttribute("data-no-i18n", "");
     ui.innerHTML = `<div class="wk-top" data-game-hud><b class="wk-pos">1/4</b><span class="wk-lap"></span><span class="wk-time">0:00.00</span><button type="button" class="wk-x" data-leave aria-label="${esc(T("Leave"))}">✕</button></div>
-      <div class="wk-spd"><b>0</b><small>km/h</small><i class="wk-ni"><s></s><s></s></i></div><div class="wk-lines" aria-hidden="true"></div><div class="wk-msg" aria-live="polite"></div><div class="wk-cd"></div>
+      <div class="wk-spd"><b>0</b><small>km/h</small><i class="wk-ni"><s></s><s></s></i></div><div class="wk-lines" aria-hidden="true"></div><div class="wk-vig" aria-hidden="true"></div><span class="wk-pass" aria-hidden="true"><img alt="" width="22" height="22"><b></b></span><div class="wk-msg" aria-live="polite"></div><div class="wk-cd"></div>
       <canvas class="wk-map" width="184" height="184" aria-hidden="true"></canvas><div class="wk-gap" aria-hidden="true"><span></span><span></span></div><div class="wk-fl" aria-hidden="true"><b></b></div><div class="wk-cut" aria-hidden="true"></div>${ctx.coarse ? "" : `<div class="wk-item empty" aria-hidden="true"><b class="wk-slot"></b><kbd>E</kbd><em class="wk-grab" hidden>${esc(T("Grab a box!"))}</em></div>`}<div class="wk-photo" hidden><b>${esc(T("PHOTO FINISH"))}</b></div>
       ${ctx.coarse ? `<button type="button" class="wk-trick" data-k="trick" hidden><span>${esc(T("Trick"))}</span></button>` : ""}
       <p class="wk-help">${esc(T(ctx.coarse ? "Hold Gas to drive · hold Drift in a corner, let go for a turbo." : "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro"))}</p>
       ${ctx.coarse ? `<div class="wk-pad"><div class="wk-steer"><button type="button" data-k="l" class="wk-b wk-l" aria-label="${esc(T("Left"))}"><i></i></button><button type="button" data-k="r" class="wk-b wk-r" aria-label="${esc(T("Right"))}"><i></i></button></div><div class="wk-act"><button type="button" data-k="item" class="wk-b wk-it empty" aria-label="${esc(T("Use item"))}"><b class="wk-slot"></b><span>${esc(T("Item"))}</span><em class="wk-grab" hidden>${esc(T("Grab a box!"))}</em></button><button type="button" data-k="boost" class="wk-b wk-bo"><i></i><span>${esc(T("Nitro"))}</span></button><button type="button" data-k="drift" class="wk-b wk-dr"><i></i><span>${esc(T("Drift"))}</span></button><button type="button" data-k="brake" class="wk-b wk-br"><i></i><span>${esc(T("Brake"))}</span></button><button type="button" data-k="gas" class="wk-b wk-gas"><i></i><span>${esc(T("Gas"))}</span></button></div></div>` : ""}`; /* (2026-10-30, the owner's phone: steering on the left, gas / brake / drift (+ nitro) on the right) */
     document.body.appendChild(ui);
     ui.addEventListener("click", (e) => { if (e.target.closest("[data-leave]")) leave(); });
+    ui.addEventListener("pointerdown", (e) => { if (phase === "intro" && !e.target.closest("[data-leave]")) { e.preventDefault(); endIntro(true); } }, true); // (KX2: a tap skips the intro)
     const set = (e, v) => { const b = e.target.closest("[data-k]"); if (!b) return; e.preventDefault();
       if (b.dataset.k === "gas" && opts.autogas && ctx.coarse) { if (v && e.type === "pointerdown") { gasLatch = !gasLatch; touch.gas = 0; paintGas(); } return; } // (K6: auto-gas — a tap switches it)
       touch[b.dataset.k] = v; b.classList.toggle("on", !!v); };
@@ -782,13 +928,14 @@ export function createKart(ctx) {
     ui.addEventListener("pointerdown", (e) => set(e, 1)); ui.addEventListener("pointerup", (e) => set(e, 0)); ui.addEventListener("pointercancel", (e) => set(e, 0)); ui.addEventListener("pointerleave", (e) => set(e, 0), true);
   }
   let msgT = 0;
-  function flash(s) { if (!ui || !s) return; const m = ui.querySelector(".wk-msg"); m.textContent = s; m.classList.remove("on"); void m.offsetWidth; m.classList.add("on"); clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove("on"), 1300); }
+  function flash(s) { if (!ui || !s || simOn) return; const m = ui.querySelector(".wk-msg"); m.textContent = s; m.classList.remove("on"); void m.offsetWidth; m.classList.add("on"); clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove("on"), 1300); }
   let hudAt = 0;
   function paintHud() { if (!ui || !me) return; const now = performance.now(); if (now - hudAt < 100) return; hudAt = now; // (10 times a second: no DOM writes every frame)
     const ord0 = order(), pl = mode === "ta" ? 1 : ord0.indexOf(me) + 1, posEl = ui.querySelector(".wk-pos"); posEl.textContent = mode === "ta" ? "⏱" : `${pl}/${karts.length}`;
     if (phase === "race" && mode !== "ta") ord0.forEach((k, n) => { if (k.pl && n + 1 < k.pl && clock > 3 && !k.finish) { react(k, CLIP.win, 1.6); if (k.me) passes++; } k.pl = n + 1; }); // (K6: anyone's pass → a fist pump)
     paintGaps(ord0); drawMap(); paintItem();
     if (phase === "race" && lastPlace && pl !== lastPlace && clock > 2) { posEl.classList.remove("up", "down"); void posEl.offsetWidth; posEl.classList.add(pl < lastPlace ? "up" : "down");
+      passChip(pl < lastPlace ? ord0[pl] : ord0[pl - 2], pl < lastPlace);
       if (pl < lastPlace) { snd("kartPass"); buzz(12); if (pl === 1 && clock - cutAt > 10) { cutAt = clock; cutIn(T("1ST!")); if (!ctx.reduce) slowT = 0.3; buzz([20, 30, 40]); } } } // (K6: taking 1st — a 0.3 s slow motion and the cut-in, 10 s apart)
     lastPlace = pl;
     if (!ctx.low && !ctx.reduce) { const ln = ui.querySelector(".wk-lines"), v = phase !== "race" ? 0 : overlayOf(Math.max(streakOf(me.speed / TOP, me.boostT > 0, me.boostLv || 1), me.slip > 0.5 ? 0.35 : 0)); /* (KQ: Meshy's speed lines from 70 % of the top speed) */ ln.style.opacity = v.toFixed(2); ln.classList.toggle("boost", me.boostT > 0); } ui.querySelector(".wk-lap").textContent = `${T("Lap")} ${Math.max(1, Math.min(LAPS, me.lap))}/${LAPS}`; ui.querySelector(".wk-time").textContent = fmt(phase === "count" ? 0 : me.finish || clock);
@@ -825,6 +972,9 @@ export function createKart(ctx) {
       if (podCam.tall) { const d = Math.max(6.5, 3.6 / Math.tan(hf)) - push * 1.2; /* (KX1: an upright phone — framed on the three steps (3.6 m each side), the camera higher and looking down on them, so the podium fills the middle instead of a small strip low in the frame) */ cam.position.set(podCam.c.x + podCam.f.x * d, 3.4 + d * 0.16, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 1.25, podCam.c.z); }
       else { const d = Math.max(7.2, 5.6 / Math.tan(hf)) - push * 1.6; /* (close enough that the racers read on an upright phone; the last one beside it may sit at the edge) */ cam.position.set(podCam.c.x + podCam.f.x * d, 1.6 + d * 0.13, podCam.c.z + podCam.f.z * d); cam.lookAt(podCam.c.x, 2.4, podCam.c.z); } /* (higher the farther: over the road's rails) */
       if (cam.fov !== 50) { cam.fov = 50; cam.updateProjectionMatrix(); } return; }
+    if (phase === "intro") { const ks = introOrder(), n = ks.length, u = Math.max(0, Math.min(1, 1 - introT / INTRO)), e = u * u * (3 - 2 * u), f = e * (n - 1), i = Math.min(n - 2, Math.floor(f)), w = f - i, A = ks[i].pos, B = ks[Math.min(n - 1, i + 1)].pos, s0 = track.S[me.idx];
+      const x = A.x + (B.x - A.x) * w, z = A.z + (B.z - A.z) * w; cam.position.set(x + s0.r.x * 7.5 * mir + s0.t.x * 3.2, 2.0, z + s0.r.z * 7.5 * mir + s0.t.z * 3.2); cam.lookAt(x - s0.t.x * 1.2, 1.1, z - s0.t.z * 1.2); if (cam.fov !== 52) { cam.fov = 52; cam.updateProjectionMatrix(); }
+      ks.forEach((k, j) => { if (!k.waved && f >= j - 0.6) { k.waved = true; if (react(k, CLIP.wave, 1.7, true)) kx2.waves.push(k.racer ? k.racer.name : "?"); } }); return; } // (KX2: alongside the grid from the back row to the front, each racer waving as the camera comes by)
     if (phase === "count" && droneOn && !ctx.reduce) { const u = Math.max(0, Math.min(1, (3.2 - cd) / 2.9)), e = u * u * (3 - 2 * u), th = me.yaw + Math.PI * e, R = 34 + (7.2 - 34) * e, gx = gridC.x + (me.pos.x - gridC.x) * e, gz = gridC.z + (me.pos.z - gridC.z) * e;
       cam.position.set(gx + Math.sin(th) * R, 34 + (3.1 - 34) * e, gz + Math.cos(th) * R); cam.lookAt(gx + fx0 * 6 * e, 1.2, gz + fz0 * 6 * e); return; } // (from high in front of the grid round to your place behind the kart — KX1: higher, 34 m, so it looks over Meshy's start board)
     if (cineT > 0 && phase === "race") { cineT -= dt; const px = fz0 * cineSide, pz = -fx0 * cineSide; cam.position.set(me.pos.x + px * 6.5 + fx0 * 3, 1.5, me.pos.z + pz * 6.5 + fz0 * 3); cam.lookAt(me.pos.x + fx0, 0.9, me.pos.z + fz0); if (cam.fov !== 48) { cam.fov = 48; cam.updateProjectionMatrix(); } }
@@ -888,7 +1038,7 @@ export function createKart(ctx) {
     el.innerHTML = ghosts.map((g) => `<span>👻 ${esc(g.label)}${g.name ? ` · ${esc(g.name)}` : ""} <b>${fmt(g.t)}</b></span>`).join(""); el.hidden = !ghosts.length; }
   /// signed in: the race opened on the server as the countdown starts (its clock checks the end); a failure is said, the race goes on
   function raceStart() {
-    raceP = null; const s = ctx.post && ctx.sess ? ctx.sess() : null; if (!s) return;
+    raceP = null; if (simOn) return; const s = ctx.post && ctx.sess ? ctx.sess() : null; if (!s) return;
     raceP = ctx.post({ action: "world-kart-start", ...s, track: tid, mode, racer: me && me.racer ? me.racer.id : "" })
       .then((r) => { if (r && r.ok && r.j && r.j.raceId) return r.j; throw new Error((r && r.j && r.j.error) || "start"); })
       .catch((e) => { console.warn("kart start:", e && e.message); say(T("Couldn't reach the server — this race won't count")); return null; });
@@ -939,7 +1089,7 @@ export function createKart(ctx) {
     const tall = innerHeight > innerWidth, put = (k, [x, y, z = 0], clip, alt) => { const h = k.hero; if (!h || !h.obj) return; if (!k.seatPos) k.seatPos = h.obj.position.clone(); k.onPod = true; pod.g.add(h.obj); h.obj.position.set(x, y, z); h.obj.rotation.set(0, 0, 0); if (h.has) { h.after = null; h.play(clip); } else try { h.play(alt); } catch { /* standing is fine */ } };
     ord0.slice(0, 3).forEach((k, n) => put(k, pod.spots[n], n === 0 ? CLIP.cheer : CLIP.wave, "emote-yes")); // (1st Victory_Cheer, 2nd and 3rd Big_Wave_Hello)
     if (last) put(last, tall ? [2.3, 0, 2.6] : pod.last, CLIP.lose, "emote-no"); // (the last beside it, Head_Hold_in_Pain — on an upright phone in front of the 3rd step, inside the closer frame)
-    podCam = { c, f, t: 0, tall }; ui.classList.add("pod"); snd("win");
+    podCam = { c, f, t: 0, tall }; ui.classList.add("pod"); snd("win"); if (kmus) setTimeout(() => { if (kmus && podCam) kmus.jingle(); }, 600);
     const lay = document.createElement("div"); lay.className = "wk-pod"; lay.innerHTML = `<span>${esc(T("Tap to skip"))}</span>`; ui.appendChild(lay);
     const conf = setInterval(() => { if (fx && pod && tok === seqTok) fx.burst(tmp2.copy(c).setY(4.6), [0xffd36a, 0x38d8ff, 0xff6fc8, 0x5fe05a, 0xffffff], 14, 8, 6, 1.2); }, 350);
     let ended = false; const end = () => { if (ended) return; ended = true; clearInterval(conf); lay.remove(); if (tok === seqTok && on && ui) card(); };
@@ -972,9 +1122,9 @@ export function createKart(ctx) {
     return `<h4>${esc(T("Standings"))}</h4><ol class="wk-st">${rows}</ol>`;
   }
   /// back to the pick screen after a race: the plain track, the karts on the grid, no ghosts
-  function toPick() { topCache = {}; /* (KX1: the week's place may have moved) */ podEnd(); if (keysEl) { keysEl.remove(); keysEl = null; } ghostTok++; clearGhosts(); raceP = null; mode = mode || "race"; rule = ""; mir = 1; track = tracks[0]; applyRule(true); grid(); for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); } showPick(me && me.racer ? me.racer.id : RACERS[0].id); }
+  function toPick() { musicOff(false); if (tagsEl) { tagsEl.remove(); tagsEl = null; } if (ui) ui.classList.remove("intro"); topCache = {}; /* (KX1: the week's place may have moved) */ podEnd(); if (keysEl) { keysEl.remove(); keysEl = null; } ghostTok++; clearGhosts(); raceP = null; mode = mode || "race"; rule = ""; mir = 1; track = tracks[0]; applyRule(true); grid(); for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); } showPick(me && me.racer ? me.racer.id : RACERS[0].id); }
   function grid() {
-    for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: rule === "nitro" ? 2 : 0, stall: 0, slip: 0, finish: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, hopY: 0, mk: 0, pl: 0, reactAt: -9, item: "", rollT: 0, useAt: 0, spinT: 0, safeT: 0, shieldT: 0, magT: 0, magTo: null, usePrev: false, spinCk: true }); k.marks.fill(-1); if (k.bub) k.bub.visible = false; k.m.g.visible = mode !== "ta" || k.me; k.m.g.position.copy(k.pos); k.m.g.rotation.set(0, k.yaw, 0); } // (K5: the body too — the pick screen doesn't run the draw loop, and a new track's grid is elsewhere)
+    for (const k of karts) { const i = track.N - 6 - Math.floor(k.i / 2) * 7, s = track.S[i]; k.idx = i; k.pos.copy(s.p).addScaledVector(s.r, k.i % 2 ? 3.6 : -3.6); k.yaw = k.vh = Math.atan2(s.t.x, s.t.z); Object.assign(k, { speed: 0, lap: 0, prog: 0, drift: 0, charge: 0, boostT: 0, nitro: rule === "nitro" ? 2 : 0, stall: 0, slip: 0, finish: 0, startSpeed: 0, y: 0, vy: 0, air: 0, onR: false, trickT: -1, trickAt: 0, hopY: 0, mk: 0, pl: 0, reactAt: -9, item: "", rollT: 0, useAt: 0, spinT: 0, safeT: 0, shieldT: 0, magT: 0, magTo: null, usePrev: false, spinCk: true, perfAt: -9, aiPerf: false, inPW: false, popT: 0, standT: 0, flareT: 0, bubFlash: 0, px: 0, pz: 0, spinN: 2, waved: false, aiHold: false, holdUntil: 0, pressAt: 0 }); dropHeld(k); k.marks.fill(-1); if (k.bub) k.bub.visible = false; k.m.g.visible = mode !== "ta" || k.me; k.m.g.position.copy(k.pos); k.m.g.rotation.set(0, k.yaw, 0); } // (K5: the body too — the pick screen doesn't run the draw loop, and a new track's grid is elsewhere)
   }
   async function reset() {
     podEnd(); finished = []; clock = 0; acc = 0; lapAt = []; rec = []; grid(); clearItems(); placeBoxes(); slotShown = "-"; if (ui) ui.classList.toggle("noitems", !itemsNow()); paintItem(); // (K3: fresh boxes, nothing on the road, the slot empty — none of it in Time Attack)
@@ -982,11 +1132,31 @@ export function createKart(ctx) {
     gridC.set(0, 0, 0); for (const k of active()) gridC.add(k.pos); gridC.multiplyScalar(1 / Math.max(1, active().length));
     if (!ctx.coarse && !keysEl) { let seen = false; try { seen = !!localStorage.getItem(KEYS); } catch { seen = false; } // (K6: the keys card, a computer's first race only)
       if (!seen) { try { localStorage.setItem(KEYS, "1"); } catch { /* shown again next time */ } keysEl = document.createElement("div"); keysEl.className = "wk-keys";
-        keysEl.innerHTML = `<b>${esc(T("Controls"))}</b><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> ${esc(T("Steer & drive"))}</span><span><kbd>Shift</kbd> ${esc(T("Drift"))}</span><span><kbd>Space</kbd> ${esc(T("Nitro"))}</span>${itemsNow() ? `<span><kbd>E</kbd> ${esc(T("Use item"))}</span>` : ""}<span><kbd>Esc</kbd> ${esc(T("Leave"))}</span>`; ui.appendChild(keysEl); } }
+        keysEl.innerHTML = `<b>${esc(T("Controls"))}</b><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> ${esc(T("Steer & drive"))}</span><span><kbd>Shift</kbd> ${esc(T("Drift"))}</span><span><kbd>Space</kbd> ${esc(T("Nitro"))}</span>${itemsNow() ? `<span><kbd>E</kbd> ${esc(T("Use item"))} · ${esc(T("Hold behind"))}</span>` : ""}<span><kbd>Esc</kbd> ${esc(T("Leave"))}</span>`; ui.appendChild(keysEl); } }
     for (const k of karts) if (k.hero && k.hero.has) { k.hero.after = null; k.hero.play(CLIP.drive); }
-    phase = "count"; cd = 3.2; lastCd = -1; lastPlace = 0; camBack = 0;
+    phase = "count"; cd = 3.2; lastCd = -1; lastPlace = 0; camBack = 0; confT = 0; if (trails) trails.step(1); if (tagsEl) { tagsEl.remove(); tagsEl = null; }
+    if (mode !== "ta" && !ctx.reduce && !simOn) startIntro(); // (KX2: the grid's intro first — not in Time Attack)
+    if (!simOn) musicOn(true);
     if (K6_GLB.includes("podium") && !ctx.low && !podGl && mode !== "ta") load("podium").then((gl) => { if (on) podGl = gl; }).catch(() => { /* the drawn podium */ }); // (KX1: fetched while racing, ready at the line)
     grabHint(true); raceStart(); loadGhosts();
+  }
+
+  /// KX2: the balance check — n whole races on a track with you on the autopilot (the computer's line, your items used by the
+  /// computer's rules) and the four computer racers, run step by step without drawing; what each place gets from the boxes,
+  /// how often the leader is hit, and how often the back of the pack comes back
+  function sim(n = 10, id = tid) {
+    if (phase !== "pick") return { error: "pick screen only" }; if (TRACKS[id] && id !== tid) chooseTrack(id);
+    simOn = true; const out = { track: tid, races: n, me: me && me.racer ? me.racer.id : "", places: {}, mePlaces: [0, 0, 0, 0, 0], give: {}, hits: 0, leadHits: 0, heldBlocks: 0, comeback: 0, frontHeld: 0, lastWins: 0, leadChanges: 0, time: 0, perfect: 0, perfectAi: 0, bumps: 0 };
+    const p0 = kx2.perfect, a0 = kx2.perfectAi, b0 = kx2.bumps;
+    try { pick(picked);
+      for (let r = 0; r < n; r++) { if (r) reset(); simLog = { give: {}, leadHits: 0, hits: 0, heldBlocks: 0, fin: [] }; phase = "race"; clock = 0; acc = 0; autoMe = true; meItems = true; for (const k of karts) if (!k.me) k.speed = 6;
+        let last25 = null, first25 = null, lead = null; for (let st = 0; st < 60 * 400 && simLog.fin.length < active().length; st++) { physStep(); if (!last25 && clock >= 25) { const o = order(); last25 = o[o.length - 1]; first25 = o[0]; } if (st % 30 === 0) { const L = order()[0]; if (lead && L !== lead) out.leadChanges++; lead = L; } }
+        const fin = simLog.fin; fin.forEach((k, j) => { const nm = k.racer ? k.racer.name : "?"; (out.places[nm] = out.places[nm] || [0, 0, 0, 0, 0])[j]++; if (k.me) out.mePlaces[j]++; });
+        if (last25 && fin.indexOf(last25) <= 2) out.comeback++; if (last25 && fin[0] === last25) out.lastWins++; if (first25 && fin[0] === first25) out.frontHeld++;
+        for (const [pl, g] of Object.entries(simLog.give)) { const o = (out.give[pl] = out.give[pl] || {}); for (const [it, c] of Object.entries(g)) o[it] = (o[it] || 0) + c; }
+        out.hits += simLog.hits; out.leadHits += simLog.leadHits; out.heldBlocks += simLog.heldBlocks; out.time += fin.length ? fin[0].finish : 0; }
+    } finally { simOn = false; simLog = null; autoMe = false; out.time = +(out.time / n).toFixed(1); out.perfect = kx2.perfect - p0; out.perfectAi = kx2.perfectAi - a0; out.bumps = kx2.bumps - b0; phase = "done"; toPick(); }
+    return out;
   }
 
   async function enter() {
@@ -995,12 +1165,13 @@ export function createKart(ctx) {
     try { const r = ctx.st.renderer; expo0 = r.toneMappingExposure; grade0 = r.domElement.style.filter; } catch { expo0 = null; }
     buildScene(); makeUi();
     try { if (fxTex) puffs = makePuffs(THREE, scene, fxTex.puff, ctx.low ? 24 : 48); if (!ctx.low && !ctx.reduce) streaks = makeStreaks(THREE, scene, ctx.coarse ? 10 : 16); } catch (e) { puffs = streaks = null; console.warn("kart kq fx:", e && e.message); }
-    try { fx = makeFx(); skid = makeSkid(); rings = makeRings(THREE, scene); checker = makeChecker(THREE, scene, ctx.low ? 20 : 36); } catch (e) { fx = skid = null; console.warn("kart fx:", e && e.message); }
+    try { fx = makeFx(); skid = makeSkid(); rings = makeRings(THREE, scene, 6); checker = makeChecker(THREE, scene, ctx.low ? 20 : 36); } catch (e) { fx = skid = null; console.warn("kart fx:", e && e.message); }
     try { boxes = makeBoxes(); iPool = makePool(); } catch (e) { boxes = iPool = null; console.warn("kart items:", e && e.message); } // (K3: no items rather than no race)
     const ids = ["custom-aron", "custom-lumi", "custom-nex"];
     flash(T("Loading racers…"));
     fetch("/api/social?world=kart-daily", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && RULES.includes(j.rule)) { daily = { day: j.day, seed: j.seed, rule: j.rule, track: TRACKS[j.track] ? j.track : daily.track }; dailyTop = j.top || []; if (on && phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); } }).catch(() => { /* the device's own day */ });
-    karts = await Promise.all(RACERS.map((r, i) => makeRacer(i, ids[i % 3], false, r))); me = karts[0];
+    karts = await Promise.all(RACERS.map((r, i) => makeRacer(i, ids[i % 3], false, r))); me = karts[0]; karts.forEach((k, n) => { k.tr = n; });
+    try { trails = makeTrails(ctx.low ? 1 : karts.length); stickers = makeStickers(); } catch (e) { trails = stickers = null; console.warn("kart kx2 fx:", e && e.message); } // (KX2; low graphics: no tails)
     addEventListener("keydown", kd); addEventListener("keyup", ku); addEventListener("resize", onResize);
     on = true; listenTilt(); document.body.classList.add("wp-kart"); onResize(); ctx.st.view(scene, cam); ctx.st.solo(tick);
     let saved = ""; try { saved = localStorage.getItem(PICK) || ""; } catch { saved = ""; }
@@ -1058,7 +1229,7 @@ export function createKart(ctx) {
   function pick(id) {
     if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
     const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
-    mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest];
+    mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest]; karts.forEach((k, n) => { k.tr = n; }); /* (KX2: your tails first — low graphics draws only yours) */
     if (pickEl) { pickEl.remove(); pickEl = null; } ui.querySelectorAll(".wk-side, .wk-opts").forEach((e) => e.remove()); if (pickFill) pickFill.visible = false; if (pickStage) pickStage.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; applyRule(); reset();
   }
   // ---------- K6: the settings (⚙), the sideways hint, tilt ----------
@@ -1085,7 +1256,7 @@ export function createKart(ctx) {
     if (pickFill) { pickFill.position.copy(cam.position).add(new THREE.Vector3(0, 2, 0)); pickFill.target.position.set(k.pos.x, 0.8, k.pos.z); } if (pickStage) { pickStage.position.set(k.pos.x, 0, k.pos.z); pickStage.rotation.y += dt * 0.4; } } // (2026-10-30, the owner's phone: the kart filled the screen and stood dark — farther back on an upright screen, a little above, and a light from the camera's side, so the racer shows in the band between the logo and the cards; on a wide screen too — farther, higher and turned a little so the driver shows over the nose)
   const onResize = () => { if (!cam) return; cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); };
   function leave() {
-    if (!on) return; on = false; phase = "idle"; if (eng) { eng.stop(); eng = null; } fx = skid = null; seqTok++; pod = null; podCam = null; dress = null; rings = checker = null; boxes = iPool = null; iOrd = []; freezeUntil = 0; slowT = 0; keysEl = null; mapFor = null; removeEventListener("deviceorientation", onTilt); ghosts = []; ghostTok++; raceP = null; rule = ""; R = { top: 1, acc: 1 };
+    if (!on) return; on = false; phase = "idle"; if (eng) { eng.stop(); eng = null; } musicOff(true); trails = stickers = null; tagsEl = null; confT = 0; simOn = false; simLog = null; fx = skid = null; seqTok++; pod = null; podCam = null; dress = null; rings = checker = null; boxes = iPool = null; iOrd = []; freezeUntil = 0; slowT = 0; keysEl = null; mapFor = null; removeEventListener("deviceorientation", onTilt); ghosts = []; ghostTok++; raceP = null; rule = ""; R = { top: 1, acc: 1 };
     try { ctx.st.solo(null); ctx.st.view(null); } catch { /* the world draws again */ }
     try { const r = ctx.st.renderer; if (expo0 != null) r.toneMappingExposure = expo0; r.domElement.style.filter = grade0 || ""; } catch { /* the stage's own */ } for (const e of Object.values(envs)) try { e.userData.rt.dispose(); } catch { /* gone */ } envs = {}; puffs = streaks = null; kqMove = []; pickStage = null; if (fxTex) { fxTex.flame.dispose(); fxTex.puff.dispose(); fxTex = null; }
     removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("resize", onResize); keys.clear();
@@ -1094,5 +1265,5 @@ export function createKart(ctx) {
     scene = null; karts = []; me = null; world = null; tracks = null; tg = null; lavaTex = null; trackTok++; nightLight = hemi = sun = skyCyl = null; atmo = null; podGl = null;
     if (ctx.onLeave) ctx.onLeave();
   }
-  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, /* KQ */ kq: () => ({ track: tid, props: { ...kqIn }, env: !!(scene && scene.environment), exposure: (() => { try { return ctx.st.renderer.toneMappingExposure; } catch { return null; } })(), grade: (() => { try { return ctx.st.renderer.domElement.style.filter; } catch { return null; } })(), flames: karts.filter((k) => k.m.fl && k.m.fl.visible).map((k) => +k.m.fl.scale.z.toFixed(2)), shadows: karts.filter((k) => k.m.sh && k.m.sh.visible).length, glowDay: karts.some((k) => k.m.glow.visible), puffs: !!puffs, streaks: !!(streaks && streaks.im.visible), stage: !!(pickStage && pickStage.visible), roadStd: !!(tg && tg.children.some((m) => m.material && m.material.isMeshStandardMaterial && m.material.envMapIntensity === KQ[tid].road[1])) }), _boost: (lv = 3) => { if (me) boost(me, 2, 1, "", lv); }, /* KX1 */ kx1: () => ({ glb: { ...glbIn }, atmo: atmo ? { kind: atmo.kind, n: atmo.n, sheet: !!atmo.sheet } : null, spots: pod ? pod.spots.map((p) => p.map((v) => +(+v).toFixed(2))) : null, grab: !!(ui && [...ui.querySelectorAll(".wk-grab")].some((e) => !e.hidden)), lamps: dress && dress.lights.colors ? dress.lights.colors() : null, lightLog: lightLog.slice(), rows: TD.rows.slice(), ramps: TD.ramps.map((r) => r.i) }), podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
+  return { enter, leave, on: () => on, debug: () => ({ phase, clock: +clock.toFixed(2), me: me ? { lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), drift: me.drift, nitro: +me.nitro.toFixed(2), place: place(), clip: me.hero && me.hero.mixer ? me.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], air: me.air, y: +me.y.toFixed(2), trickT: +me.trickT.toFixed(2), tricks, passes, reacts: k6log.slice(), final: finalLap, gaps: lastGaps, cine: cineDone, pod: !!podCam } : null, karts: karts.map((k) => ({ lap: k.lap, idx: k.idx, speed: +k.speed.toFixed(1), finish: +k.finish.toFixed(2) })) }), _keys: keys, _touch: touch, auto: (v) => { autoMe = !!v; if (v && phase === "pick") pick(picked); }, pick: (id) => { choose(id); pick(id); }, _view: (v) => { topView = !!v; }, phase: () => phase, skip: (laps0) => { for (const k of karts) if (!k.me) k.lap = laps0; }, /* K2 (the browser test) */ mode: (m) => { if (m) setMode(m); return mode; }, rule: () => rule, daily: () => daily, ghosts: () => ghosts.map((g) => ({ label: g.label, t: g.t, n: g.pts.length, x: +g.g.position.x.toFixed(1), z: +g.g.position.z.toFixed(1) })), rec: () => rec.length, res: () => lastRes, _real: (v) => { realT = !!v; }, _rule: (r, tr) => { daily = { ...daily, rule: RULES.includes(r) ? r : daily.rule, track: TRACKS[tr] ? tr : daily.track }; if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); }, /* K6 */ _photo: (v) => { forcePhoto = !!v; }, _hold: (v) => { holdK6 = !!v; if (ui) ui.classList.toggle("k6hold", holdK6); }, /* (the browser test: the photo strip, the podium and the banners wait for the screenshot) */ opts: () => ({ ...opts }), ramps: () => TD.ramps.map((r) => r.i), /* K5 */ track: () => tid, tracks: () => TRACK_IDS.slice(), _track: (id) => { if (TRACKS[id] && phase === "pick") chooseTrack(id); return tid; }, mapLen: () => +track.len.toFixed(1), /* K3 */ items: () => ({ ...itemLog, used: { ...itemLog.used }, spinClips: itemLog.spinClips.slice(), on: !!boxes && itemsNow(), boxModel: !!boxes && boxes.ims[0].geometry.type !== "BoxGeometry", boxesUp: boxes ? Array.from(boxes.t).filter((x) => x <= 0).length : 0, flying: iPool ? { rockets: iPool.rockets.filter((x) => x.on).length, bombs: iPool.bombs.filter((x) => x.on).length, rugs: iPool.rugs.filter((x) => x.on).length } : null, me: me ? { item: me.item || "", rollT: +(me.rollT || 0).toFixed(2), shieldT: +(me.shieldT || 0).toFixed(2), spinT: +(me.spinT || 0).toFixed(2), magT: +(me.magT || 0).toFixed(2), bubble: !!(me.bub && me.bub.visible), slot: slotShown } : null, karts: active().map((k) => ({ me: !!k.me, item: k.item || "", prog: Math.round(k.prog), spinT: +(k.spinT || 0).toFixed(2), shieldT: +(k.shieldT || 0).toFixed(2) })) }), _give: (id, who = 0, hold = false) => { const k = who ? active()[who] : me; if (k && phase === "race") { k.item = ""; k.rollT = 0; iOrd = order(); give(k, id); k.rollHold = !!hold; } }, _roll: () => { if (me) me.rollHold = false; }, _use: (who = 0) => { const k = who ? active()[who] : me; if (k) { k.rollT = 0; k.rollHold = false; iOrd = order(); return useItem(k); } return false; }, _meItems: (v) => { meItems = !!v; }, /* KX2 */ kx2: () => ({ ...kx2, waves: kx2.waves.slice(), music: kmus ? kmus.state() : null, playlist: (() => { try { const m = ctx.music && ctx.music(); return m && m.state ? m.state() : null; } catch { return null; } })(), intro: phase === "intro", introN: kx2.intro, held: me ? me.holdIt || "" : "", trails: !!trails, popY: me ? +(me.popT || 0).toFixed(2) : 0, perfAhead: track && track.perf ? Array.from(track.perf).filter(Boolean).length : 0, stickers: stickers ? stickers.pool.filter((x) => x.t > 0).length : 0 }), _sim: (n, id) => sim(n, id), _tune: (o = {}) => { if (o.rubber) Object.assign(RUBBER, o.rubber); if (o.item) Object.assign(ITEM, o.item); if (o.w) for (const t in o.w) Object.assign(ITEM_W[t], o.w[t]); return { RUBBER: { ...RUBBER }, respawn: ITEM.respawn, ITEM_W: JSON.parse(JSON.stringify(ITEM_W)) }; }, _holdIt: (v = true) => { if (!me) return false; if (v) startHold(me); else releaseHold(me); return me.holdIt || ""; }, _hit: (kind = "rocket", who = 0) => { const k = who ? active()[who] : me; if (k) { k.safeT = 0; k.spinT = 0; return hitKart(k, null, kind); } return false; }, _perfect: () => { if (me) perfectStart(me); }, _bump: (who = 1) => { const k = active()[who]; if (!k || !me) return false; k.pos.set(me.pos.x + Math.sin(me.vh) * 2.2, 0, me.pos.z + Math.cos(me.vh) * 2.2); k.vh = k.yaw = me.vh; me.speed = 32; k.speed = 8; k.safeT = 0; return true; }, _chip: (up = true) => { const o = order(), i = o.indexOf(me); passChip(o[i + 1] || o[i - 1] || active()[1], up); return true; }, clips: () => karts.map((k) => [k.racer && k.racer.name, k.hero && k.hero.mixer ? k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name) : [], k.hero && k.hero.has ? Object.values(CLIP).filter((c) => !k.hero.has(c)) : null]), _skipIntro: () => endIntro(true), /* KQ */ kq: () => ({ track: tid, props: { ...kqIn }, env: !!(scene && scene.environment), exposure: (() => { try { return ctx.st.renderer.toneMappingExposure; } catch { return null; } })(), grade: (() => { try { return ctx.st.renderer.domElement.style.filter; } catch { return null; } })(), flames: karts.filter((k) => k.m.fl && k.m.fl.visible).map((k) => +k.m.fl.scale.z.toFixed(2)), shadows: karts.filter((k) => k.m.sh && k.m.sh.visible).length, glowDay: karts.some((k) => k.m.glow.visible), puffs: !!puffs, streaks: !!(streaks && streaks.im.visible), stage: !!(pickStage && pickStage.visible), roadStd: !!(tg && tg.children.some((m) => m.material && m.material.isMeshStandardMaterial && m.material.envMapIntensity === KQ[tid].road[1])) }), _boost: (lv = 3) => { if (me) boost(me, 2, 1, "", lv); }, /* KX1 */ kx1: () => ({ glb: { ...glbIn }, atmo: atmo ? { kind: atmo.kind, n: atmo.n, sheet: !!atmo.sheet } : null, spots: pod ? pod.spots.map((p) => p.map((v) => +(+v).toFixed(2))) : null, grab: !!(ui && [...ui.querySelectorAll(".wk-grab")].some((e) => !e.hidden)), lamps: dress && dress.lights.colors ? dress.lights.colors() : null, lightLog: lightLog.slice(), rows: TD.rows.slice(), ramps: TD.ramps.map((r) => r.i) }), podClips: () => karts.filter((k) => k.onPod && k.hero && k.hero.mixer).map((k) => [k.racer && k.racer.name, k.hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name)]) };
 }

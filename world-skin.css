@@ -6526,3 +6526,24 @@ html.wp-pcphone .wk-cards::-webkit-scrollbar,html.wp-pcphone .wk-tracks::-webkit
 html.wp-pcphone .wk-card{flex:0 0 26%;width:auto;scroll-snap-align:center}html.wp-pcphone .wk-card img{aspect-ratio:160/170}
 html.wp-pcphone .wk-trk{flex:0 0 39%;width:auto;scroll-snap-align:center;padding:3px 3px 5px}html.wp-pcphone .wk-trk img{height:100%}html.wp-pcphone .wk-trk-pic{border-radius:6px}html.wp-pcphone .wk-trk b{font-size:11px}
 html.wp-pcphone .wk-trk-info{font-size:10.5px}html.wp-pcphone .wk-pick h3{display:none}
+/* ARCIRCLE KART KX2 (2026-10-31): the drift step's edge glow, the pass chip beside your place, the grid intro's name tags, an item held behind */
+.wk-vig{position:absolute;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 70px 16px var(--vc,#38c8ff)}
+.wk-vig.on{animation:wkVig .55s ease-out}
+@keyframes wkVig{0%{opacity:0}22%{opacity:.8}100%{opacity:0}}
+html.wp-less .wk-vig{display:none}
+.wk-pass{position:absolute;left:0;top:0;width:56px;justify-content:flex-end;box-sizing:border-box;display:flex;align-items:center;gap:3px;padding:2px 8px 2px 2px;border-radius:999px;background:rgba(6,14,38,.82);border:1.5px solid rgba(93,255,176,.75);pointer-events:none;opacity:0;font-size:12px;font-weight:900;line-height:1;white-space:nowrap;transform:translateY(-50%)}
+.wk-pass img{width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:50% 18%;background:#0b1638}
+.wk-pass.up b{color:#5dffb0}.wk-pass.down{border-color:rgba(255,77,106,.9);box-shadow:0 0 14px rgba(255,77,106,.55)}.wk-pass.down b{color:#ff4d6a;font-size:14px}
+.wk-pass.up.on{animation:wkPassBack .95s ease-in both}
+.wk-pass.down.on{animation:wkPassed .95s ease-out both}
+@keyframes wkPassBack{0%{opacity:0;transform:translate(14px,-50%) scale(.8)}14%{opacity:1;transform:translate(0,-50%) scale(1.08)}55%{opacity:1;transform:translate(-8px,-50%) scale(.95)}100%{opacity:0;transform:translate(-34px,-50%) scale(.6)}}
+@keyframes wkPassed{0%{opacity:0;transform:translate(0,-80%) scale(1.35)}15%{opacity:1;transform:translate(0,-50%) scale(1)}25%,45%{opacity:1}35%{opacity:.55}80%{opacity:1}100%{opacity:0;transform:translate(0,-50%)}}
+html.wp-less .wk-pass.on{animation:none;opacity:1}
+.wk.k6hold .wk-pass.on{animation-delay:-.3s;animation-play-state:paused} /* (the browser test's screenshot) */
+.wk-tags{position:absolute;inset:0;pointer-events:auto;cursor:pointer}
+.wk-tag{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;padding:3px 11px 3px 3px;border-radius:999px;background:rgba(6,14,38,.84);border:2px solid var(--c);box-shadow:0 0 14px var(--c);font-size:13px;font-weight:900;letter-spacing:.08em;white-space:nowrap;opacity:0;transition:opacity .2s;will-change:transform}
+.wk-tag img{width:24px;height:24px;border-radius:50%;object-fit:cover;object-position:50% 18%;background:#0b1638}
+.wk-tag.me{font-size:15px;background:linear-gradient(180deg,rgba(40,30,6,.9),rgba(6,14,38,.9))}.wk-tag.me b::after{content:" ★";color:#ffc23c}
+.wk-tags em{position:absolute;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:rgba(6,14,38,.7);font-size:12.5px;font-weight:700;font-style:normal;opacity:.9}
+.wk.intro .wk-top,.wk.intro .wk-spd,.wk.intro .wk-pad,.wk.intro .wk-map,.wk.intro .wk-gap,.wk.intro .wk-help,.wk.intro .wk-trick,.wk.intro .wk-gh,.wk.intro .wk-lines,.wk.intro .wk-keys,.wk.intro .wk-msg,.wk.intro .wk-cut,.wk.intro .wk-item,.wk.intro .wk-cd{display:none}
+.wk-item.held,.wk-it.held,.wk-pad .wk-b.wk-it.held{box-shadow:0 0 0 2px #ff6fc8,0 0 20px rgba(255,111,200,.7),inset 0 1px 0 rgba(255,255,255,.45)}
