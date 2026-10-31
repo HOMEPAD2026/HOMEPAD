@@ -1,0 +1,1 @@
+var o={ko:{},zh:{},tr:{}},e=new Set;async function s(t){if(!o[t]||e.has(t))return o[t]||null;e.add(t);try{let r=t==="ko"?await import("./c-BUAI5S4O.js"):t==="zh"?await import("./c-OJV6VKPZ.js"):await import("./c-VD6EUDGR.js");Object.assign(o[t],r.default)}catch(r){console.warn("words",t,r)}return o[t]}export{o as a,s as b};

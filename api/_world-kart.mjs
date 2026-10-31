@@ -4,7 +4,7 @@
 //   POST { action: "world-kart-start", …signature, track, mode: "race" | "ta" | "daily", racer } → { raceId, startedAt, mode, daily? }
 //        one active race a wallet: a new start replaces the last (its end is then refused)
 //   POST { action: "world-kart-end", …signature, raceId, place 1–5, time (s), laps [s], ghost?, racer }
-//        → { credited, earned, why, racesLeft, today, cap, rank, dailyRank, best, newBest, newAch, meta }
+//        → { credited, earned, why, racesLeft, today, cap, rank, dailyRank, best, newBest, newAch, meta, ev? (the event's progress) }
 //        checked on the server's clock: the race can't be longer than it has been going (+5 s), every lap at least the
 //        track's minLap, as many laps as the track has, the laps adding up to the time; counted once (worldKartEnd).
 //        Mode "race" pays PAY[place − 1] for the first DAY_RACES races of a Seoul day; mode "daily" pays DAILY_PAY once a
@@ -43,7 +43,7 @@ const RACE_TTL = 30 * 60e3, TOP_N = 20, MODES = ["race", "ta", "daily"];
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 
-/// deps: { getDocs, setDoc, commit, json, now, signer(b), credit(wallet, kind, n) → credited, isoWeek(t)?, randomId? }
+/// deps: { getDocs, setDoc, commit, json, now, signer(b), credit(wallet, kind, n) → credited, isoWeek(t)?, randomId?, event? (api/_world-kartevent.mjs) }
 export function makeKart(deps) {
   const { getDocs, setDoc, commit, json, signer } = deps;
   const now = () => deps.now();
@@ -78,6 +78,8 @@ export function makeKart(deps) {
     // the end counts once (a repeated request is refused, a lost reply can't be paid twice)
     if (!(await commit([{ create: `worldKartEnd/${run.raceId}`, data: { at: t, wallet: w, mode: run.mode, track: run.track, place, time: tm, laps, racer: run.racer } }])).ok) return json(409, { error: "that race has ended" });
     const day = seoulDay(t), M = await metaEnd(w, { mode: run.mode, track: run.track, place, time: tm, laps: laps.length });
+    // the KART GRAND OPENING EVENT (api/_world-kartevent.mjs): an accepted end inside its window counts there
+    const ev = deps.event ? await deps.event.onEnd(w, { mode: run.mode, track: run.track, startedAt: run.startedAt, t, time: tm, laps, racer: run.racer, ghost: typeof b.ghost === "string" ? b.ghost : "" }).catch((e) => { console.warn("kart event:", e && e.message); return null; }) : null;
     // the week's board and the ghost: race or time attack (a daily runs under a twist: its own board)
     let rank = null, dailyRank = null;
     if (run.mode === "daily") dailyRank = run.day === day ? await dailyBoard(w, day, tm, run.racer).catch(() => null) : null;
@@ -86,7 +88,7 @@ export function makeKart(deps) {
       const g = typeof b.ghost === "string" ? b.ghost : "";
       if (M.newBest && g && g.length <= KART.MAX_GHOST && GHOST_RE.test(g)) await setDoc(`worldKartGhost/${run.track}_${w}`, { t: tm, g, racer: run.racer, at: t }).catch(() => {});
     }
-    const out = { ok: true, rank, dailyRank, best: M.best, newBest: M.newBest, newAch: M.newAch, meta: M.meta, cap: KART.DAY_ARCL };
+    const out = { ok: true, rank, dailyRank, best: M.best, newBest: M.newBest, newAch: M.newAch, meta: M.meta, cap: KART.DAY_ARCL, ...(ev ? { ev } : {}) };
     const dk = `worldKartDay/${w}_${day}`, todayOf = async () => ((await one(dk)) || {}).n || 0;
     const pay = async (amt0) => { const got = await todayOf(), amt = Math.max(0, Math.min(amt0, KART.DAY_ARCL - got)); let c = 0; if (amt > 0 && deps.credit) { c = await deps.credit(w, "kart", amt); if (c > 0) await commit([{ inc: dk, fields: { n: c } }]); } return c; };
     if (run.mode === "ta") return json(200, { ...out, credited: 0, earned: 0, why: "ta", racesLeft: await left(w, day), today: await todayOf() });
