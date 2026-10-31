@@ -156,8 +156,8 @@ export function makePodium(THREE, logoTex) {
 export function makeRings(THREE, scene, n = 4) {
   const pool = []; for (let k = 0; k < n; k++) { const m = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 32), new THREE.MeshBasicMaterial({ color: 0xffc23c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.visible = false; scene.add(m); pool.push({ m, t: 0 }); }
   let k = 0;
-  return { at(p, hex = 0xffc23c) { const r = pool[k++ % n]; r.t = 0.5; r.m.visible = true; r.m.position.set(p.x, 0.12, p.z); r.m.material.color.setHex(hex); },
-    step(dt) { for (const r of pool) { if (r.t <= 0) continue; r.t -= dt; const u = 1 - Math.max(0, r.t) / 0.5; r.m.scale.setScalar(1 + u * 5); r.m.material.opacity = 0.9 * (1 - u); if (r.t <= 0) r.m.visible = false; } } };
+  return { at(p, hex = 0xffc23c, size = 1) { const r = pool[k++ % n]; r.t = 0.5; r.sz = size; r.m.visible = true; r.m.position.set(p.x, 0.12, p.z); r.m.material.color.setHex(hex); }, // (KX2: size — a bomb's shockwave, a shield's flash)
+    step(dt) { for (const r of pool) { if (r.t <= 0) continue; r.t -= dt; const u = 1 - Math.max(0, r.t) / 0.5; r.m.scale.setScalar((1 + u * 5) * (r.sz || 1)); r.m.material.opacity = 0.9 * (1 - u); if (r.t <= 0) r.m.visible = false; } } };
 }
 
 /// the checkered-flag burst at the line: small black-and-white squares that fly up and spin
