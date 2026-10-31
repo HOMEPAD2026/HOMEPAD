@@ -37,4 +37,21 @@ sq-key-tall-1 (01a19154-5abe-77c1-a01e-0c56ce04835d), sq-key-tall-2 (01a19154-5a
 They served as composition references for the final 16:9 / 3:4 files, which were made with i2i-ratio.mjs here
 (the same image-to-image call plus `aspect_ratio`; key from MESHY_API_KEY only). Usable as square social art too.
 
-No task failed, so no retries were needed.
+## Announcement set (added 2026-10-31, second request)
+
+Magma Run refs: images/kart/keyart/key-2-volcano-1600.webp, images/kart/tracks/volcano-card.webp, plus the card sheets.
+Prompt core: "Announcement background … <racers>, racing toward the camera on a volcano race track: glossy dark road with
+glowing orange lava cracks, lava along the edges, an erupting volcano in a red-orange sky. A giant golden trophy …,
+fireworks, confetti, blue boost flames. Composition: a clean darker calm band across the top 30 % (28 % square) …
+and a calmer, darker plain road strip along the bottom 22 % (25 % square)." + the shared style tail. Meshy doesn't keep
+those bands strictly dark: plan a gradient scrim under the overlaid text.
+
+| File | Size | Task (Meshy) | Notes |
+|---|---|---|---|
+| announce-16x9-1.png | 1344×768, 2321 KB | image-to-image 01a19157-86d2-73d7-a75e-46fc5a775c64 | refs volcano key art + cards. Dynamic, PEPE big in front; WIF (pink beanie) wears yellow here — off-model. |
+| announce-16x9-2.png | 1344×768, 2497 KB | image-to-image 01a19157-86d9-76da-98d6-3af58dc416bc | refs key-wide-1 + volcano card + cards. All five in their right colours in a row, trophy + flags, lava-crack road with room below — best pick. |
+| announce-1x1-1.png | 1024×1024, 2389 KB | image-to-image 01a19158-194f-76ba-a0a2-f1d341f553e9 | redo (first try 01a19157-86d4-72da-a193-1a33709f24f9 came with flat navy letterbox bars): "Square 1:1 version of this volcano racing scene, full bleed edge to edge …" from announce-16x9-2. Right colours, sky top / road bottom — best square pick. |
+| announce-1x1-2.png | 1024×1024, 2421 KB | image-to-image 01a19157-86d6-775f-a3a9-0ae0ff052f72 | refs sq-key-tall-2 + volcano card + tall cards. Racers stacked under the trophy; busier top. |
+| usdc-coin.png | 1024×1024, 980 KB | text-to-image 01a19157-86c5-72fe-bd38-8c352454e0a7 | "A glossy 3D blue coin seen at a slight angle, thick rim, a plain white dollar sign $ embossed in the middle, no other marks, no logos, no text, cyan rim glow, centered single object, stylized 3D game icon, on a perfectly flat solid pure green (#00ff00) background" — the green is a lime ~#a8d45c: key by hue. |
+
+No task failed. One result was redone for a defect (announce-1x1-1, letterbox bars).
