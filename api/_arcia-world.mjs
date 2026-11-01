@@ -72,5 +72,5 @@ function addLink(s, id, url, mark, max) { if (s.includes(id)) return s; const ou
 export function withKartVideo(t, max = 280) { const s = String(t || ""); return aboutKart(s) ? addLink(s, KART_VIDEO_ID, KART_VIDEO, "🎬", max) : s; }
 /// official links / info → the official post's link; force = a promotion post that takes it this time
 export function withOfficial(t, max = 280, force = false, about = "") { const s = String(t || ""); return force || aboutOfficial(s) || aboutOfficial(about) ? addLink(s, OFFICIAL_POST_ID, OFFICIAL_POST, "📌", max) : s; }
-/// both, KART first (what ARCIA sends anywhere)
-export const withLinks = (t, max = 280, o = {}) => withOfficial(withKartVideo(t, max), max, !!o.official, o.about || "");
+/// ONE link a post at most (the owner, 2026-11-01): KART's video first, else the official post; nothing added to a text that has a link
+export function withLinks(t, max = 280, o = {}) { const s = String(t || ""); if (/https?:\/\//.test(s)) return s; const k = withKartVideo(s, max); return k !== s ? k : withOfficial(s, max, !!o.official, o.about || ""); }
