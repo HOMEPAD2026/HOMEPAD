@@ -40,6 +40,11 @@ const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts 
 // the hourly game post (hourlyPost): one an hour about ARCIRCLE WORLD; a link only every HOURLY_LINK_EVERY hours (X bills a
 // post with a link far more than one without)
 const HOURLY_ON = true, HOURLY_LINK_EVERY = 3;
+// the ecosystem watch (2026-11-01, the owner: ARCIA reacts when these accounts post — a like, and a short reply when she has
+// something real to add). Off until ARCIA_X_WATCH=1. Every WATCH_EVERY seconds WATCH_PER_CHECK accounts are read in turn (X bills
+// every read), only their own new posts (no replies or reposts), at most WATCH_DAY_CAP replies a day and one an account a day.
+const WATCH = ["arc", "circle", "BuildOnCircle", "jerallaire", "samconnerone", "stablenzo", "Arguspad", "kairo_market", "TollyLabs", "fazedotfun", "TryArcStocks"];
+const WATCH_EVERY = 600, WATCH_PER_CHECK = 2, WATCH_DAY_CAP = 8, WATCH_MAX_AGE = 6 * 3600;
 const ROUND1_CLOSE = 1790680567; // 29 Sep 2026 11:16:07 UTC
 const SITE = "arcircle.app";
 
@@ -345,6 +350,7 @@ function prune(st) {
   for (const [k, v] of Object.entries(st.sent)) if (Number(v && v.t || v) < cut) delete st.sent[k];
   for (const k of Object.keys(st.days)) if (k < dayOf(cut)) delete st.days[k];
   for (const k of Object.keys(st.replyDays || {})) if (k < dayOf(cut)) delete st.replyDays[k];
+  for (const k of Object.keys(st.watchDays || {})) if (k < dayOf(cut)) delete st.watchDays[k];
 }
 
 // ---------- replies to mentions ----------
@@ -429,6 +435,57 @@ function recentReplies(st) {
   return Object.entries(st.sent || {}).filter(([k]) => k.startsWith("reply:")).map(([k, v]) => ({ id: k.slice(6), t: v && v.t, from: v && v.from ? "@" + v.from : undefined,
     result: !v || !v.x ? "handled" : /^(skip|cap|dup|retry)$/.test(v.x) ? v.x : "replied", why: v && v.why, said: v && v.said })).sort((a, b) => (b.t || 0) - (a.t || 0)).slice(0, 12);
 }
+// ---------- the ecosystem watch ----------
+const watchOn = () => enabled() && on("ARCIA_X_WATCH");
+async function xLike(meId, tweetId) {
+  const url = `https://api.x.com/2/users/${meId}/likes`;
+  const r = await fetch(url, { method: "POST", headers: { authorization: authHeader("POST", url), "content-type": "application/json" }, body: JSON.stringify({ tweet_id: tweetId }) });
+  if (!r.ok) throw new Error(`X like ${r.status}`);
+}
+const WATCH_BRIEF = (u, text) => `@${u} (an account in your ecosystem — Arc, Circle and the projects building on Arc) just posted this on X:\n${text}\n\nWrite ARCIA's reply as one post: a genuine, specific reaction to what they said (congratulate, add a relevant fact, ask a smart question, or show how ARCIRCLE builds on it) — like a builder in the same ecosystem, never a spam bot. Mention ARCIRCLE / ARCIRCLE WORLD only when it really connects to their post, and then in a few words. Under 200 characters, no links, no hashtags, at most one emoji, don't @mention anyone, never financial advice or price talk. If there's nothing worth saying (a giveaway, a retweet bait, a sensitive topic, an outage or anything negative), answer exactly SKIP.`;
+async function watchRun(st) {
+  if (!watchOn() || !hasKeys()) return null;
+  const t = now();
+  if (t - (st.watchAt || 0) < WATCH_EVERY) return null;
+  st.watchAt = t; st.dirty = true;
+  const who = await whoami(); if (!who || !who.id) return { error: "who am I" };
+  st.watch = st.watch || {}; st.watchDays = st.watchDays || {};
+  const day = dayOf(t), out = [];
+  const start = st.watchNext || 0;
+  for (let i = 0; i < WATCH_PER_CHECK; i++) {
+    const u = WATCH[(start + i) % WATCH.length], w = st.watch[u] || (st.watch[u] = {});
+    try {
+      if (!w.id) { const j = await xGet(`https://api.x.com/2/users/by/username/${u}`); if (!j.data || !j.data.id) { out.push({ u, error: "not found" }); continue; } w.id = j.data.id; }
+      const q = { max_results: "5", exclude: "replies,retweets", "tweet.fields": "created_at,note_tweet" };
+      if (w.since) q.since_id = w.since;
+      const j = await xGet(`https://api.x.com/2/users/${w.id}/tweets`, q);
+      const data = j.data || [], first = !w.since;
+      for (const p of data) if (!w.since || BigInt(p.id) > BigInt(w.since)) w.since = p.id;
+      if (first) { out.push({ u, started: true }); continue; } // the first look only remembers where we are
+      for (const p of data.slice(0, 2)) {
+        if (st.sent["watch:" + p.id] || t - Date.parse(p.created_at) / 1000 > WATCH_MAX_AGE) continue;
+        const text = (p.note_tweet && p.note_tweet.text) || p.text || "";
+        await xLike(who.id, p.id).catch(() => null);
+        const row = { u, id: p.id, liked: true };
+        const capped = (st.watchDays[day] || 0) >= WATCH_DAY_CAP || w.day === day;
+        if (!capped) {
+          const d = await askClaude({ messages: [{ role: "user", content: WATCH_BRIEF(u, text) }], L: "en", maxTokens: 160 }).catch(() => null);
+          let r = String(d || "").replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+          if (r && !/^SKIP\b/i.test(r) && checkAddresses(r, text).ok && r.length <= 260) {
+            row.replied = await xPost(r, p.id); row.text = r;
+            st.watchDays[day] = (st.watchDays[day] || 0) + 1; w.day = day;
+            remember(st, { id: row.replied, kind: "watch", text: r, to: u, toText: text.replace(/\s+/g, " ").slice(0, 140) });
+          } else row.skip = "nothing to add";
+        } else row.skip = "daily cap";
+        st.sent["watch:" + p.id] = { t, x: row.replied || "" };
+        out.push(row);
+      }
+    } catch (e) { out.push({ u, error: String(e.message || e).slice(0, 160) }); if (/\b(401|403|429)\b/.test(String(e.message))) break; }
+  }
+  st.watchNext = (start + WATCH_PER_CHECK) % WATCH.length;
+  return out;
+}
+
 async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   const results = [];
   let who = st.me && st.me.id ? st.me : null;
@@ -512,6 +569,7 @@ export async function GET(req) {
       keys: hasKeys(), enabled: enabled(), posts: postsOn(), store: storeEnabled(), cronSecret: !!process.env.CRON_SECRET,
       account: hasKeys() ? await whoami().catch(() => ({ error: "unreachable" })) : null,
       today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
+      watch: { on: watchOn(), accounts: WATCH, today: st && st.watchDays ? st.watchDays[dayOf(now())] || 0 : 0, cap: WATCH_DAY_CAP, recent: st ? (st.recent || []).filter((r) => r.kind === "watch").slice(0, 6).map((r) => ({ to: r.to, text: r.text, url: `https://x.com/ARCIAonArc/status/${r.id}` })) : [] },
       firstRun: st ? !st.coinSince : null,
       wouldPost: p.posts.map((x) => ({ id: x.id, chars: xLen(x.text), text: x.text })),
       replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null, teamCheck: st ? { at: st.teamAt || null, error: st.teamError || "" } : null, recent: st ? recentReplies(st) : [],
@@ -564,8 +622,9 @@ export async function GET(req) {
       } catch (e) { return json(502, { redo, error: String(e.message || e).slice(0, 200) }); }
     }
     const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
+    const watch = await watchRun(st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
-    return json(200, { replies, ...(watchdog ? { watchdog } : {}) });
+    return json(200, { replies, ...(watch ? { watch } : {}), ...(watchdog ? { watchdog } : {}) });
   }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;
