@@ -54,3 +54,11 @@ export const HOUR_TOPICS = [
   { k: "poker", say: "ARCIA POKER LOUNGE and its Sit & Go tournaments" },
   { k: "rings", say: "INFINITY RINGS puzzles and the time attack" },
 ];
+
+// ARCIRCLE KART's play video on X (the owner, 2026-11-01): whenever ARCIA talks about KART — her hourly post (as a quote of
+// this post), a reply or a Telegram message (the link under it) — she brings this post along.
+export const KART_VIDEO_ID = "2116461206496297015";
+export const KART_VIDEO = `https://x.com/ARCIRCLEonArc/status/${KART_VIDEO_ID}`;
+export const aboutKart = (t) => /\bkart\b|pepe|doge|pengu|\bwif\b|bonk|magma run|nexus circuit|frost drift|lunar loop|time attack|카트/i.test(String(t || ""));
+/// a reply / message about KART carries the video's link (only if it still fits: X counts a link as 23)
+export function withKartVideo(t, max = 280) { const s = String(t || ""); if (!aboutKart(s) || s.includes(KART_VIDEO_ID)) return s; const out = `${s}\n\n🎬 ${KART_VIDEO}`; return s.replace(/https?:\/\/\S+/g, "x".repeat(23)).length + 26 <= max ? out : s; }

@@ -27,7 +27,7 @@
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
 // Nothing here moves funds: no command signs or sends a transaction.
 import { askClaude, streamClaude, checkAddresses, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, withKartVideo } from "./_arcia-world.mjs";
 // 2026-11-01, the owner: ARCIA talks on her own on Telegram and answers people well, without long answers.
 // TG_TALK_EVERY: a post of her own to the announcement targets at most this often (ms); TG_CHATTY_EVERY: in the home group she
 // joins a conversation about the game at most once in this window (per person TG_CHATTY_USER); TG_MIRROR_EVERY: X posts mirrored
@@ -450,8 +450,11 @@ async function answer(m, text, { lang, group, image, assist = false } = {}) {
     out = out.trim().slice(0, 4000);
     // the final text never keeps an address she wasn't given (FACTS, the site, or this chat): it's swapped for a pointer to /ca
     { const src = [q || "", ...turns.map((t) => t.c)].join("\n"); const c = checkAddresses(out, src); out = c.ok ? c.text : c.text.replace(/0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g, (a) => (checkAddresses(a, src).ok ? checkAddresses(a, src).text : "(official addresses: /ca)")); }
-    if (mid) await tg("editMessageText", { chat_id: m.chat.id, message_id: mid, text: out, link_preview_options: { is_disabled: true } });
-    else await tg("sendMessage", { chat_id: m.chat.id, text: out, link_preview_options: { is_disabled: true }, ...replyTo });
+    // an answer about KART brings its play video (the owner, 2026-11-01) — with the link's preview on, so the video shows
+    const kv = withKartVideo(out, 4096), lp = { is_disabled: kv === out };
+    out = kv;
+    if (mid) await tg("editMessageText", { chat_id: m.chat.id, message_id: mid, text: out, link_preview_options: lp });
+    else await tg("sendMessage", { chat_id: m.chat.id, text: out, link_preview_options: lp, ...replyTo });
     await bump("chat", uid);
     if (image) await bump("photo", uid);
     await putDoc(ck, { turns: [...turns, { r: "user", c: (image ? "[sent a picture] " : "") + q, t: Date.now() }, { r: "assistant", c: out.slice(0, 1500), t: Date.now() }].slice(-6) });
@@ -1014,7 +1017,8 @@ async function chattyReply(m, text, lang) {
   const out = await askClaude({ messages: [{ role: "user", content: text.slice(0, 800) }], L, extra, maxTokens: 120, timeoutMs: 20000 }).catch(() => null);
   const s = String(out || "").replace(/^["'“”]+|["'“”]+$/g, "").trim();
   if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, text).ok) return;
-  return tg("sendMessage", { chat_id: m.chat.id, text: s.slice(0, 300), link_preview_options: { is_disabled: true }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
+  const kv = withKartVideo(s.slice(0, 300), 4000);
+  return tg("sendMessage", { chat_id: m.chat.id, text: kv, link_preview_options: { is_disabled: kv === s.slice(0, 300) }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
 }
 /// her own post to the announcement targets (from the tick): the game's topic of the hour, written for Telegram — short,
 /// friendly, with a reason to play and the link; at most every TG_TALK_EVERY
@@ -1029,7 +1033,7 @@ async function talkPost(T, c) {
   T.talkAt = now; // even when nothing was written: try again next window, not every tick
   if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, "").ok) return 0;
   T.talkLast = s;
-  return postToTargets(c, { text: s.slice(0, 1000) });
+  return postToTargets(c, { text: withKartVideo(s.slice(0, 1000), 4000) });
 }
 // ---------------- v7: the home group's assistant ----------------
 const QWORDS = /^(what|what's|whats|how|when|where|why|who|which|is|are|can|could|does|do|did|will|should|wen|anyone|any\s+update|pls|please)\b/i;

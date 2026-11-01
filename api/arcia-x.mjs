@@ -33,7 +33,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO_ID, aboutKart, withKartVideo } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
@@ -79,9 +79,9 @@ async function xGet(base, query = {}) {
   if (!r.ok) throw new Error(`X ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
   return j;
 }
-async function xPost(text, replyTo) {
+async function xPost(text, replyTo, quote) {
   const url = "https://api.x.com/2/tweets";
-  const payload = replyTo ? { text, reply: { in_reply_to_tweet_id: replyTo } } : { text };
+  const payload = { text, ...(replyTo ? { reply: { in_reply_to_tweet_id: replyTo } } : {}), ...(quote ? { quote_tweet_id: quote } : {}) };
   const r = await fetch(url, { method: "POST", headers: { authorization: authHeader("POST", url), "content-type": "application/json" }, body: JSON.stringify(payload) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`X ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
@@ -316,9 +316,11 @@ async function hourlyPost(origin, st) {
   if (!out) return [];
   let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
+  // KART: the post quotes ARCIRCLE's KART play video (the video shows under her words)
+  const quote = topic.k === "kart" || aboutKart(text) ? KART_VIDEO_ID : null;
   if (link) text = `${text}\n\n🎮 ${SITE}/game`;
   if (xLen(text) > 278) return [];
-  return [{ id, text }];
+  return [{ id, text, ...(quote ? { quote } : {}) }];
 }
 
 async function plan(origin, st) {
@@ -407,6 +409,7 @@ async function draftReply(m, L) {
   let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@ARCIRCLEonArc\b/gi, "ARCIRCLE").replace(/(^|\s)@\w+/g, " ").replace(/ {2,}/g, " ").replace(/\s+\n/g, "\n").trim();
   if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
+  out = withKartVideo(out); // a reply about KART brings its play video's link (the owner, 2026-11-01)
   return { text: out };
 }
 // The team's own posts that name her. A long post (over 280 characters) keeps its @mention in the part X
@@ -473,6 +476,7 @@ async function watchRun(st) {
           const d = await askClaude({ messages: [{ role: "user", content: WATCH_BRIEF(u, text) }], maxTokens: 160 }).catch(() => null);
           let r = String(d || "").replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
           if (r && !/^SKIP\b/i.test(r) && checkAddresses(r, text).ok && r.length <= 260) {
+            r = withKartVideo(r);
             row.replied = await xPost(r, p.id); row.text = r;
             st.watchDays[day] = (st.watchDays[day] || 0) + 1; w.day = day;
             remember(st, { id: row.replied, kind: "watch", text: r, to: u, toText: text.replace(/\s+/g, " ").slice(0, 140) });
@@ -642,7 +646,7 @@ export async function GET(req) {
     if ((st.days[day] || 0) >= DAY_CAP) { results.push({ id: p.id, skipped: "daily cap" }); continue; }
     if (!hasKeys()) { results.push({ id: p.id, dry: true, text: p.text }); continue; }
     try {
-      const id = await xPost(p.text);
+      const id = await xPost(p.text, null, p.quote || null);
       st.sent[p.id] = { t: now(), x: id || "" };
       remember(st, { id, kind: "post", text: p.text });
       for (const a of p.also || []) st.sent[a] = { t: now(), x: "" };
