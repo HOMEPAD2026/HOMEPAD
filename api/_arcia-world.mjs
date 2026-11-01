@@ -43,6 +43,7 @@ export function worldText(W) {
 export const HOUR_TOPICS = [
   { k: "start", say: "for people who've never played: how to get in — arcircle.app/game, PLAY FREE, in the browser on a phone or PC, play as a guest first, a wallet later to keep progress" },
   { k: "kart", say: "ARCIRCLE KART — the newest game, and its Grand Opening event if it's on" },
+  { k: "shop", say: "the new KART SHOP (KART GARAGE): six cars with their own strengths and weaknesses — ARC LIGHTSPEED and CIRCLE ORBIT (LEGENDARY), PEGMASTER, BLOXBUSTER, KAIRO KLIK, ARGUS WATCHER (EPIC) — bought with $ARCIRCLE, half of every purchase burned" },
   { k: "new", say: "for players who already know us: the newest updates (from 'Newest updates')" },
   { k: "ranks", say: "this week's leaderboards: name the #1s from LIVE and dare people to beat them" },
   { k: "events", say: "what's on today and right now (the KART event if on, KART's Daily race, Jurassic boss hour 12:00/20:00 KST, Sit & Go on even UTC hours)" },
@@ -72,5 +73,10 @@ function addLink(s, id, url, mark, max) { if (s.includes(id)) return s; const ou
 export function withKartVideo(t, max = 280) { const s = String(t || ""); return aboutKart(s) ? addLink(s, KART_VIDEO_ID, KART_VIDEO, "🎬", max) : s; }
 /// official links / info → the official post's link; force = a promotion post that takes it this time
 export function withOfficial(t, max = 280, force = false, about = "") { const s = String(t || ""); return force || aboutOfficial(s) || aboutOfficial(about) ? addLink(s, OFFICIAL_POST_ID, OFFICIAL_POST, "📌", max) : s; }
+// the KART SHOP's launch post on X (the owner, 2026-11-01): when ARCIA talks about the shop / the garage / its six cars, its link goes along
+export const SHOP_POST_ID = "2117007966016786909";
+export const SHOP_POST = `https://x.com/ARCIRCLEonArc/status/${SHOP_POST_ID}`;
+export const aboutShop = (t) => /kart shop|\bgarage\b|lightspeed|circle orbit|pegmaster|bloxbuster|kairo klik|argus watcher|(new|six|6) (cars|karts)|buy a (car|kart)|카트 상점|차고|신차|卡丁车商店|车库|mağaza|garaj/i.test(String(t || ""));
+export function withShop(t, max = 280) { const s = String(t || ""); return aboutShop(s) ? addLink(s, SHOP_POST_ID, SHOP_POST, "🛒", max) : s; }
 /// ONE link a post at most (the owner, 2026-11-01): KART's video first, else the official post; nothing added to a text that has a link
-export function withLinks(t, max = 280, o = {}) { const s = String(t || ""); if (/https?:\/\//.test(s)) return s; const k = withKartVideo(s, max); return k !== s ? k : withOfficial(s, max, !!o.official, o.about || ""); }
+export function withLinks(t, max = 280, o = {}) { const s = String(t || ""); if (/https?:\/\//.test(s)) return s; const sh = withShop(s, max); if (sh !== s) return sh; const k = withKartVideo(s, max); return k !== s ? k : withOfficial(s, max, !!o.official, o.about || ""); }
