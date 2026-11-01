@@ -931,6 +931,7 @@ async function onMessage(m, channel) {
         if (!group) return say(m, "Use /here inside a group (or post /here in a channel where I'm an admin).");
         await setTarget(c, m.chat, cmd === "here");
         return say(m, cmd === "here" ? "✓ Announcements will come here." : "✓ No more announcements here.");
+      case "emojipack": { if (!admin) return adminOnly(); if (group) return say(m, "Send /emojipack in a DM with me."); return say(m, await makeEmojiPacks(m.from.id)); }
       case "targets": return admin ? say(m, c.targets.length ? c.targets.map((t) => `• ${h(t.title || t.id)} <i>${t.type}</i>`).join("\n") : "No targets yet — /here in a group, or post /here in a channel.") : adminOnly();
       case "agentweekly": { if (!admin) return adminOnly(); c.agentWeekly = !/^off$/i.test(arg); await saveCfg(c); return say(m, `✓ ARCIA AGENT's Monday report card to the targets: ${c.agentWeekly ? "on" : "off"}.`); }
       case "mirror": { if (!admin) return adminOnly(); c.mirror = !/^off$/i.test(arg); await saveCfg(c); return say(m, `✓ Mirroring ARCIA's X posts to the targets: ${c.mirror ? "on" : "off"}.`); }
@@ -1070,6 +1071,46 @@ async function talkHome(T, c, now, h) {
   let ok = 0;
   for (const id of ids) { const r = await tg("sendMessage", { chat_id: id, text, link_preview_options: { is_disabled: true }, ...homeKb() }); if (r.ok) ok++; }
   return { ok, ids };
+}
+/// ARCIRCLE's animated logo as a Telegram custom-emoji pack + a video sticker pack (the owner, 2026-11-01: "a moving sticker to
+/// use in place of 🟢🟢🟢"), made by the bot for the admin who sends /emojipack in a DM (they own the packs). The files are the
+/// site's images/tg/*.webm (VP9 with alpha, 3 s: 100×100 for emoji, 512×512 for stickers). Running it again only reports the links.
+const PACKS = [
+  { key: "arcircle", title: "ARCIRCLE ∞", type: "custom_emoji", files: [["arcircle-spin-emoji.webm", "🟢"], ["arcircle-pulse-emoji.webm", "💚"]] },
+  { key: "arcircle_stickers", title: "ARCIRCLE ∞ Stickers", type: "regular", files: [["arcircle-spin-sticker.webm", "🟢"], ["arcircle-pulse-sticker.webm", "💚"]] },
+];
+async function tgForm(method, fields, files) {
+  const token = env("TG_ARCIA_BOT_TOKEN");
+  if (!token) return { ok: false, description: "TG_ARCIA_BOT_TOKEN isn't set" };
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.append(k, typeof v === "string" ? v : JSON.stringify(v));
+  for (const [k, blob, name] of files) fd.append(k, blob, name);
+  try { const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: "POST", body: fd, signal: AbortSignal.timeout(25000) }); const j = await r.json().catch(() => ({ ok: false })); if (!j.ok && j.description) j.description = String(j.description).replace(token, "…"); return j; }
+  catch (e) { return { ok: false, description: String(e && e.message || e).replace(token, "…") }; }
+}
+async function makeEmojiPacks(uid) {
+  const me = await tg("getMe");
+  if (!me.ok) return "Couldn't reach Telegram — try again.";
+  const out = [];
+  for (const P of PACKS) {
+    const name = `${P.key}_by_${me.result.username}`;
+    let set = await tg("getStickerSet", { name });
+    if (!set.ok) {
+      const files = [], stickers = [];
+      for (const [i, [f, emo]] of P.files.entries()) {
+        const r = await fetch(`${SITE}/images/tg/${f}`, { signal: AbortSignal.timeout(12000) }).catch(() => null);
+        if (!r || !r.ok) return `Couldn't load ${f} from the site.`;
+        files.push([`s${i}`, new Blob([await r.arrayBuffer()], { type: "video/webm" }), f]);
+        stickers.push({ sticker: `attach://s${i}`, format: "video", emoji_list: [emo] });
+      }
+      const made = await tgForm("createNewStickerSet", { user_id: String(uid), name, title: P.title, sticker_type: P.type, stickers }, files);
+      if (!made.ok) { out.push(`✗ ${h(P.title)}: ${h(made.description || "failed")}`); continue; }
+      set = await tg("getStickerSet", { name });
+    }
+    const ids = set.ok ? set.result.stickers.map((x) => x.custom_emoji_id).filter(Boolean) : [];
+    out.push(`✓ <b>${h(P.title)}</b>: ${P.type === "custom_emoji" ? `https://t.me/addemoji/${name}` : `https://t.me/addstickers/${name}`}${ids.length ? `\n<code>${ids.join(" ")}</code>` : ""}`);
+  }
+  return out.join("\n\n");
 }
 // ---------------- v7: the home group's assistant ----------------
 const QWORDS = /^(what|what's|whats|how|when|where|why|who|which|is|are|can|could|does|do|did|will|should|wen|anyone|any\s+update|pls|please)\b/i;
