@@ -6602,10 +6602,21 @@ html.wp-less .kev-pop-in .kev-conf{display:none}
 .kev-when{margin:4px 0 0;display:flex;flex-direction:column;gap:2px;font:600 12px/1.35 Sora,sans-serif;color:#ffe2c6}.kev-when b{color:#fff;font-weight:800}.kev-when small{font-size:10.5px;color:#c9b8a8;line-height:1.4}
 .kev-pop-in .kev-when{margin:-4px 8px 12px;align-items:center;text-align:center}
 /* KS (2026-11-01): ARCIRCLE KART's SHOP — the 🛒 button left of ⚙ on the pick screen, the car line under the track info, the window */
-.wk-shopb{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:64px;height:44px;padding:0 14px 0 10px;border-radius:999px;border:1.5px solid rgba(255,214,102,.75);background:linear-gradient(180deg,rgba(28,46,98,.92),rgba(10,20,52,.92));color:#ffe08a;font:900 13px/1 Sora,sans-serif;letter-spacing:.08em;display:flex;align-items:center;gap:7px;box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 18px rgba(255,200,80,.28);pointer-events:auto;cursor:pointer}
-.wk-shopb i{width:24px;height:24px;background:url("/images/kart/shop/ic-cars.webp") center/contain no-repeat;filter:drop-shadow(0 0 6px rgba(80,220,255,.6))}
-.wk-shopb:hover{filter:brightness(1.12)}
-html.wp-pcphone .wk-shopb{height:36px;width:36px;right:52px;top:calc(8px + env(safe-area-inset-top,0px));padding:0;justify-content:center}html.wp-pcphone .wk-shopb span{display:none}html.wp-pcphone .wk-shopb i{width:26px;height:26px}
+.wk-shopb{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:64px;width:44px;height:44px;border-radius:50%;padding:0;border:2px solid #ffc94a;background:radial-gradient(circle at 50% 40%,rgba(40,70,140,.95),rgba(8,18,50,.95));display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 16px rgba(255,200,80,.45);pointer-events:auto;cursor:pointer;animation:wkShopGlow 2.4s ease-in-out infinite}
+.wk-shopb i{width:30px;height:30px;background:url("/images/kart/shop/ic-cars.webp") center/contain no-repeat;filter:drop-shadow(0 0 6px rgba(80,220,255,.6))}
+.wk-shopb:hover{filter:brightness(1.15)}
+@keyframes wkShopGlow{50%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 26px rgba(255,200,80,.8)}}
+html.wp-pcphone .wk-shopb{width:36px;height:36px;right:52px;top:calc(8px + env(safe-area-inset-top,0px))}html.wp-pcphone .wk-shopb i{width:24px;height:24px}
+.wk-shopcard{position:fixed;top:calc(68px + env(safe-area-inset-top,0px));right:12px;width:230px;padding:6px 6px 8px;border-radius:16px;border:2px solid #ffc94a;background:linear-gradient(180deg,rgba(22,30,78,.94),rgba(8,12,40,.96));color:#fff;text-align:left;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto auto;gap:2px 6px;box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 22px rgba(255,190,60,.45);pointer-events:auto;cursor:pointer;animation:wkShopGlow 2.4s ease-in-out infinite;transform-origin:top right}
+.wk-shopcard:hover{transform:scale(1.03)}
+.wk-sc-pic{grid-column:1/3;display:block;border-radius:11px;overflow:hidden;aspect-ratio:444/213}.wk-sc-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.wk-shopcard em{position:absolute;top:-10px;right:10px;font:900 11px/1 Sora,sans-serif;font-style:normal;padding:5px 8px;border-radius:8px;background:linear-gradient(180deg,#ff5a5a,#d81e3c);color:#fff;letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:rotate(-4deg)}
+.wk-shopcard b{grid-column:1;padding-left:4px;font:900 16px/1.1 Sora,sans-serif;letter-spacing:.04em;font-style:italic}
+.wk-shopcard small{grid-column:1;padding-left:4px;font:700 11px/1.2 Sora,sans-serif;color:#d8e6ff}
+.wk-shopcard i{grid-column:2;grid-row:2/4;align-self:center;font:900 24px/1 Sora,sans-serif;font-style:normal;color:#ffd36a;padding-right:4px}
+html.wp-pcphone .wk-shopcard{width:168px;top:calc(176px + env(safe-area-inset-top,0px));right:8px;border-radius:13px;padding:5px 5px 6px}
+html.wp-pcphone .wk-shopcard b{font-size:13px}html.wp-pcphone .wk-shopcard small{font-size:9.5px}html.wp-pcphone .wk-shopcard i{font-size:18px}
+@media (prefers-reduced-motion:reduce){.wk-shopb,.wk-shopcard{animation:none}}
 .wk-car-l{margin:0;font:700 12.5px/1.3 Sora,sans-serif;color:#cfe6ff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
 .wk-car-l b{letter-spacing:.04em}.wk-car-l em{font-style:normal;font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(155,107,255,.3);color:#d9c8ff}.wk-car-l em.legendary{background:rgba(255,194,60,.25);color:#ffd36a}
 .wk-car-l button{border:0;background:none;color:#7fe8ff;font:inherit;text-decoration:underline;cursor:pointer;padding:0}
@@ -6649,14 +6660,20 @@ html.wp-pcphone .wk-shopb{height:36px;width:36px;right:52px;top:calc(8px + env(s
 .wks-stats b.up::after{background:linear-gradient(90deg,#4be07c,#a8ffcf)}.wks-stats b.dn::after{background:linear-gradient(90deg,#ff7a5a,#ffb08a)}
 .wks-pc{margin:0;display:flex;flex-direction:column;gap:2px;font-size:11.5px;font-weight:700}.wks-pc .pro{color:#8dffb0}.wks-pc .con{color:#ffaa90}
 .wks-buy,.wks-use{margin-top:auto;height:40px;border-radius:12px;border:0;font:900 13px/1 Sora,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
-.wks-buy{background:linear-gradient(180deg,#ffd36a,#ffad2e);color:#2a1600;box-shadow:0 4px 0 #b06a0a,0 6px 16px rgba(255,170,40,.35)}
-.wks-buy:active{transform:translateY(2px);box-shadow:0 2px 0 #b06a0a}.wks-buy:disabled{filter:grayscale(.4);cursor:wait}
+.wks-buy{height:50px;padding:0;border-radius:14px;border:2px solid #fff1b8;background:linear-gradient(180deg,#ffe58a 0%,#ffc531 45%,#f5a400 100%);color:#1c1300;box-shadow:0 0 0 2px #c27a00,0 0 18px rgba(255,190,40,.65),inset 0 2px 0 rgba(255,255,255,.6);display:grid;grid-template-columns:54px 1fr 30px;align-items:stretch;overflow:hidden;position:relative}
+.wks-buy::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.45) 45%,transparent 60%);transform:translateX(-120%);animation:wksShine 3s ease-in-out infinite;pointer-events:none}
+@keyframes wksShine{60%,100%{transform:translateX(120%)}}
+.wks-cart{display:grid;place-items:center;background:linear-gradient(180deg,#2a2f45,#12152a);color:#ffe08a;clip-path:polygon(0 0,100% 0,82% 100%,0 100%)}
+.wks-buy b{display:flex;align-items:center;justify-content:center;gap:7px;font:900 italic 17px/1 Sora,sans-serif;letter-spacing:.02em;white-space:nowrap}
+.wks-buy b s{text-decoration:none;opacity:.7}.wks-buy .wks-arc{width:22px;height:22px}
+.wks-chev{display:grid;place-items:center;font:900 26px/1 Sora,sans-serif;color:#b86b00}
+.wks-buy:active{transform:translateY(2px)}.wks-buy:disabled{filter:grayscale(.4);cursor:wait}
 .wks-arc{width:18px;height:18px;background:url("/images/arcircle-mark-sm.webp") center/contain no-repeat;border-radius:50%}
 .wks-use{background:linear-gradient(180deg,#38d8ff,#1a8fd6);color:#04203a}.wks-use.on{background:rgba(95,224,90,.18);color:#8dffb0;border:1px solid rgba(95,224,90,.5);cursor:default}
 .wks-note{margin:12px 2px 2px;font-size:11.5px;opacity:.65}
 .wks-soon{display:grid;place-items:center;gap:8px;padding:48px 16px;text-align:center}.wks-soon img,.wks-soon span{width:96px;height:96px;font-size:60px;display:grid;place-items:center}.wks-soon h4{margin:0;font:900 18px Sora,sans-serif}.wks-soon p{margin:0;opacity:.75;font-size:13px}
 .wks-new{animation:wksNew 1.5s ease-out}
 @keyframes wksNew{0%{box-shadow:0 0 0 0 rgba(255,214,102,.9)}40%{box-shadow:0 0 0 14px rgba(255,214,102,0),0 0 40px rgba(255,214,102,.8)}100%{box-shadow:none}}
-html.wp-pcphone .wks{padding:0}html.wp-pcphone .wks-in{max-height:100dvh;height:100dvh;border-radius:0}
+html.wp-pcphone .wks{padding:0;inset:0;place-items:stretch}html.wp-pcphone .wks-in{max-height:none;height:100%;border-radius:0}html.wp-pcphone .wks-body{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 html.wp-pcphone .wks-grid{grid-template-columns:1fr}
-@media (prefers-reduced-motion:reduce){.wks,.wks-car.leg::before,.wks-new{animation:none}}
+@media (prefers-reduced-motion:reduce){.wks,.wks-car.leg::before,.wks-new,.wks-buy::after{animation:none}}
