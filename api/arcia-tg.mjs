@@ -33,6 +33,10 @@ import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, withKartVideo } from "./_
 // joins a conversation about the game at most once in this window (per person TG_CHATTY_USER); TG_MIRROR_EVERY: X posts mirrored
 // to Telegram at most this often (her X posts come hourly now).
 const TG_TALK_EVERY = 3 * 3600e3, TG_CHATTY_EVERY = 8 * 60e3, TG_CHATTY_USER = 30 * 60e3, TG_MIRROR_EVERY = 6 * 3600e3;
+// 2026-11-01, the owner: "even when nobody talks, ARCIA gives the game link and how to join on her own" — in the home group
+// (HOME_GROUPS) she posts every TG_HOME_EVERY whether or not anyone spoke, every other one a how-to-join guide with buttons;
+// if someone wrote within TG_HOME_BUSY she waits for the next tick so she doesn't cut into a conversation.
+const TG_HOME_EVERY = 2 * 3600e3, TG_HOME_BUSY = 4 * 60e3;
 const CHATTY = /(arcircle|arcia|\barcl\b|kart|race|game|play|survivor|raid|studio|jurassic|dino|poker|rings|event|reward|airdrop|level|boss|\bgm\b|\bgn\b|hello|\bhi\b|\bhey\b|new here|just joined|안녕|게임|이벤트|레이스|카트|보상|你好|游戏|活动|merhaba|oyun)/i;
 import { getCoin, allPools, isAddr, rpcCall, ethCalls, keccakHex, pad, PM_ADDRESS } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -1020,20 +1024,51 @@ async function chattyReply(m, text, lang) {
   const kv = withKartVideo(s.slice(0, 300), 4000);
   return tg("sendMessage", { chat_id: m.chat.id, text: kv, link_preview_options: { is_disabled: kv === s.slice(0, 300) }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
 }
-/// her own post to the announcement targets (from the tick): the game's topic of the hour, written for Telegram — short,
-/// friendly, with a reason to play and the link; at most every TG_TALK_EVERY
-async function talkPost(T, c) {
-  const now = Date.now();
-  if (!c.targets.length || now - (T.talkAt || 0) < TG_TALK_EVERY) return 0;
-  const h = Math.floor(now / 3600e3), topic = HOUR_TOPICS[(h + 5) % HOUR_TOPICS.length]; // offset from X so the two don't say the same thing
+/// her own post (from the tick): the game's topic of the hour, written for Telegram — short, friendly, with a reason to play
+/// and the link. To the announcement targets at most every TG_TALK_EVERY; to the home group every TG_HOME_EVERY (talkHome).
+async function talkWrite(T, topic, last) {
   const W = await worldLive(SITE).catch(() => null);
-  const brief = `Write ONE short message for ARCIRCLE's Telegram community as ARCIA (cheerful, playful, specific; like a friend in the chat, not an ad). Topic: ${topic.say}. Use only what WORLD and LIVE say; a number only when it's interesting (never a zero). 2–4 short lines, under 400 characters, plain text (no markdown), at most two emoji, end with arcircle.app/game. Never promise earnings beyond what WORLD says. Not like your last one: ${T.talkLast ? JSON.stringify(String(T.talkLast).slice(0, 160)) : "(none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the message only.`;
+  const brief = `Write ONE short message for ARCIRCLE's Telegram community as ARCIA (cheerful, playful, specific; like a friend in the chat, not an ad). Topic: ${topic}. Use only what WORLD and LIVE say; a number only when it's interesting (never a zero). 2–4 short lines, under 400 characters, plain text (no markdown), at most two emoji, end with arcircle.app/game. Never promise earnings beyond what WORLD says. Not like your last one: ${last ? JSON.stringify(String(last).slice(0, 160)) : "(none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the message only.`;
   const out = await askClaude({ messages: [{ role: "user", content: brief }], maxTokens: 220, timeoutMs: 25000 }).catch(() => null);
   const s = String(out || "").replace(/^["'“”]+|["'“”]+$/g, "").trim();
+  return !s || /^SKIP\b/i.test(s) || !checkAddresses(s, "").ok ? "" : s.slice(0, 1000);
+}
+const JOIN_TOPIC = "how to join ARCIRCLE WORLD right now, for anyone new in the chat: open arcircle.app/game, tap PLAY FREE, it runs in the browser on a phone or PC, play as a guest first and connect a wallet later to keep progress and earn ARCL; name one game to try first (KART is the newest) and invite them to ask you anything here";
+const homeKb = () => kb([[{ text: "🎮 Play free", url: `${SITE}/game` }, { text: "🛠 Studio", url: `${SITE}/studio` }]]);
+async function talkPost(T, c) {
+  const now = Date.now(), h = Math.floor(now / 3600e3);
+  let out = 0;
+  const home = await talkHome(T, c, now, h).catch(() => null);
+  if (home) out += home.ok;
+  if (!c.targets.length || now - (T.talkAt || 0) < TG_TALK_EVERY) return out;
   T.talkAt = now; // even when nothing was written: try again next window, not every tick
-  if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, "").ok) return 0;
+  const s = await talkWrite(T, HOUR_TOPICS[(h + 5) % HOUR_TOPICS.length].say, T.talkLast); // offset from X so the two don't say the same thing
+  if (!s) return out;
   T.talkLast = s;
-  return postToTargets(c, { text: withKartVideo(s.slice(0, 1000), 4000) });
+  const skip = new Set(home ? home.ids.map(String) : []);
+  return out + await postToTargets({ ...c, targets: c.targets.filter((t) => !skip.has(String(t.id))) }, { text: withKartVideo(s, 4000) });
+}
+/// the home group: every TG_HOME_EVERY, quiet or not (not while a conversation is going on); every other post the join guide
+async function talkHome(T, c, now, h) {
+  if (now - (T.homeAt || 0) < TG_HOME_EVERY) return null;
+  const d = (await getDoc(DOC_GSEEN).catch(() => null)) || { chats: {} };
+  const ids = [];
+  for (const g of HOME_GROUPS) {
+    const r = Object.entries(d.chats || {}).find(([, x]) => lc(x.username || "") === g);
+    const lastMsg = Math.max(r ? r[1].last || 0 : 0, ...Object.values(GSEEN.chats).filter((x) => lc(x.username || "") === g).map((x) => x.last || 0));
+    if (now - lastMsg < TG_HOME_BUSY) return null; // someone's talking — next tick
+    ids.push(r ? r[0] : "@" + g);
+  }
+  if (!ids.length) return null;
+  T.homeAt = now;
+  const join = !((T.homeN = (T.homeN || 0) + 1) % 2);
+  const s = await talkWrite(T, join ? JOIN_TOPIC : HOUR_TOPICS[(h + 8) % HOUR_TOPICS.length].say, T.homeLast);
+  if (!s) return { ok: 0, ids };
+  T.homeLast = s;
+  const text = withKartVideo(s, 4000);
+  let ok = 0;
+  for (const id of ids) { const r = await tg("sendMessage", { chat_id: id, text, link_preview_options: { is_disabled: text === s }, ...homeKb() }); if (r.ok) ok++; }
+  return { ok, ids };
 }
 // ---------------- v7: the home group's assistant ----------------
 const QWORDS = /^(what|what's|whats|how|when|where|why|who|which|is|are|can|could|does|do|did|will|should|wen|anyone|any\s+update|pls|please)\b/i;
