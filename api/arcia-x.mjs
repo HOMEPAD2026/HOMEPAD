@@ -35,7 +35,10 @@ import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
 
 const STATE = "arciaX/v1";
-const DAY_CAP = 12, COINS_PER_RUN = 2;
+const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
+// the hourly game post (hourlyPost): one an hour about ARCIRCLE WORLD; a link only every HOURLY_LINK_EVERY hours (X bills a
+// post with a link far more than one without)
+const HOURLY_ON = true, HOURLY_LINK_EVERY = 3;
 const ROUND1_CLOSE = 1790680567; // 29 Sep 2026 11:16:07 UTC
 const SITE = "arcircle.app";
 
@@ -291,6 +294,44 @@ async function deskWatchdog(origin) {
   return "desk tick started";
 }
 
+// ---------- the hourly game post (2026-11-01, the owner: ARCIA posts on X every hour) ----------
+// One post a UTC hour (id hour:<YYYY-MM-DDTHH>), its topic turning with the hour; ARCIA writes it from live game numbers
+// (Claude, the same mind as her replies). Never promises earnings; no hashtags; a link only every HOURLY_LINK_EVERY hours.
+const HOUR_TOPICS = [
+  { k: "kart", say: "ARCIRCLE KART — kart racing in the browser with PEPE, DOGE, PENGU, WIF and BONK on 4 tracks (Nexus Circuit, Lunar Loop, Frost Drift, Magma Run), drifts, items, time attack and a daily rule" },
+  { k: "play", say: "ARCIRCLE WORLD — a free 3D game world in the browser (phone or PC): a town, hunting grounds, 9 games in one place; play as a guest, sign in with a wallet to keep progress" },
+  { k: "board", say: "this week's KART leaderboard: the best lap times to beat" },
+  { k: "studio", say: "ARCIRCLE Studio — make your own game in the browser from templates or a 3D builder, publish it with its own page and race friends on it" },
+  { k: "survivors", say: "SURVIVORS ARENA — a 12-minute survival run with 3 heroes, weapons that evolve and bosses" },
+  { k: "raid", say: "RAID QUEENS — boss raids in the Sky Realm (Lv 100+), three queens, a secret dungeon, Mythic gear" },
+  { k: "jurassic", say: "Jurassic World — gather, craft, fish, camp, hunt dinosaurs and join the boss hour at 12:00 and 20:00 KST" },
+  { k: "poker", say: "ARCIA POKER LOUNGE — Hold'em vs ARCIA's AI players, Sit & Go every 2 hours, blackjack; chips only" },
+  { k: "rings", say: "INFINITY RINGS — 200 ring puzzles and a 60-second time attack" },
+];
+async function worldGet(origin, q) { try { const r = await fetch(`${origin}/api/social?world=${q}`); return r.ok ? await r.json() : null; } catch { return null; } }
+export function hourId(t) { return "hour:" + new Date(t * 1000).toISOString().slice(0, 13); }
+async function hourlyPost(origin, st) {
+  if (!HOURLY_ON) return [];
+  const t = now(), id = hourId(t);
+  if (st.sent[id]) return [];
+  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = h % HOURLY_LINK_EVERY === 0;
+  const [stats, ev, top] = await Promise.all([worldGet(origin, "stats"), worldGet(origin, "kart-event"), topic.k === "board" || topic.k === "kart" ? worldGet(origin, "kart-top&track=volcano") : null]);
+  const facts = [
+    `Topic of this hour: ${topic.say}.`,
+    stats ? `Right now: ${stats.online || 0} online; ${stats.players || 0} players have a saved hero.` : "",
+    ev && ev.phase === "on" ? `KART GRAND OPENING EVENT is on until ${new Date(ev.end).toUTCString()} (3 events: 10 races, the Magma Run time attack championship, an X clip contest; prizes are paid by the team after a review).` : "",
+    top && top.top && top.top.length ? `KART week board (${top.track}): ${top.top.slice(0, 3).map((x, i) => `#${i + 1} ${x.name || x.w} ${x.t}s`).join(", ")}.` : "",
+  ].filter(Boolean).join("\n");
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) about the topic below, as ARCIA — the idol of ARCIRCLE, cheerful, playful, specific. Under ${link ? 230 : 260} characters. Use the numbers given only when they're interesting (never post a zero). At most two emoji, no hashtags, don't @mention anyone, no links (${link ? "the link is added after your text" : "say \"play free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what the facts say. Different from your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 4).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nFACTS:\n${facts}\n\nAnswer with the post text only.`;
+  const out = await askClaude({ messages: [{ role: "user", content: brief }], L: "en", maxTokens: 220 });
+  if (!out) return [];
+  let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
+  if (link) text = `${text}\n\n🎮 ${SITE}/game`;
+  if (xLen(text) > 278) return [];
+  return [{ id, text }];
+}
+
 async function plan(origin, st) {
   const d = await arcircle(origin);
   const round = roundPosts(d, st.sent);
@@ -300,7 +341,8 @@ async function plan(origin, st) {
   const books = await booksPost(st).catch(() => []);
   const deskWeek = await deskWeekPost(origin, st).catch(() => []);
   const stakeWeek = await stakeWeekPost(origin, st).catch(() => []);
-  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books, ...deskWeek, ...stakeWeek], pending: coins.pending };
+  const hourly = await hourlyPost(origin, st).catch((e) => { console.error("arcia-x hourly", e && e.message); return []; });
+  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books, ...deskWeek, ...stakeWeek, ...hourly], pending: coins.pending };
 }
 
 async function loadState() {
@@ -544,7 +586,7 @@ export async function GET(req) {
   }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) return json(401, { error: "unauthorized" });
+  if (secret && req.headers.get("authorization") !== `Bearer ${secret}` && url.searchParams.get("key") !== secret) return json(401, { error: "unauthorized" });
   if (!storeEnabled()) return json(503, { error: "no store — can't keep a record of sent posts" });
   const st = await loadState();
   const firstRun = !st.coinSince;
