@@ -27,7 +27,7 @@
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
 // Nothing here moves funds: no command signs or sends a transaction.
 import { askClaude, streamClaude, checkAddresses, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, withKartVideo } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, OFFICIAL_POST, OFFICIAL_EVERY, withLinks } from "./_arcia-world.mjs";
 // 2026-11-01, the owner: ARCIA talks on her own on Telegram and answers people well, without long answers.
 // TG_TALK_EVERY: a post of her own to the announcement targets at most this often (ms); TG_CHATTY_EVERY: in the home group she
 // joins a conversation about the game at most once in this window (per person TG_CHATTY_USER); TG_MIRROR_EVERY: X posts mirrored
@@ -454,9 +454,10 @@ async function answer(m, text, { lang, group, image, assist = false } = {}) {
     out = out.trim().slice(0, 4000);
     // the final text never keeps an address she wasn't given (FACTS, the site, or this chat): it's swapped for a pointer to /ca
     { const src = [q || "", ...turns.map((t) => t.c)].join("\n"); const c = checkAddresses(out, src); out = c.ok ? c.text : c.text.replace(/0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g, (a) => (checkAddresses(a, src).ok ? checkAddresses(a, src).text : "(official addresses: /ca)")); }
-    // an answer about KART brings its play video (the owner, 2026-11-01) — with the link's preview on, so the video shows
-    const kv = withKartVideo(out, 4096), lp = { is_disabled: kv === out };
-    out = kv;
+    // an answer about KART brings its play video's link, official links / info the official post's link (the owner, 2026-11-01):
+    // links only — the preview stays off so no video or card is attached
+    out = withLinks(out, 4096, { about: q || "" });
+    const lp = { is_disabled: true };
     if (mid) await tg("editMessageText", { chat_id: m.chat.id, message_id: mid, text: out, link_preview_options: lp });
     else await tg("sendMessage", { chat_id: m.chat.id, text: out, link_preview_options: lp, ...replyTo });
     await bump("chat", uid);
@@ -726,7 +727,7 @@ async function postToTargets(c, p) {
   for (const t of c.targets) {
     const r = p.kind === "poll" ? await tg("sendPoll", { chat_id: t.id, question: p.question.slice(0, 300), options: p.options.slice(0, 10).map((text) => ({ text: text.slice(0, 100) })), is_anonymous: true })
       : p.photo ? await tg("sendPhoto", { chat_id: t.id, photo: p.photo, caption: p.text.slice(0, 1024) })
-      : await tg("sendMessage", { chat_id: t.id, text: p.text.slice(0, 4000) });
+      : await tg("sendMessage", { chat_id: t.id, text: p.text.slice(0, 4000), ...(p.noPreview ? { link_preview_options: { is_disabled: true } } : {}) });
     if (r.ok) ok++;
     await sleep(60);
   }
@@ -1021,8 +1022,8 @@ async function chattyReply(m, text, lang) {
   const out = await askClaude({ messages: [{ role: "user", content: text.slice(0, 800) }], L, extra, maxTokens: 120, timeoutMs: 20000 }).catch(() => null);
   const s = String(out || "").replace(/^["'“”]+|["'“”]+$/g, "").trim();
   if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, text).ok) return;
-  const kv = withKartVideo(s.slice(0, 300), 4000);
-  return tg("sendMessage", { chat_id: m.chat.id, text: kv, link_preview_options: { is_disabled: kv === s.slice(0, 300) }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
+  const kv = withLinks(s.slice(0, 300), 4000, { about: text });
+  return tg("sendMessage", { chat_id: m.chat.id, text: kv, link_preview_options: { is_disabled: true }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
 }
 /// her own post (from the tick): the game's topic of the hour, written for Telegram — short, friendly, with a reason to play
 /// and the link. To the announcement targets at most every TG_TALK_EVERY; to the home group every TG_HOME_EVERY (talkHome).
@@ -1046,7 +1047,7 @@ async function talkPost(T, c) {
   if (!s) return out;
   T.talkLast = s;
   const skip = new Set(home ? home.ids.map(String) : []);
-  return out + await postToTargets({ ...c, targets: c.targets.filter((t) => !skip.has(String(t.id))) }, { text: withKartVideo(s, 4000) });
+  return out + await postToTargets({ ...c, targets: c.targets.filter((t) => !skip.has(String(t.id))) }, { text: withLinks(s, 4000, { official: !((T.talkN = (T.talkN || 0) + 1) % OFFICIAL_EVERY) }), noPreview: true });
 }
 /// the home group: every TG_HOME_EVERY, quiet or not (not while a conversation is going on); every other post the join guide
 async function talkHome(T, c, now, h) {
@@ -1065,9 +1066,9 @@ async function talkHome(T, c, now, h) {
   const s = await talkWrite(T, join ? JOIN_TOPIC : HOUR_TOPICS[(h + 8) % HOUR_TOPICS.length].say, T.homeLast);
   if (!s) return { ok: 0, ids };
   T.homeLast = s;
-  const text = withKartVideo(s, 4000);
+  const text = withLinks(s, 4000, { official: join || !(T.homeN % OFFICIAL_EVERY) });
   let ok = 0;
-  for (const id of ids) { const r = await tg("sendMessage", { chat_id: id, text, link_preview_options: { is_disabled: text === s }, ...homeKb() }); if (r.ok) ok++; }
+  for (const id of ids) { const r = await tg("sendMessage", { chat_id: id, text, link_preview_options: { is_disabled: true }, ...homeKb() }); if (r.ok) ok++; }
   return { ok, ids };
 }
 // ---------------- v7: the home group's assistant ----------------
@@ -1096,7 +1097,7 @@ async function faqReply(m, kind, lang) {
   const rp = { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true } };
   const safe = T3(lang, "🛡 Only trust addresses from arcircle.app or this bot. The team never DMs you first.", "🛡 arcircle.app이나 이 봇이 알려준 주소만 믿으세요. 팀은 먼저 DM하지 않아요.", "🛡 只相信 arcircle.app 或本机器人给出的地址。团队绝不会先私信你。");
   if (kind === "price") return sendCard(m.chat.id, await cardPrice(lang), { replyTo: m.message_id });
-  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n\n${cardCA()}\n\n${safe}`, ...rp,
+  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n\n${cardCA()}\n\n📌 ${T3(lang, "Official info", "공식 안내", "官方信息")}: ${OFFICIAL_POST}\n\n${safe}`, ...rp,
     ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "arcircle.app", url: SITE }]]) });
   if (kind === "site") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [
     `🌐 <b>${T3(lang, "ARCIRCLE — official links", "ARCIRCLE 공식 링크", "ARCIRCLE 官方链接")}</b>`,
@@ -1105,7 +1106,7 @@ async function faqReply(m, kind, lang) {
     `CirclePad — ${T3(lang, "crowdfunded rounds", "크라우드펀딩 라운드", "众筹轮次")}: arcircle.app/circle`,
     `ARCIRCLE Orders — ${T3(lang, "limit, stop and grid orders", "지정가·스탑·그리드 주문", "限价、止损和网格订单")}: arcircle.app/arc#orders`,
     `$ARCIRCLE: arcircle.app/arcircle · ${T3(lang, "Reward", "리워드", "奖励")}: arcircle.app/reward`,
-    `X: x.com/ARCIRCLEonArc · ARCIA: t.me/ARCIAonArc_bot`, "", safe].join("\n"),
+    `X: x.com/ARCIRCLEonArc · ARCIA: t.me/ARCIAonArc_bot`, `📌 ${T3(lang, "Official info", "공식 안내", "官方信息")}: ${OFFICIAL_POST}`, "", safe].join("\n"),
     ...kb([[{ text: "arcircle.app", url: SITE }, { text: "X", url: "https://x.com/ARCIRCLEonArc" }], [{ text: "ARCIRCLE Orders", url: `${SITE}/arc#orders` }, { text: "CirclePad", url: `${SITE}/circle` }]]) });
   // buy
   return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [

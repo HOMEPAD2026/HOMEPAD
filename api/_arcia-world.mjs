@@ -55,10 +55,22 @@ export const HOUR_TOPICS = [
   { k: "rings", say: "INFINITY RINGS puzzles and the time attack" },
 ];
 
-// ARCIRCLE KART's play video on X (the owner, 2026-11-01): whenever ARCIA talks about KART — her hourly post (as a quote of
-// this post), a reply or a Telegram message (the link under it) — she brings this post along.
+// ARCIRCLE KART's play video on X (the owner, 2026-11-01): whenever ARCIA talks about KART — her hourly post, a reply or a
+// Telegram message — she adds this post's LINK under her words (a link, never the video itself: no quote, no preview).
 export const KART_VIDEO_ID = "2116461206496297015";
 export const KART_VIDEO = `https://x.com/ARCIRCLEonArc/status/${KART_VIDEO_ID}`;
 export const aboutKart = (t) => /\bkart\b|pepe|doge|pengu|\bwif\b|bonk|magma run|nexus circuit|frost drift|lunar loop|time attack|카트/i.test(String(t || ""));
+// ARCIRCLE's official links / info post on X (the owner, 2026-11-01): its link goes along whenever ARCIA gives the official links
+// or official info (contract, website, how to buy …), and now and then in her promotion posts (OFFICIAL_EVERY).
+export const OFFICIAL_POST_ID = "2116712761808081407";
+export const OFFICIAL_POST = `https://x.com/ARCIRCLEonArc/status/${OFFICIAL_POST_ID}`;
+export const OFFICIAL_EVERY = 4;
+export const aboutOfficial = (t) => /\bofficial\b|\bcontract\b|\bCA\b|token address|website|homepage|\blinks?\b|how (do i|to|can i) buy|where (to|can i) buy|공식|컨트랙트|씨에이|웹사이트|홈페이지|링크|구매 방법|官方|合约|官网|链接/i.test(String(t || ""));
+const xLen = (s) => s.replace(/https?:\/\/\S+/g, "x".repeat(23)).length;
+function addLink(s, id, url, mark, max) { if (s.includes(id)) return s; const out = `${s}\n\n${mark} ${url}`; return xLen(out) <= max ? out : s; }
 /// a reply / message about KART carries the video's link (only if it still fits: X counts a link as 23)
-export function withKartVideo(t, max = 280) { const s = String(t || ""); if (!aboutKart(s) || s.includes(KART_VIDEO_ID)) return s; const out = `${s}\n\n🎬 ${KART_VIDEO}`; return s.replace(/https?:\/\/\S+/g, "x".repeat(23)).length + 26 <= max ? out : s; }
+export function withKartVideo(t, max = 280) { const s = String(t || ""); return aboutKart(s) ? addLink(s, KART_VIDEO_ID, KART_VIDEO, "🎬", max) : s; }
+/// official links / info → the official post's link; force = a promotion post that takes it this time
+export function withOfficial(t, max = 280, force = false, about = "") { const s = String(t || ""); return force || aboutOfficial(s) || aboutOfficial(about) ? addLink(s, OFFICIAL_POST_ID, OFFICIAL_POST, "📌", max) : s; }
+/// both, KART first (what ARCIA sends anywhere)
+export const withLinks = (t, max = 280, o = {}) => withOfficial(withKartVideo(t, max), max, !!o.official, o.about || "");

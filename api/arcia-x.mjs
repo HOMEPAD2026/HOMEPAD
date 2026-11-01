@@ -33,7 +33,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO_ID, aboutKart, withKartVideo } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_EVERY, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
@@ -316,11 +316,14 @@ async function hourlyPost(origin, st) {
   if (!out) return [];
   let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
-  // KART: the post quotes ARCIRCLE's KART play video (the video shows under her words)
-  const quote = topic.k === "kart" || aboutKart(text) ? KART_VIDEO_ID : null;
   if (link) text = `${text}\n\n🎮 ${SITE}/game`;
   if (xLen(text) > 278) return [];
-  return [{ id, text, ...(quote ? { quote } : {}) }];
+  // the owner, 2026-11-01: the KART play video's LINK under a KART post (not a quote of the video); the official links post
+  // every OFFICIAL_EVERY hours on another topic
+  if (topic.k === "kart" && !aboutKart(text)) text = `${text}\n\n🎬 ${KART_VIDEO}`; // the KART hour always carries it
+  if (xLen(text) > 278) text = text.replace(`\n\n🎬 ${KART_VIDEO}`, "");
+  text = withLinks(text, 278, { official: topic.k !== "kart" && !aboutKart(text) && h % OFFICIAL_EVERY === 1 });
+  return [{ id, text }];
 }
 
 async function plan(origin, st) {
@@ -409,7 +412,7 @@ async function draftReply(m, L) {
   let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@ARCIRCLEonArc\b/gi, "ARCIRCLE").replace(/(^|\s)@\w+/g, " ").replace(/ {2,}/g, " ").replace(/\s+\n/g, "\n").trim();
   if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
-  out = withKartVideo(out); // a reply about KART brings its play video's link (the owner, 2026-11-01)
+  out = withLinks(out, 280, { about: m.text }); // KART → its play video's link; official links / info → the official post's link (the owner, 2026-11-01)
   return { text: out };
 }
 // The team's own posts that name her. A long post (over 280 characters) keeps its @mention in the part X
