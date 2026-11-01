@@ -27,6 +27,13 @@
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
 // Nothing here moves funds: no command signs or sends a transaction.
 import { askClaude, streamClaude, checkAddresses, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS } from "./_arcia-world.mjs";
+// 2026-11-01, the owner: ARCIA talks on her own on Telegram and answers people well, without long answers.
+// TG_TALK_EVERY: a post of her own to the announcement targets at most this often (ms); TG_CHATTY_EVERY: in the home group she
+// joins a conversation about the game at most once in this window (per person TG_CHATTY_USER); TG_MIRROR_EVERY: X posts mirrored
+// to Telegram at most this often (her X posts come hourly now).
+const TG_TALK_EVERY = 3 * 3600e3, TG_CHATTY_EVERY = 8 * 60e3, TG_CHATTY_USER = 30 * 60e3, TG_MIRROR_EVERY = 6 * 3600e3;
+const CHATTY = /(arcircle|arcia|\barcl\b|kart|race|game|play|survivor|raid|studio|jurassic|dino|poker|rings|event|reward|airdrop|level|boss|\bgm\b|\bgn\b|hello|\bhi\b|\bhey\b|new here|just joined|안녕|게임|이벤트|레이스|카트|보상|你好|游戏|活动|merhaba|oyun)/i;
 import { getCoin, allPools, isAddr, rpcCall, ethCalls, keccakHex, pad, PM_ADDRESS } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import * as scanner from "./_scan.mjs";
@@ -425,10 +432,10 @@ async function answer(m, text, { lang, group, image, assist = false } = {}) {
     const messages = [...turns.map((t) => ({ role: t.r, content: t.c })), { role: "user", content }];
     const L = await live(SITE).catch(() => null);
     const who = [m.from.first_name, m.from.username ? "@" + m.from.username : ""].filter(Boolean).join(" ");
-    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)${assist ? `. This is ARCIRCLE's own community group and you answer its questions as ARCIRCLE's AI without being @mentioned: lead with the answer, use the live numbers you have for how ARCIRCLE is doing right now, give only the official contract addresses and arcircle.app links, never financial advice, and if the message isn't really for you, answer in one short friendly line` : ""}` : " in a private chat"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /ca /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
+    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short: 1–3 short sentences, under about 280 characters, unless they asked for steps or details — then at most 6 short lines; others are reading)${assist ? `. This is ARCIRCLE's own community group and you answer its questions as ARCIRCLE's AI without being @mentioned: lead with the answer, use the live numbers you have for how ARCIRCLE is doing right now, give only the official contract addresses and arcircle.app links, never financial advice, and if the message isn't really for you, answer in one short friendly line` : ""}` : " in a private chat (keep it short: at most 4 sentences unless they asked for details or steps)"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /ca /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
     const replyTo = group ? { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } } : {};
     let out = "", mid = null, lastEdit = 0;
-    const it = await streamClaude({ messages, L, extra, maxTokens: 420, timeoutMs: 30000 }).catch(() => null);
+    const it = await streamClaude({ messages, L, extra, maxTokens: group ? 260 : 380, timeoutMs: 30000 }).catch(() => null);
     if (it) {
       for await (const piece of it) {
         out += piece;
@@ -437,7 +444,7 @@ async function answer(m, text, { lang, group, image, assist = false } = {}) {
         else if (mid && now - lastEdit > 1100) { lastEdit = now; tg("editMessageText", { chat_id: m.chat.id, message_id: mid, text: out + " ▍", link_preview_options: { is_disabled: true } }, 6000); }
       }
     }
-    if (!out.trim()) out = (await askClaude({ messages, L, extra, maxTokens: 420, timeoutMs: 25000 }).catch(() => null)) || "";
+    if (!out.trim()) out = (await askClaude({ messages, L, extra, maxTokens: group ? 260 : 380, timeoutMs: 25000 }).catch(() => null)) || "";
     stop();
     if (!out.trim()) return say(m, w("busy", lang));
     out = out.trim().slice(0, 4000);
@@ -983,6 +990,8 @@ async function onMessage(m, channel) {
         if (toHuman) groupSeen(m, "reply-to-someone-else");
         else if (tooMany(`assist:${m.chat.id}`, 30, 600e3) || tooMany(`assistu:${m.chat.id}:${uid}`, 3, 180e3)) groupSeen(m, "assist:rate-limit");
         else { groupSeen(m, "assist"); return answer(m, text, { lang: ql, group, assist: true }); }
+      } else if (on && !m.photo && !toHuman && text.length >= 6 && CHATTY.test(text) && !tooMany(`chatty:${m.chat.id}`, 1, TG_CHATTY_EVERY) && !tooMany(`chattyu:${m.chat.id}:${uid}`, 1, TG_CHATTY_USER)) {
+        groupSeen(m, "chatty"); return chattyReply(m, text, langOf(text, lang));
       } else groupSeen(m, !on ? "assist-off" : m.photo ? "photo" : "not-a-question");
       await autoScan(c, m, lang); return;
     }
@@ -995,6 +1004,32 @@ async function onMessage(m, channel) {
   }
   const image = m.photo ? await fileBase64(m.photo[m.photo.length - 1].file_id).catch(() => null) : null;
   return answer(m, q, { lang, group, image });
+}
+// ---------------- 2026-11-01: ARCIA joins in and talks on her own ----------------
+/// someone in the home group talks about the game (not to her): one short friendly line if she has something to add, else nothing
+async function chattyReply(m, text, lang) {
+  const L = await live(SITE).catch(() => null);
+  const who = m.from.first_name || "someone";
+  const extra = `Reply in the language they wrote in. You are in ARCIRCLE's own Telegram group and ${who} said something to the group, not to you. Join in like a friendly community member: ONE short line (under 160 characters), only if you can add something useful or fun about ARCIRCLE / ARCIRCLE WORLD (a tip, the event, how to start: arcircle.app/game, a cheer). If it isn't worth a reply, answer exactly SKIP. Plain text, no markdown, at most one emoji, never financial advice, only official links.`;
+  const out = await askClaude({ messages: [{ role: "user", content: text.slice(0, 800) }], L, extra, maxTokens: 120, timeoutMs: 20000 }).catch(() => null);
+  const s = String(out || "").replace(/^["'“”]+|["'“”]+$/g, "").trim();
+  if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, text).ok) return;
+  return tg("sendMessage", { chat_id: m.chat.id, text: s.slice(0, 300), link_preview_options: { is_disabled: true }, reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } });
+}
+/// her own post to the announcement targets (from the tick): the game's topic of the hour, written for Telegram — short,
+/// friendly, with a reason to play and the link; at most every TG_TALK_EVERY
+async function talkPost(T, c) {
+  const now = Date.now();
+  if (!c.targets.length || now - (T.talkAt || 0) < TG_TALK_EVERY) return 0;
+  const h = Math.floor(now / 3600e3), topic = HOUR_TOPICS[(h + 5) % HOUR_TOPICS.length]; // offset from X so the two don't say the same thing
+  const W = await worldLive(SITE).catch(() => null);
+  const brief = `Write ONE short message for ARCIRCLE's Telegram community as ARCIA (cheerful, playful, specific; like a friend in the chat, not an ad). Topic: ${topic.say}. Use only what WORLD and LIVE say; a number only when it's interesting (never a zero). 2–4 short lines, under 400 characters, plain text (no markdown), at most two emoji, end with arcircle.app/game. Never promise earnings beyond what WORLD says. Not like your last one: ${T.talkLast ? JSON.stringify(String(T.talkLast).slice(0, 160)) : "(none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the message only.`;
+  const out = await askClaude({ messages: [{ role: "user", content: brief }], maxTokens: 220, timeoutMs: 25000 }).catch(() => null);
+  const s = String(out || "").replace(/^["'“”]+|["'“”]+$/g, "").trim();
+  T.talkAt = now; // even when nothing was written: try again next window, not every tick
+  if (!s || /^SKIP\b/i.test(s) || !checkAddresses(s, "").ok) return 0;
+  T.talkLast = s;
+  return postToTargets(c, { text: s.slice(0, 1000) });
 }
 // ---------------- v7: the home group's assistant ----------------
 const QWORDS = /^(what|what's|whats|how|when|where|why|who|which|is|are|can|could|does|do|did|will|should|wen|anyone|any\s+update|pls|please)\b/i;
@@ -2015,8 +2050,10 @@ async function tick() {
   // ARCIA's X posts → the announcement targets
   const posts = await recentPosts().catch(() => []);
   const mirrored = new Set(T.mirrored || []);
-  if (!first && c.mirror) for (const p of posts.filter((x) => !mirrored.has(String(x.id))).slice(0, 2).reverse()) { out.mirror = (out.mirror || 0) + await postToTargets(c, { text: `${p.text}\n\n— ARCIA on X: https://x.com/ARCIAonArc/status/${p.id}` }); }
+  if (!first && c.mirror && now - (T.mirrorAt || 0) >= TG_MIRROR_EVERY) for (const p of posts.filter((x) => !mirrored.has(String(x.id))).slice(0, 1)) { T.mirrorAt = now; out.mirror = (out.mirror || 0) + await postToTargets(c, { text: `${p.text}\n\n— ARCIA on X: https://x.com/ARCIAonArc/status/${p.id}` }); }
   T.mirrored = [...posts.map((x) => String(x.id)), ...(T.mirrored || [])].slice(0, 60);
+  // her own word to the community (2026-11-01)
+  if (!first) { try { out.talk = await talkPost(T, c); } catch (e) { out.talk = String(e.message || e).slice(0, 120); } }
   // scheduled announcements
   const sc = (await getDoc(DOC.sched)) || { list: [] };
   const due = sc.list.filter((x) => x.at <= now);
