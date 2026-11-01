@@ -311,7 +311,8 @@ async function hourlyPost(origin, st) {
   const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || h % HOURLY_LINK_EVERY === 0;
   const W = await worldLive(origin).catch(() => null);
   const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
-  const out = await askClaude({ messages: [{ role: "user", content: brief }], L: "en", maxTokens: 220 });
+  const L = await liveNumbers(origin).catch(() => null); // L is ARCIA's live numbers (liveText), not a language
+  const out = await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 220 });
   if (!out) return [];
   let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
@@ -469,7 +470,7 @@ async function watchRun(st) {
         const row = { u, id: p.id, liked: true };
         const capped = (st.watchDays[day] || 0) >= WATCH_DAY_CAP || w.day === day;
         if (!capped) {
-          const d = await askClaude({ messages: [{ role: "user", content: WATCH_BRIEF(u, text) }], L: "en", maxTokens: 160 }).catch(() => null);
+          const d = await askClaude({ messages: [{ role: "user", content: WATCH_BRIEF(u, text) }], maxTokens: 160 }).catch(() => null);
           let r = String(d || "").replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
           if (r && !/^SKIP\b/i.test(r) && checkAddresses(r, text).ok && r.length <= 260) {
             row.replied = await xPost(r, p.id); row.text = r;
