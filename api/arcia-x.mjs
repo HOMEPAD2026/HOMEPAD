@@ -33,7 +33,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
@@ -298,22 +298,6 @@ async function deskWatchdog(origin) {
 // ---------- the hourly game post (2026-11-01, the owner: ARCIA posts on X every hour) ----------
 // One post a UTC hour (id hour:<YYYY-MM-DDTHH>), its topic turning with the hour; ARCIA writes it from live game numbers
 // (Claude, the same mind as her replies). Never promises earnings; no hashtags; a link only every HOURLY_LINK_EVERY hours.
-// the hour's topic (one each hour, round the list): new players' way in, what's new for players who know us, the rankings,
-// the events, and each game in turn — every post a reason to come and play (2026-11-01, the owner)
-const HOUR_TOPICS = [
-  { k: "start", say: "for people who've never played: how to get in — arcircle.app/game, PLAY FREE, in the browser on a phone or PC, play as a guest first, a wallet later to keep progress" },
-  { k: "kart", say: "ARCIRCLE KART — the newest game, and its Grand Opening event if it's on" },
-  { k: "new", say: "for players who already know us: the newest updates (from 'Newest updates')" },
-  { k: "ranks", say: "this week's leaderboards: name the #1s from LIVE and dare people to beat them" },
-  { k: "events", say: "what's on today and right now (the KART event if on, KART's Daily race, Jurassic boss hour 12:00/20:00 KST, Sit & Go on even UTC hours)" },
-  { k: "studio", say: "ARCIRCLE Studio — make your own game in the browser and share it" },
-  { k: "start", say: "for newcomers: one quick reason to try ARCIRCLE WORLD today and how to start in a minute" },
-  { k: "survivors", say: "SURVIVORS ARENA" },
-  { k: "raid", say: "RAID QUEENS and the Halloween Realm, for the strongest players" },
-  { k: "jurassic", say: "Jurassic World and its boss hour" },
-  { k: "poker", say: "ARCIA POKER LOUNGE and its Sit & Go tournaments" },
-  { k: "rings", say: "INFINITY RINGS puzzles and the time attack" },
-];
 export function hourId(t) { return "hour:" + new Date(t * 1000).toISOString().slice(0, 13); }
 async function hourlyPost(origin, st) {
   if (!HOURLY_ON) return [];
