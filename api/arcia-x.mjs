@@ -33,7 +33,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_EVERY, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_POST, OFFICIAL_EVERY, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
@@ -308,7 +308,7 @@ async function hourlyPost(origin, st) {
   if (!HOURLY_ON) return [];
   const t = now(), id = hourId(t);
   if (st.sent[id]) return [];
-  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || h % HOURLY_LINK_EVERY === 0;
+  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || topic.k === "kart" || h % HOURLY_LINK_EVERY === 0 || h % OFFICIAL_EVERY === 1;
   const W = await worldLive(origin).catch(() => null);
   const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
   const L = await liveNumbers(origin).catch(() => null); // L is ARCIA's live numbers (liveText), not a language
@@ -316,13 +316,12 @@ async function hourlyPost(origin, st) {
   if (!out) return [];
   let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
-  if (link) text = `${text}\n\n🎮 ${SITE}/game`;
+  // one link a post (the owner, 2026-11-01): the KART hour → the KART play video's link (never a quote of the video); the
+  // official info post every OFFICIAL_EVERY hours on another topic; else the game's link on its hours
+  const kart = topic.k === "kart" || aboutKart(text), official = !kart && h % OFFICIAL_EVERY === 1;
+  const url = kart ? `🎬 ${KART_VIDEO}` : official ? `📌 ${OFFICIAL_POST}` : link ? `🎮 ${SITE}/game` : "";
+  if (url && xLen(`${text}\n\n${url}`) <= 278) text = `${text}\n\n${url}`;
   if (xLen(text) > 278) return [];
-  // the owner, 2026-11-01: the KART play video's LINK under a KART post (not a quote of the video); the official links post
-  // every OFFICIAL_EVERY hours on another topic
-  if (topic.k === "kart" && !aboutKart(text)) text = `${text}\n\n🎬 ${KART_VIDEO}`; // the KART hour always carries it
-  if (xLen(text) > 278) text = text.replace(`\n\n🎬 ${KART_VIDEO}`, "");
-  text = withLinks(text, 278, { official: topic.k !== "kart" && !aboutKart(text) && h % OFFICIAL_EVERY === 1 });
   return [{ id, text }];
 }
 
