@@ -43,9 +43,11 @@
 // assist (a gentle nudge off the walls, on by default on phones), auto-gas (Gas becomes a switch), tilt steering, button
 // size. Low graphics / phones: fewer props, no side camera on low; reduce-motion: no slow motion, no drone sweep.
 // ctx: { THREE, K, st, T, lang, esc, toast, Snd, buzz, reduce, low, coarse, heroId, makeHero(id) → Promise<hero>, onLeave(),
-//        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name() }
+//        sess() → the signed session or null, post(body) → { ok, status, j }, share(card), refresh() (the purse), gain(n, why), name(),
+//        signIn() (KG: the World's wallet sign-in, for 'Sign in to claim') }
 import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf, overlayOf } from "./world-kart-kq.js";
 import { createKartMusic } from "./world-kart-music.js";
+import { KEV } from "./world-kart-event-data.js";
 import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
@@ -141,6 +143,19 @@ export const POP = 0.9;
 /// (BOOST_TOP at most) and the magnet pulls you to TOP × magnet.top (under BOOST_TOP) — so the server's minLap holds with items
 export const ITEM = { rows: [140, 330, 600], per: 5, gap: 3.1, respawn: 1.5, /* (KX2's balance check: 3 s left the back of the pack driving through boxes the pack had just taken) */ roll: 0.9, spin: 1.0, safe: 1.6, shield: 6, rocketV: 62, rocketLife: 7, bombFuse: 1.4, bombR: 6, rugLife: 25, rugR: 1.8, pump: { secs: 2.2, k: 1 }, magnet: { secs: 2.2, top: 1.2 } };
 const RACE_DAY = 5, ARCL_DAY = 2500; // (shown on the result card; the server's KART.DAY_RACES / DAY_ARCL decide)
+// KG (2026-11-01): a guest's races go to the server under a random guest id (api/_world-kart.mjs: the same checks, nothing paid)
+// and wait there until the guest signs in the same Seoul day — 'Sign in to claim' on the result card, or by itself on the next
+// KART visit with a session (arc.kart.gpend: the day a guest race was kept)
+const GIDK = "arc.kart.gid", GPEND = "arc.kart.gpend", GID_OK = /^[0-9a-f]{16,32}$/;
+const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+let memGid = "";
+/// the guest id kept on the device (made when `make` and there's none)
+export function gidOf(make = true) {
+  let g = memGid; try { g = localStorage.getItem(GIDK) || memGid; } catch { g = memGid; }
+  if (GID_OK.test(g) || !make) return GID_OK.test(g) ? g : "";
+  g = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""); memGid = g; try { localStorage.setItem(GIDK, g); } catch { /* this page only */ }
+  return g;
+}
 const ROAD = 16, WALL = ROAD / 2 + 3.2, STEP = 1 / 60, BEST = "arc.kart.best", MODE = "arc.kart.mode", TRACK = "arc.kart.track", GHOST = "arc.kart.ghost.", KEYS = "arc.kart.keys", SIDE = "arc.kart.side";
 export const TOP = 34;
 const ACC = 19, BRAKE = 34, DRAG = 0.35;
@@ -151,6 +166,10 @@ export const LW = {
   tr: { "Ultra turbo!": "Ultra turbo!", "Stalled!": "Motor stop!", "Hold Gas to drive · hold Drift in a corner, let go for a turbo.": "Sürmek için Gaz'a bas · virajda Drift'i basılı tut, bırakınca turbo", "Gas": "Gaz", "Left": "Sol", "Right": "Sağ", "Pick your racer": "Yarışçını seç", "Race!": "Yarış!", "5th": "5.", "Standings": "Sıralama", "Frog of the fast lane": "Hızlı şeridin kurbağası", "Much speed. Very drift.": "Çok hız. Çok drift.", "Cool on every corner": "Her virajda sakin", "The hat stays on": "Şapka hep yerinde", "Bonks the line": "Çizgiye bonk!", "Loading racers…": "Yarışçılar hazırlanıyor…", "Lap": "Tur", "Best": "En iyi", "GO!": "BAŞLA!", "Start boost!": "Kalkış turbosu!", "Mini turbo": "Mini turbo", "Super turbo!": "Süper turbo!", "Nitro!": "Nitro!", "Final lap!": "Son tur!", "Finish!": "Bitiş!", "Race again": "Tekrar yarış", "Leave": "Çık", "New best!": "Yeni rekor!", "Place": "Sıra", "Time": "Süre", "Steer ◀ ▶ · W go · S brake · Shift drift · Space nitro": "Dön ◀ ▶ · W gaz · S fren · Shift drift · Space nitro", "Drift": "Drift", "Nitro": "Nitro", "Brake": "Fren", "ARCIRCLE Nexus Circuit": "ARCIRCLE Nexus Pisti", "Hold drift in a corner, let go for a turbo.": "Virajda drifti basılı tut, bırakınca turbo çıkar.", "1st": "1.", "2nd": "2.", "3rd": "3.", "4th": "4.", "Off road": "Yol dışı" },
 };
 // K2's words (the modes, the day's rules, the result card)
+// KG: a guest's races claimed by signing in
+Object.assign(LW.ko, { "This race: +{n} ARCL": "이번 레이스: +{n} ARCL", "Races waiting today: {n}": "오늘 대기 중인 레이스: {n}", "Event races {n}/{m}": "이벤트 레이스 {n}/{m}", "Up to +{n} ARCL to claim": "최대 +{n} ARCL 받기 가능", "Race saved — sign in to claim it": "레이스 저장됨 — 로그인하고 받으세요", "Sign in to claim": "로그인하고 받기", "Your races wait until midnight KST — sign in today to claim them": "레이스 기록은 한국 시간 자정까지 보관돼요 — 오늘 로그인해서 받으세요", "Check your wallet…": "지갑을 확인하세요…", "Sign-in failed.": "로그인에 실패했어요.", "Not signed in — your races wait until midnight KST": "로그인하지 않았어요 — 레이스는 한국 시간 자정까지 기다려요", "Couldn't claim — try again": "받지 못했어요 — 다시 시도해 주세요", "These races were claimed by another wallet": "이 레이스는 다른 지갑이 이미 받았어요", "Claimed +{n} ARCL from your guest races": "게스트 레이스에서 +{n} ARCL을 받았어요", "Your guest races are saved to your wallet": "게스트 레이스가 지갑에 저장됐어요", "No races to claim today": "오늘 받을 레이스가 없어요" });
+Object.assign(LW.zh, { "This race: +{n} ARCL": "本场：+{n} ARCL", "Races waiting today: {n}": "今日待领取比赛：{n}", "Event races {n}/{m}": "活动比赛 {n}/{m}", "Up to +{n} ARCL to claim": "最多可领取 +{n} ARCL", "Race saved — sign in to claim it": "比赛已保存——登录即可领取", "Sign in to claim": "登录领取", "Your races wait until midnight KST — sign in today to claim them": "比赛记录保留到韩国时间午夜——今天登录即可领取", "Check your wallet…": "请查看你的钱包…", "Sign-in failed.": "登录失败。", "Not signed in — your races wait until midnight KST": "未登录——比赛记录保留到韩国时间午夜", "Couldn't claim — try again": "领取失败——请重试", "These races were claimed by another wallet": "这些比赛已被另一个钱包领取", "Claimed +{n} ARCL from your guest races": "已从游客比赛领取 +{n} ARCL", "Your guest races are saved to your wallet": "游客比赛已保存到你的钱包", "No races to claim today": "今天没有可领取的比赛" });
+Object.assign(LW.tr, { "This race: +{n} ARCL": "Bu yarış: +{n} ARCL", "Races waiting today: {n}": "Bugün bekleyen yarışlar: {n}", "Event races {n}/{m}": "Etkinlik yarışları {n}/{m}", "Up to +{n} ARCL to claim": "En fazla +{n} ARCL alınabilir", "Race saved — sign in to claim it": "Yarış kaydedildi — almak için giriş yap", "Sign in to claim": "Almak için giriş yap", "Your races wait until midnight KST — sign in today to claim them": "Yarışların KST gece yarısına kadar bekler — almak için bugün giriş yap", "Check your wallet…": "Cüzdanını kontrol et…", "Sign-in failed.": "Giriş başarısız.", "Not signed in — your races wait until midnight KST": "Giriş yapılmadı — yarışların KST gece yarısına kadar bekler", "Couldn't claim — try again": "Alınamadı — tekrar dene", "These races were claimed by another wallet": "Bu yarışları başka bir cüzdan aldı", "Claimed +{n} ARCL from your guest races": "Misafir yarışlarından +{n} ARCL alındı", "Your guest races are saved to your wallet": "Misafir yarışların cüzdanına kaydedildi", "No races to claim today": "Bugün alınacak yarış yok" });
 Object.assign(LW.ko, { "Mirror": "미러", "Nitro rush": "니트로 러시", "No-turbo drift": "노터보 드리프트", "Night race": "나이트 레이스", "Turbo": "터보", "The track mirrored": "좌우가 뒤집힌 트랙", "Start with 2 nitro · it fills faster": "니트로 2개로 출발 · 더 빨리 차요", "Drifts give no turbo · rivals slower": "드리프트 터보 없음 · 라이벌도 느려요", "A dark track · lit karts": "어두운 트랙 · 불 켠 카트", "Everyone faster": "모두 더 빨라요", "Race": "레이스", "Time Attack": "타임 어택", "Daily": "데일리", "Mode": "모드", "You vs the four · ARCL by place": "4명과 대결 · 순위별 ARCL", "You alone · race your ghosts": "혼자 달려요 · 고스트와 경쟁", "Kart Rookie": "카트 루키", "Kart Winner": "카트 위너", "Kart Champion": "카트 챔피언", "Time Trialist": "타임 트라이얼리스트", "Daily Racer": "데일리 레이서", "Your best": "내 최고 기록", "Week #1": "이번 주 1위", "Couldn't reach the server — this race won't count": "서버에 연결하지 못했어요 — 이번 레이스는 기록되지 않아요", "Daily challenge": "데일리 챌린지", "Saving…": "저장 중…", "Sign in to earn ARCL": "로그인하면 ARCL을 받을 수 있어요", "Guests race for fun: no ARCL, no board": "게스트는 재미로 달려요: ARCL과 순위표 없음", "Share": "공유", "Best lap": "베스트 랩", "I raced the ARCIRCLE Nexus Circuit in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART에서 {r}(으)로 ARCIRCLE 넥서스 서킷을 {t}에 달렸어요! 🏎️ 이길 수 있나요?", "Couldn't save the race — no ARCL this time": "레이스를 저장하지 못했어요 — 이번에는 ARCL이 없어요", "No ARCL — today's 5 paid races are done": "ARCL 없음 — 오늘의 보상 레이스 5회를 다 했어요", "No ARCL — today's ARCL limit is reached": "ARCL 없음 — 오늘의 ARCL 한도에 도달했어요", "Time Attack pays no ARCL": "타임 어택은 ARCL을 주지 않아요", "Today's daily is already paid": "오늘의 데일리 보상은 이미 받았어요", "No ARCL this time": "이번에는 ARCL이 없어요", "+{n} ARCL": "+{n} ARCL", "Races paid today {n}/{m}": "오늘 보상 레이스 {n}/{m}", "ARCL today {n}/{m}": "오늘 ARCL {n}/{m}", "Title unlocked: {x}": "칭호 획득: {x}", "Today's daily board": "오늘의 데일리 순위", "This week's board": "이번 주 순위", "Be the first on the board!": "첫 번째로 이름을 올려 보세요!", "Your place: {n}": "내 순위: {n}", "Change racer or mode": "레이서·모드 바꾸기" });
 Object.assign(LW.zh, { "Mirror": "镜像", "Nitro rush": "氮气冲刺", "No-turbo drift": "无涡轮漂移", "Night race": "夜间赛", "Turbo": "极速", "The track mirrored": "赛道左右翻转", "Start with 2 nitro · it fills faster": "开局 2 格氮气 · 充得更快", "Drifts give no turbo · rivals slower": "漂移不给涡轮 · 对手也更慢", "A dark track · lit karts": "漆黑赛道 · 亮灯赛车", "Everyone faster": "所有人更快", "Race": "竞速", "Time Attack": "计时赛", "Daily": "每日", "Mode": "模式", "You vs the four · ARCL by place": "你对战四人 · 按名次得 ARCL", "You alone · race your ghosts": "独自驾驶 · 与幽灵比赛", "Kart Rookie": "卡丁车新人", "Kart Winner": "卡丁车赢家", "Kart Champion": "卡丁车冠军", "Time Trialist": "计时达人", "Daily Racer": "每日车手", "Your best": "你的最佳", "Week #1": "本周第一", "Couldn't reach the server — this race won't count": "无法连接服务器——本场比赛不计入", "Daily challenge": "每日挑战", "Saving…": "保存中…", "Sign in to earn ARCL": "登录即可赚取 ARCL", "Guests race for fun: no ARCL, no board": "游客只为娱乐：没有 ARCL，不上榜", "Share": "分享", "Best lap": "最快单圈", "I raced the ARCIRCLE Nexus Circuit in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "我在 ARCIRCLE KART 用 {r} 跑完 ARCIRCLE 枢纽赛道，用时 {t}！🏎️ 你能超过我吗？", "Couldn't save the race — no ARCL this time": "无法保存比赛——这次没有 ARCL", "No ARCL — today's 5 paid races are done": "没有 ARCL——今天 5 场有奖比赛已用完", "No ARCL — today's ARCL limit is reached": "没有 ARCL——已达今日 ARCL 上限", "Time Attack pays no ARCL": "计时赛不发 ARCL", "Today's daily is already paid": "今日每日奖励已领取", "No ARCL this time": "这次没有 ARCL", "+{n} ARCL": "+{n} ARCL", "Races paid today {n}/{m}": "今日有奖比赛 {n}/{m}", "ARCL today {n}/{m}": "今日 ARCL {n}/{m}", "Title unlocked: {x}": "获得称号：{x}", "Today's daily board": "今日每日榜", "This week's board": "本周排行榜", "Be the first on the board!": "成为第一个上榜的人！", "Your place: {n}": "你的名次：{n}", "Change racer or mode": "更换赛车手或模式" });
 Object.assign(LW.tr, { "Mirror": "Ayna", "Nitro rush": "Nitro hücumu", "No-turbo drift": "Turbosuz drift", "Night race": "Gece yarışı", "Turbo": "Turbo", "The track mirrored": "Pist ayna gibi ters", "Start with 2 nitro · it fills faster": "2 nitroyla başla · daha hızlı dolar", "Drifts give no turbo · rivals slower": "Drift turbo vermez · rakipler daha yavaş", "A dark track · lit karts": "Karanlık pist · ışıklı kartlar", "Everyone faster": "Herkes daha hızlı", "Race": "Yarış", "Time Attack": "Zamana karşı", "Daily": "Günlük", "Mode": "Mod", "You vs the four · ARCL by place": "Sen ve dört rakip · sıraya göre ARCL", "You alone · race your ghosts": "Tek başına · hayaletlerinle yarış", "Kart Rookie": "Kart Çaylağı", "Kart Winner": "Kart Galibi", "Kart Champion": "Kart Şampiyonu", "Time Trialist": "Zaman Ustası", "Daily Racer": "Günlük Yarışçı", "Your best": "En iyin", "Week #1": "Haftanın 1.'si", "Couldn't reach the server — this race won't count": "Sunucuya ulaşılamadı — bu yarış sayılmayacak", "Daily challenge": "Günlük meydan okuma", "Saving…": "Kaydediliyor…", "Sign in to earn ARCL": "ARCL kazanmak için giriş yap", "Guests race for fun: no ARCL, no board": "Misafirler eğlencesine yarışır: ARCL ve sıralama yok", "Share": "Paylaş", "Best lap": "En iyi tur", "I raced the ARCIRCLE Nexus Circuit in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?": "ARCIRCLE KART'ta {r} ile ARCIRCLE Nexus Pisti'ni {t} sürede bitirdim! 🏎️ Geçebilir misin?", "Couldn't save the race — no ARCL this time": "Yarış kaydedilemedi — bu sefer ARCL yok", "No ARCL — today's 5 paid races are done": "ARCL yok — bugünün 5 ödüllü yarışı bitti", "No ARCL — today's ARCL limit is reached": "ARCL yok — bugünün ARCL sınırına ulaşıldı", "Time Attack pays no ARCL": "Zamana karşı ARCL vermez", "Today's daily is already paid": "Bugünün günlük ödülü zaten alındı", "No ARCL this time": "Bu sefer ARCL yok", "+{n} ARCL": "+{n} ARCL", "Races paid today {n}/{m}": "Bugün ödüllü yarış {n}/{m}", "ARCL today {n}/{m}": "Bugün ARCL {n}/{m}", "Title unlocked: {x}": "Unvan açıldı: {x}", "Today's daily board": "Bugünün günlük sıralaması", "This week's board": "Bu haftanın sıralaması", "Be the first on the board!": "Sıralamaya ilk sen gir!", "Your place: {n}": "Sıran: {n}", "Change racer or mode": "Yarışçı veya mod değiştir" });
@@ -194,7 +213,7 @@ export function createKart(ctx) {
   const { THREE, esc } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => { let r = L[s] != null ? L[s] : ctx.T(s, v); if (v) r = String(r).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)); return r; };
   let goWall = 0, realT = false, autoMe = false, topView = false, on = false, scene = null, cam = null, ui = null, track = null, karts = [], me = null, phase = "idle", clock = 0, cd = 0, acc = 0, finished = [], keys = new Set(), touch = { l: 0, r: 0, gas: 0, brake: 0, drift: 0, boost: 0 }, fxPool = [], shake = 0, eng = null, fx = null, skid = null, lastPlace = 0, camBack = 0, camRoll = 0, engTry = -1e9;
   // K2: the mode, the day's rule, the ghosts, the server's race, the mirrored copy of the track (the scene's track pieces sit in `world`, flipped for a mirror race)
-  let hemi = null, sun = null, skyCyl = null, mode = "race", rule = "", daily = dailyOf(Date.now()), dailyTop = null, ghosts = [], rec = [], recT = 0, lapAt = [], raceP = null, mir = 1, tracks = null, world = null, nightLight = null, scale = 1, R = { top: 1, acc: 1 }, status = null, lastRes = null;
+  let hemi = null, sun = null, skyCyl = null, mode = "race", rule = "", daily = dailyOf(Date.now()), dailyTop = null, ghosts = [], rec = [], recT = 0, lapAt = [], raceP = null, raceG = false, mir = 1, tracks = null, world = null, nightLight = null, scale = 1, R = { top: 1, acc: 1 }, status = null, lastRes = null;
   // K6: the dressing, effects, the settings, the race's show (freeze / slow motion / side camera / podium), the HUD's minimap and gaps
   let dress = null, rings = null, checker = null, opts = optsOf(null, ctx.coarse), gasLatch = false, tiltV = 0, slowT = 0, cutAt = -99, freezeUntil = 0, seqTok = 0, pod = null, podCam = null, cineT = 0, cineSide = 1, cineDone = false, finalLap = false, droneOn = false, lightsOff = 0, scrAt = 0, flagAt = 0, mapFor = null, mapPath = null, mapBox = null, passes = 0, tricks = 0, forcePhoto = false, holdK6 = false, keysEl = null, lastGaps = null, k6log = [];
   // K3: the item boxes, the flying / lying items (pools, made once a visit), the HUD's slot, a log for the browser test
@@ -1040,16 +1059,18 @@ export function createKart(ctx) {
   }
   function paintGhosts() { if (!ui) return; let el = ui.querySelector(".wk-gh"); if (!el) { el = document.createElement("div"); el.className = "wk-gh"; ui.appendChild(el); }
     el.innerHTML = ghosts.map((g) => `<span>👻 ${esc(g.label)}${g.name ? ` · ${esc(g.name)}` : ""} <b>${fmt(g.t)}</b></span>`).join(""); el.hidden = !ghosts.length; }
-  /// signed in: the race opened on the server as the countdown starts (its clock checks the end); a failure is said, the race goes on
+  /// the race opened on the server as the countdown starts (its clock checks the end) — signed in, or as a guest under the guest
+  /// id (KG: kept, not paid, until claimed); a failure is said, the race goes on
   function raceStart() {
-    raceP = null; if (simOn) return; const s = ctx.post && ctx.sess ? ctx.sess() : null; if (!s) return;
-    raceP = ctx.post({ action: "world-kart-start", ...s, track: tid, mode, racer: me && me.racer ? me.racer.id : "" })
+    raceP = null; raceG = false; if (simOn || !ctx.post) return; const s = ctx.sess ? ctx.sess() : null, gid = s ? "" : gidOf(); if (!s && !gid) return;
+    raceG = !s;
+    raceP = ctx.post({ action: "world-kart-start", ...(s || { guest: gid }), track: tid, mode, racer: me && me.racer ? me.racer.id : "" })
       .then((r) => { if (r && r.ok && r.j && r.j.raceId) return r.j; throw new Error((r && r.j && r.j.error) || "start"); })
       .catch((e) => { console.warn("kart start:", e && e.message); say(T("Couldn't reach the server — this race won't count")); return null; });
   }
   async function raceEnd(o) {
     const rr = raceP ? await Promise.race([raceP, new Promise((ok) => setTimeout(() => ok(null), 8000))]) : null; if (!rr) return null;
-    const r = await ctx.post({ action: "world-kart-end", ...ctx.sess(), raceId: rr.raceId, place: o.pl, time: +o.time.toFixed(3), laps: o.laps.map((x) => +x.toFixed(3)), ghost: mode === "daily" ? "" : o.g, racer: me.racer ? me.racer.id : "" });
+    const r = await ctx.post({ action: "world-kart-end", ...(raceG ? { guest: gidOf() } : ctx.sess()), raceId: rr.raceId, place: o.pl, time: +o.time.toFixed(3), laps: o.laps.map((x) => +x.toFixed(3)), ghost: mode === "daily" ? "" : o.g, racer: me.racer ? me.racer.id : "" });
     if (!r || !r.ok) throw new Error((r && r.j && r.j.error) || "HTTP " + (r && r.status));
     return r.j;
   }
@@ -1058,20 +1079,20 @@ export function createKart(ctx) {
     const laps = marks.slice(1).map((x, i) => x - marks[i]), g = ghostEnc(rec), ranked = mode !== "daily", racer = me.racer || RACERS[0];
     const bk = tid === "nexus" ? BEST : BEST + "." + tid; /* (K5: a best per track; the Nexus keeps its old key) */ let best = 0; try { best = +localStorage.getItem(bk) || 0; } catch { best = 0; } const nb = ranked && (!best || time < best); if (nb) try { localStorage.setItem(bk, String(time)); } catch { /* private */ }
     if (ranked) { const lg = localGhost(); if (!lg || time < lg.t) try { localStorage.setItem(GHOST + tid, JSON.stringify({ t: +time.toFixed(3), g, racer: racer.id })); } catch { /* private: no ghost kept */ } }
-    const endP = signed() && raceP ? raceEnd({ pl, time, laps, g }) : Promise.resolve(null);
+    const asGuest = raceG && !!raceP, endP = raceP ? raceEnd({ pl, time, laps, g }) : Promise.resolve(null);
     lastRes = { pl, time, laps, mode, rule };
     const card = () => { if (!on || !ui) return; const c = document.createElement("div"); c.className = "wk-res";
       const head = mode === "daily" ? `${T("Daily challenge")} · ${T(RULE_NAME[rule] || "")} · ${T(TD.name)}` : `${T(TD.name)} · ${T(MODE_NAME[mode])}`, fast = Math.min(...laps);
       const slow = Math.max(...laps), lo = fast * 0.94, barH = (x) => Math.round(38 + 62 * Math.min(1, (x - lo) / Math.max(0.01, slow - lo))); /* (KX1: the laps as a small bar chart, the fastest marked BEST LAP) */
       c.innerHTML = `<div class="wk-res-in"><small>${esc(head)}</small>${mode === "ta" ? `<h2>${esc(fmt(time))}</h2>` : `<h2 class="wk-place p${pl}" aria-label="${esc(ord(pl))}"><b>${pl}</b>${L["1st"] ? `<span>${esc(T("Place"))}</span>` : `<sup>${esc(ord(pl).replace(/^\d+/, ""))}</sup>`}</h2>`}<p><span>${esc(T("Time"))}</span><b>${fmt(time)}</b></p><p><span>${esc(T("Best"))}</span><b>${nb ? `<em>${esc(T("New best!"))}</em> ` : ""}<i class="wk-best">${fmt(nb ? time : best || time)}</i></b></p>
         <ol class="wk-laps wk-bars">${laps.map((x, i) => `<li class="${x === fast ? "fast" : ""}">${x === fast ? `<em>${esc(T("BEST LAP"))}</em>` : ""}<i style="--h:${barH(x)}"></i><b>${fmt(x)}</b><span>${esc(T("Lap"))} ${i + 1}</span></li>`).join("")}</ol>
-        <section class="wk-arcl">${signed() ? `<b>${esc(T("Saving…"))}</b>` : `<b>${esc(T("Sign in to earn ARCL"))}</b><small>${esc(T("Guests race for fun: no ARCL, no board"))}</small>`}</section><section class="wk-ach" hidden></section><section class="wk-ev" hidden></section>
+        <section class="wk-arcl">${signed() || asGuest ? `<b>${esc(T("Saving…"))}</b>` : `<b>${esc(T("Sign in to earn ARCL"))}</b><small>${esc(T("Guests race for fun: no ARCL, no board"))}</small>`}</section><section class="wk-ach" hidden></section><section class="wk-ev" hidden></section>
         ${mode === "ta" ? "" : standings()}<section class="wk-week"></section>
         <div class="wk-res-btns"><button type="button" class="wk-go" data-again>${esc(T("Race again"))}</button>${ctx.share ? `<button type="button" class="wk-out" data-share>📸 ${esc(T("Share"))}</button>` : ""}<button type="button" class="wk-out" data-leave>${esc(T("Leave"))}</button></div><button type="button" class="wk-chg" data-modes>${esc(T("Change racer or mode"))}</button></div>`;
       ui.appendChild(c); c.querySelector("[data-modes]").onclick = () => { c.remove(); if (eng) { eng.stop(); eng = null; } toPick(); }; if (eng) { eng.stop(); eng = null; } c.querySelector("[data-again]").onclick = () => { c.remove(); reset(); }; if (ctx.Snd && ctx.Snd.win) ctx.Snd.win();
       const sh = c.querySelector("[data-share]"); if (sh) sh.onclick = () => { try { ctx.share({ kind: "kart", tag: "ARCIRCLE KART · " + T(mode === "daily" ? "Daily" : MODE_NAME[mode]).toUpperCase(), title: mode === "ta" ? fmt(time) : ord(pl), sub: `${racer.name} · ${T(TD.name)}`, art: "/images/games/kart-art.webp", cover: true, accent: pl === 1 ? "#ffc23c" : "#38d8ff",
         rows: [[T("Time"), fmt(time), "⏱️"], [T("Best lap"), fmt(fast), "⚡"], [T("Best"), fmt(nb ? time : best || time), "🏁"], ...(mode === "ta" ? [] : [[T("Place"), ord(pl), "🏆"]])], text: T("I raced {k} in {t} with {r} in ARCIRCLE KART! 🏎️ Can you beat it?", { k: T(TD.name), t: fmt(time), r: racer.name }) }); } catch (e) { console.warn("kart share:", e && e.message); } };
-      endP.then((j) => paintReward(c, j), (e) => { console.warn("kart end:", e && e.message); say(T("Couldn't save the race — no ARCL this time")); paintReward(c, null, true); });
+      endP.then((j) => paintReward(c, j, false, asGuest), (e) => { console.warn("kart end:", e && e.message); say(T("Couldn't save the race — no ARCL this time")); paintReward(c, null, true, asGuest); });
     };
     finishSeq(card);
   }
@@ -1107,20 +1128,69 @@ export function createKart(ctx) {
     for (const k of karts) if (k.onPod && k.hero && k.hero.obj) { k.onPod = false; k.m.g.add(k.hero.obj); k.hero.obj.position.copy(k.seatPos); k.hero.obj.rotation.set(0, 0, 0); if (!k.hero.has) try { k.hero.play("sit"); } catch { /* standing is fine */ } }
   }
   /// the result card's ARCL, titles and the week's board (after the server's answer, or straight away for a guest)
-  function paintReward(c, j, failed) {
+  function paintReward(c, j, failed, guest) {
     if (!c.isConnected) return; const box = c.querySelector(".wk-arcl");
-    if (signed()) {
-      if (!j) box.innerHTML = `<b>${esc(failed ? T("Couldn't save the race — no ARCL this time") : T("Couldn't reach the server — this race won't count"))}</b>`;
-      else { const why = { races: "No ARCL — today's 5 paid races are done", cap: "No ARCL — today's ARCL limit is reached", ta: "Time Attack pays no ARCL", "daily-done": "Today's daily is already paid" }[j.why];
-        box.innerHTML = `<b class="${j.credited > 0 ? "paid" : ""}">${esc(j.credited > 0 ? T("+{n} ARCL", { n: j.credited.toLocaleString("en-US") }) : T(why || "No ARCL this time"))}</b><small>${esc(T("Races paid today {n}/{m}", { n: RACE_DAY - (j.racesLeft ?? RACE_DAY), m: RACE_DAY }))} · ${esc(T("ARCL today {n}/{m}", { n: (j.today || 0).toLocaleString("en-US"), m: (j.cap || ARCL_DAY).toLocaleString("en-US") }))}</small>`;
-        if (j.credited > 0) { snd("coin"); try { if (ctx.refresh) ctx.refresh(); } catch { /* the purse updates later */ } }
-        if (j.newBest && j.best) { const b = c.querySelector(".wk-best"); if (b) b.textContent = fmt(j.best); }
-        if (j.ev) { const e = c.querySelector(".wk-ev"), ta = j.ev.ta; e.hidden = false; e.innerHTML = `<button type="button" data-evopen>🏁 <b>${esc(T("GRAND OPENING"))}</b> <span>${esc(ta ? (ta.rank ? T("Magma Run championship: #{n} · {t}", { n: ta.rank, t: fmt(ta.t) }) : T("Magma Run championship: {t}", { t: fmt(ta.t) })) : T("Race challenge: {n}/{m} races", { n: j.ev.races, m: j.ev.need }))}</span></button>`; const eb = e.querySelector("[data-evopen]"); if (eb && ctx.event) eb.onclick = () => ctx.event(); }
-        const ach = (j.newAch || []).filter((a) => ACH_NAME[a]); if (ach.length) { const a = c.querySelector(".wk-ach"); a.hidden = false; a.innerHTML = ach.map((id) => `<p>🏆 ${esc(T("Title unlocked: {x}", { x: T(ACH_NAME[id]) }))}</p>`).join(""); buzz([30, 30, 60]); if (ctx.onAch) try { ctx.onAch(ach); } catch { /* the town reads them again */ } } } }
-    const daily0 = mode === "daily", place0 = j ? (daily0 ? j.dailyRank : j.rank) : null;
+    if ((signed() || guest) && !j) box.innerHTML = `<b>${esc(failed ? T("Couldn't save the race — no ARCL this time") : T("Couldn't reach the server — this race won't count"))}</b>`;
+    else if (j && j.guest) paintGuest(c, j);
+    else if (j && signed()) paintPaid(c, j);
+    paintBoard(c, j ? (mode === "daily" ? j.dailyRank : j.rank) : null);
+  }
+  /// the result card's board: the week's (or the daily's) top 5 and your place
+  function paintBoard(c, place0) {
+    const daily0 = mode === "daily";
     fetch(daily0 ? "/api/social?world=kart-daily" : "/api/social?world=kart-top&track=" + tid, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((b) => { if (!b || !c.isConnected) return; const top = (b.top || []).slice(0, 5), el = c.querySelector(".wk-week");
       el.innerHTML = `<h4>${esc(T(daily0 ? "Today's daily board" : "This week's board"))}</h4>${top.length ? `<ol class="wk-st">${top.map((x, n) => `<li class="${place0 === n + 1 ? "me" : ""}"><b>${n + 1}</b>${x.racer ? `<img src="/images/kart/card-${esc(x.racer)}.webp" alt="" width="28" height="36">` : ""}<span>${esc(x.name || x.w)}</span><i>${fmt(x.t)}</i></li>`).join("")}</ol>` : `<p class="wk-empty">${esc(T("Be the first on the board!"))}</p>`}${place0 ? `<p class="wk-mine">${esc(T("Your place: {n}", { n: "#" + place0 }))}</p>` : ""}`; }).catch(() => { /* no board this time */ });
   }
+  /// KG: a guest's race kept on the server — what it would pay, the event's count, and the gold 'Sign in to claim'
+  function paintGuest(c, j) {
+    const box = c.querySelector(".wk-arcl"); if (!box) return;
+    if (j.waiting > 0) try { localStorage.setItem(GPEND, seoulDay(Date.now())); } catch { /* claimed from this card only */ }
+    const why = { races: "No ARCL — today's 5 paid races are done", ta: "Time Attack pays no ARCL", "daily-done": "Today's daily is already paid" }[j.why];
+    const evOn = ctx.eventOn && ctx.eventOn() && j.ev > 0, bits = [j.earned > 0 ? T("This race: +{n} ARCL", { n: j.earned.toLocaleString("en-US") }) : T(why || "No ARCL this time"), T("Races waiting today: {n}", { n: j.waiting || 1 })];
+    if (evOn) bits.push(T("Event races {n}/{m}", { n: Math.min(j.ev, KEV.RACES.need), m: KEV.RACES.need }));
+    box.classList.add("guest");
+    box.innerHTML = `<b class="${j.pending > 0 ? "paid" : ""}">${esc(j.pending > 0 ? T("Up to +{n} ARCL to claim", { n: j.pending.toLocaleString("en-US") }) : T("Race saved — sign in to claim it"))}</b><small>${bits.map(esc).join(" · ")}</small>
+      <button type="button" class="wk-claim" data-claim>🔑 ${esc(T("Sign in to claim"))}</button><small class="wk-claim-n">${esc(T("Your races wait until midnight KST — sign in today to claim them"))}</small>`;
+    const b = box.querySelector("[data-claim]");
+    b.onclick = async () => {
+      b.disabled = true; b.textContent = T("Check your wallet…");
+      try {
+        if (!signed()) { if (!ctx.signIn) throw new Error(T("Sign-in failed.")); await ctx.signIn(); }
+        if (!signed()) throw new Error(T("Sign-in failed."));
+        const r = await claimNow(false); if (r && c.isConnected) { box.classList.remove("guest"); paintPaid(c, { ...r, why: r.credited > 0 ? "" : ((r.races || [])[0] || {}).why }); paintBoard(c, null); } // (the claimed race may be on the board now)
+      } catch (e) {
+        const m = String((e && e.message) || ""), cancel = (e && e.code === 4001) || /reject|denied|cancel/i.test(m);
+        say(cancel ? T("Not signed in — your races wait until midnight KST") : m || T("Couldn't claim — try again"));
+        if (c.isConnected) { b.disabled = false; b.textContent = "🔑 " + T("Sign in to claim"); }
+      }
+    };
+  }
+  /// KG: the guest id's races of today claimed by the signed-in wallet (the server pays them inside the day's caps)
+  async function claimNow(quiet) {
+    const s = ctx.sess && ctx.sess(), gid = gidOf(false); if (!s || !gid || !ctx.post) return null;
+    const r = await ctx.post({ action: "world-kart-claim", ...s, gid });
+    if (!r || !r.ok) {
+      if (r && r.status === 409) { try { localStorage.removeItem(GPEND); localStorage.removeItem(GIDK); } catch { /* */ } memGid = ""; throw new Error(T("These races were claimed by another wallet")); } // (a fresh guest id from now on)
+      throw new Error((r && r.j && r.j.error) || T("Couldn't claim — try again"));
+    }
+    try { localStorage.removeItem(GPEND); } catch { /* asked again next visit: nothing left to pay */ }
+    const j = r.j || {}, n = (j.races || []).length;
+    if (j.credited > 0) { snd("coin"); try { if (ctx.refresh) ctx.refresh(); } catch { /* the purse updates later */ } }
+    if (j.credited > 0) say(T("Claimed +{n} ARCL from your guest races", { n: j.credited.toLocaleString("en-US") }));
+    else if (n) say(T("Your guest races are saved to your wallet"));
+    else if (!quiet) say(T("No races to claim today"));
+    const ach = (j.newAch || []).filter((a) => ACH_NAME[a]); if (ach.length && ctx.onAch) try { ctx.onAch(ach); } catch { /* the town reads them again */ }
+    return j;
+  }
+  /// the signed race's (or a claim's) ARCL, today's counts, the event line and titles
+  function paintPaid(c, j) {
+    const box = c.querySelector(".wk-arcl"); if (!box) return;
+    { const why = { races: "No ARCL — today's 5 paid races are done", cap: "No ARCL — today's ARCL limit is reached", ta: "Time Attack pays no ARCL", "daily-done": "Today's daily is already paid" }[j.why];
+        box.innerHTML = `<b class="${j.credited > 0 ? "paid" : ""}">${esc(j.credited > 0 ? T("+{n} ARCL", { n: j.credited.toLocaleString("en-US") }) : T(why || "No ARCL this time"))}</b><small>${esc(T("Races paid today {n}/{m}", { n: RACE_DAY - (j.racesLeft ?? RACE_DAY), m: RACE_DAY }))} · ${esc(T("ARCL today {n}/{m}", { n: (j.today || 0).toLocaleString("en-US"), m: (j.cap || ARCL_DAY).toLocaleString("en-US") }))}</small>`;
+        if (j.credited > 0) { snd("coin"); try { if (ctx.refresh) ctx.refresh(); } catch { /* the purse updates later */ } }
+        if (j.newBest && j.best) { const b = c.querySelector(".wk-best"); if (b) b.textContent = fmt(j.best); }
+        if (j.ev) { const e = c.querySelector(".wk-ev"), ta = j.ev.ta; e.hidden = false; e.innerHTML = `<button type="button" data-evopen>🏁 <b>${esc(T("GRAND OPENING"))}</b> <span>${esc(ta && j.ev.races == null ? (ta.rank ? T("Magma Run championship: #{n} · {t}", { n: ta.rank, t: fmt(ta.t) }) : T("Magma Run championship: {t}", { t: fmt(ta.t) })) : T("Race challenge: {n}/{m} races", { n: j.ev.races, m: j.ev.need }))}</span></button>`; const eb = e.querySelector("[data-evopen]"); if (eb && ctx.event) eb.onclick = () => ctx.event(); }
+        const ach = (j.newAch || []).filter((a) => ACH_NAME[a]); if (ach.length) { const a = c.querySelector(".wk-ach"); a.hidden = false; a.innerHTML = ach.map((id) => `<p>🏆 ${esc(T("Title unlocked: {x}", { x: T(ACH_NAME[id]) }))}</p>`).join(""); buzz([30, 30, 60]); if (ctx.onAch) try { ctx.onAch(ach); } catch { /* the town reads them again */ } } } }
 
   function standings() {
     const rows = [...karts].sort((a, b) => (a.finish || 1e9) - (b.finish || 1e9) || b.prog - a.prog).map((k, n) => `<li class="${k.me ? "me" : ""}"><b>${n + 1}</b>${k.racer ? `<img src="/images/kart/card-${k.racer.id}.webp" alt="" width="28" height="36">` : ""}<span>${esc(k.racer ? k.racer.name : "—")}</span><i>${k.finish ? fmt(k.finish) : ""}</i></li>`).join("");
@@ -1181,6 +1251,8 @@ export function createKart(ctx) {
     on = true; listenTilt(); document.body.classList.add("wp-kart"); onResize(); ctx.st.view(scene, cam); ctx.st.solo(tick);
     let saved = ""; try { saved = localStorage.getItem(PICK) || ""; } catch { saved = ""; }
     showPick(RACERS.some((r) => r.id === saved) ? saved : RACERS[0].id);
+    // KG: signed in now, with guest races kept today on this device → claimed by themselves (a toast says what came in)
+    { let pend = ""; try { pend = localStorage.getItem(GPEND) || ""; } catch { pend = ""; } if (pend && signed()) { if (pend === seoulDay(Date.now())) claimNow(true).catch((e) => console.warn("kart claim:", e && e.message)); else try { localStorage.removeItem(GPEND); } catch { /* */ } } }
     return true;
   }
   // ---------- the racer pick: five cards over the grid; the chosen one waves in 3D; the mode pills over the Race button ----------

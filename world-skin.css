@@ -6410,6 +6410,7 @@ html.wp-pcphone .wk-mode{min-width:0;flex:1;height:40px;padding:0 8px}html.wp-pc
 .wk-laps li span{opacity:.7}.wk-laps li b{font-size:14px;font-variant-numeric:tabular-nums}.wk-laps li.fast{outline:1px solid rgba(255,194,60,.7)}.wk-laps li.fast b{color:#ffc23c}
 .wk-arcl{margin:12px 0 0;padding:10px;border-radius:12px;background:rgba(255,194,60,.08);border:1px solid rgba(255,194,60,.3);display:flex;flex-direction:column;gap:3px}
 .wk-arcl b{font-size:15px}.wk-arcl b.paid{font-size:22px;color:#ffc23c}.wk-arcl small{font-size:12px;opacity:.8}
+.wk-arcl .wk-claim{margin-top:8px;min-height:46px;padding:0 18px;border:0;border-radius:12px;background:linear-gradient(180deg,#ffe07a,#ffb21f);color:#3a2300;font:800 15px Sora,sans-serif;cursor:pointer;box-shadow:0 4px 18px rgba(255,178,31,.35),inset 0 1px 0 rgba(255,255,255,.6);animation:wkClaim 1.8s ease-in-out infinite}.wk-arcl .wk-claim:disabled{opacity:.7;animation:none;cursor:wait}.wk-arcl .wk-claim-n{font-size:11px;opacity:.7}@keyframes wkClaim{50%{box-shadow:0 4px 26px rgba(255,200,60,.65),inset 0 1px 0 rgba(255,255,255,.6)}}@media (prefers-reduced-motion:reduce){.wk-arcl .wk-claim{animation:none}}
 .wk-ach{margin-top:8px}.wk-ach p{justify-content:center!important;margin:4px 0!important;color:#2ee0b0;font-weight:800;font-size:14px!important}
 .wk-week .wk-empty,.wk-week .wk-mine{justify-content:center!important;font-size:13px!important;opacity:.85}
 .wk-res-btns button{cursor:pointer}
@@ -6590,6 +6591,7 @@ html.wp-pcphone .kev{padding:0;align-items:flex-end}html.wp-pcphone .kev-in{zoom
 .kev-form{display:flex;gap:8px;margin-top:10px}.kev-form input{flex:1;min-width:0;height:44px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.35);color:#fff;font:600 14px Sora,sans-serif}.kev-form .kev-go{margin:0;flex:none}
 .kev-rules{padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.25)}.kev-rules h4{margin:0 0 6px;font:800 12px/1 Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a}.kev-rules ul{margin:0;padding-left:18px;font:600 12.5px/1.5 Sora,sans-serif;color:#c9d3e6}
 .kev-sign{margin:0;text-align:center}.kev-sign button{min-height:44px;padding:0 18px;border-radius:12px;border:1px solid #ffb43a;background:rgba(255,180,60,.12);color:#ffe2b0;font:800 14px Sora,sans-serif;cursor:pointer}
+.kev-guest{display:block;margin:6px auto 0;max-width:420px;font-size:12px;line-height:1.4;opacity:.82}
 .kev-load{opacity:.6;text-align:center}
 .wk-evchip{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:12px;height:40px;padding:0 12px;border-radius:999px;border:1.5px solid #ffb43a;background:linear-gradient(90deg,rgba(255,106,42,.92),rgba(255,180,58,.92));color:#2a0c00;font:900 13px/1 Sora,sans-serif;letter-spacing:.04em;box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 16px rgba(255,140,40,.5);animation:wpAdpGlow 1.8s ease-in-out infinite;pointer-events:auto;cursor:pointer}
 html.wp-pcphone .wk-evchip{height:32px;padding:0 9px;font-size:11px;top:calc(8px + env(safe-area-inset-top,0px));left:8px}

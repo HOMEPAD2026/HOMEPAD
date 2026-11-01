@@ -100,4 +100,21 @@ r = await race(p2, "race"); check(!r.body.ev, "a race after the event: not count
 r = await taRun(p4, 20); check(!(r.body.ev && r.body.ev.ta) && (await read("world=kart-event-ta")).top.length === 3, "a time attack after the event: not on the board");
 r = await call(p2, "world-kev-clip", { url: "https://x.com/drifter/status/4444444444" }); check(r.status === 400, "no clip edits after the end");
 check(![...db.keys()].some((k) => /^worldKevPaid/.test(k)) && ![...db.values()].some((v) => JSON.stringify(v || "").includes("kartevent")), "the event pays nothing itself (no payout records, no \"kartevent\" ledger lines)");
+// ---- KG: a guest's races inside the window count once a wallet claims them (with the race's own start and end) ----
+{ T = Date.parse("2026-11-02T02:00:00Z"); // (inside the window, 11:00 KST)
+  const gid = "a1".repeat(8), p5 = ethers.Wallet.createRandom(), q0 = ((await read("world=kart-event")).counts || {}).qualified;
+  const gst = (mode = "race", track = "nexus") => W.handle({ action: "world-kart-start", guest: gid, track, mode, racer: "pepe" });
+  const grace = async (mode = "race", track = "nexus", laps = L3()) => { const s = await gst(mode, track); T += (laps.time + 4) * 1000; return W.handle({ action: "world-kart-end", guest: gid, raceId: s.body.raceId, place: 3, ...laps, racer: "pepe", ghost: "a,b,c;d,e,f" }); };
+  let g; for (let i = 0; i < 3; i++) g = await grace();
+  check(g.status === 200 && g.body.guest && g.body.ev === 3 && !db.has(`worldKevRace/${lc(p5)}`) && !g.body.credited, "KG: three guest races in the window: 3 would count, nothing counted or paid yet");
+  g = await grace("ta", "volcano", L3(23, 23, 23)); check(g.body.why === "ta" && (await read("world=kart-event-ta")).top.every((x) => x.t !== 69), "KG: a guest's Magma Run time attack isn't on the board before it's claimed");
+  r = await call(p5, "world-kart-claim", { gid });
+  check(r.status === 200 && (db.get(`worldKevRace/${lc(p5)}`) || {}).n === 3 && r.body.races.length === 4, "KG: claimed — the three races count toward EVENT 01 (" + JSON.stringify(r.body.ev) + ")");
+  const b2 = await read("world=kart-event-ta&wallet=" + lc(p5)); check(b2.me && b2.me.rank === 1 && b2.me.t === 69 && db.get(`worldKevGhost/${lc(p5)}`).t === 69, "KG: the claimed time attack goes on the event board (#1, 69 s) with its ghost");
+  for (let i = 0; i < 7; i++) r = await race(p5, "race");
+  check(r.body.ev.races === 10 && (await read("world=kart-event")).counts.qualified === q0 + 1, "KG: 3 claimed + 7 signed races: qualified");
+  // a guest race that started before the window and is claimed inside it doesn't count (the event reads the race's own start)
+  const gid2 = "b2".repeat(8), p6 = ethers.Wallet.createRandom(); T = KEV.START - 30e3; const s = await W.handle({ action: "world-kart-start", guest: gid2, track: "nexus", mode: "race", racer: "pepe" });
+  T = KEV.START + 70e3; await W.handle({ action: "world-kart-end", guest: gid2, raceId: s.body.raceId, place: 1, ...L3(), racer: "pepe" });
+  r = await call(p6, "world-kart-claim", { gid: gid2 }); check(r.status === 200 && r.body.credited === 500 && !db.has(`worldKevRace/${lc(p6)}`), "KG: a claimed guest race started before the window: paid by KART, not counted by the event"); }
 console.log(`\n${ok} pass ${bad} fail`); process.exit(bad ? 1 : 0);
