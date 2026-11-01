@@ -82,6 +82,8 @@ export function makeKartEvent(deps) {
 
   return {
     onEnd,
+    /// KG: would this guest end count toward EVENT 01 once claimed (the window and the mode)
+    counts: (e) => inWindow(e.startedAt, e.t) && KEV.RACES.modes.includes(e.mode),
     async read(v, url) {
       const q = (k) => String((url && url.searchParams && url.searchParams.get(k)) || "");
       const w = q("wallet").toLowerCase(), me = isAddr(w) ? w : "", t = now();

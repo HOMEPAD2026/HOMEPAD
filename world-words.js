@@ -354,3 +354,7 @@ Object.assign(WORDS.tr, {"Finish this race first, then pick the mode": "Önce bu
 Object.assign(WORDS.ko, { "Record 15–60 s of real KART gameplay.": "실제 KART 플레이를 15–60초 녹화하세요." });
 Object.assign(WORDS.zh, { "Record 15–60 s of real KART gameplay.": "录制 15–60 秒真实 KART 游戏画面。" });
 Object.assign(WORDS.tr, { "Record 15–60 s of real KART gameplay.": "15–60 sn gerçek KART oynanışı kaydet." });
+// KG (2026-11-01): the event window's line for guests
+Object.assign(WORDS.ko, { "Guests can race too: sign in on the result card the same day (KST) and those races count.": "게스트도 달릴 수 있어요: 같은 날(한국 시간) 결과 카드에서 로그인하면 그 레이스가 인정돼요." });
+Object.assign(WORDS.zh, { "Guests can race too: sign in on the result card the same day (KST) and those races count.": "游客也可以参赛：同一天（韩国时间）在结果卡上登录，这些比赛就会计入。" });
+Object.assign(WORDS.tr, { "Guests can race too: sign in on the result card the same day (KST) and those races count.": "Misafirler de yarışabilir: aynı gün (KST) sonuç kartında giriş yap, o yarışlar sayılır." });

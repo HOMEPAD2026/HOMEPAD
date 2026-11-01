@@ -82,7 +82,7 @@ export function createKartEvent(ctx) {
   }
   function eventsHtml() {
     const d = data || {}, w = me(), ph = d.phase || phase(), on = ph === "on", R = d.races || { n: 0, need: KEV.RACES.need }, ta = d.ta, c = d.clip;
-    const signHint = w ? "" : `<p class="kev-sign"><button type="button" data-signin>🔑 ${esc(T("Sign in to take part"))}</button></p>`;
+    const signHint = w ? "" : `<p class="kev-sign"><button type="button" data-signin>🔑 ${esc(T("Sign in to take part"))}</button><small class="kev-guest">${esc(T("Guests can race too: sign in on the result card the same day (KST) and those races count."))}</small></p>`; // (KG: a guest's races are kept and claimed on sign-in)
     const n = Math.min(R.n || 0, KEV.RACES.need), pct = Math.round((n / KEV.RACES.need) * 100);
     const races = `<section class="kev-card" data-card="races"><div class="kev-ch">${icon("flag", "🏁")}<div><small>EVENT 01</small><h3>${esc(T("KART RACE CHALLENGE"))}</h3><p>${esc(T("Finish 10 races (Race or Daily) during the event → 50,000 ARCL."))}</p></div></div>
       ${w ? `<div class="kev-prog"><i style="width:${pct}%"></i><b>${n}/${KEV.RACES.need}</b></div><p class="kev-st">${n >= KEV.RACES.need ? "🎉 " + esc(T("Done! Reward paid after the event, after review")) : esc(T("Reward paid after the event, after review"))}</p>` : ""}

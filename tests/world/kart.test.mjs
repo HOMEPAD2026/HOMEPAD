@@ -173,6 +173,51 @@ r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400
   const dd = dailyOf(T), other = KART.TRACK_IDS.find((x) => x !== dd.track); s = await call(p4, "world-kart-start", { track: other, mode: "daily", racer: "pengu" });
   check(s.body.track === dd.track && s.body.daily.track === dd.track && db.get(`worldKartRace/${p4.address.toLowerCase()}`).track === dd.track && (await read("world=kart-daily")).body.track === dd.track, `the daily runs on the day's track (${dd.track}) even when another (${other}) is sent`); }
 { const p3 = ethers.Wallet.createRandom(), lap = Math.ceil(1079 / C.BOOST_TOP); r = await race(p3, "race", 1, L3(lap, lap, lap)); check(r.status === 200 && r.body.credited === 500, `K3: an honest race at the items' top pace (${lap} s laps — a pump or a magnet can't beat BOOST_TOP) is accepted and paid`); }
+// ---- KG: guests race under a random id (the same checks, nothing paid); a wallet claims the day's races ----
+{ const { GID_RE } = await import("../../api/_world-kart.mjs");
+  const gstart = (g, mode = "race") => W.handle({ action: "world-kart-start", guest: g, track: "nexus", mode, racer: "bonk" });
+  const grace = async (g, mode, place, laps = L3()) => { const s = await gstart(g, mode); T += (laps.time + 4) * 1000; return W.handle({ action: "world-kart-end", guest: g, raceId: s.body.raceId, place, ...laps, racer: "bonk", ghost: G1 }); };
+  const arclKeys = () => [...db.keys()].filter((k) => /^worldArclBal\//.test(k)).map((k) => k + ":" + db.get(k).bal).join();
+  T += 3 * 864e5; T = Math.floor(T / 864e5) * 864e5 + 2 * 3600e3; // (a fresh Seoul day, 11:00 KST)
+  const gid = "ab".repeat(8), q1 = ethers.Wallet.createRandom(), q2 = ethers.Wallet.createRandom(), q3 = ethers.Wallet.createRandom();
+  check(GID_RE.test(gid) && !GID_RE.test("abc") && !GID_RE.test("0x" + "a".repeat(20)), "KG: a guest id is 16–32 hex");
+  check((await W.handle({ action: "world-kart-start", guest: "nothex!", track: "nexus" })).status === 400, "KG: a start with no wallet and no proper guest id: refused");
+  let s = await gstart(gid); check(s.status === 200 && s.body.guest && s.body.raceId && db.has(`worldKartRace/g_${gid}`), "KG: a guest's race starts on the server (worldKartRace/g_<gid>)");
+  T += 95e3; check((await W.handle({ action: "world-kart-end", guest: gid, raceId: s.body.raceId, place: 1, laps: [30, 10, 30], time: 70 })).status === 400, "KG: a guest's lap faster than minLap: refused like a signed one");
+  check((await W.handle({ action: "world-kart-end", guest: gid, raceId: s.body.raceId, place: 1, ...L3(40, 40, 40) })).status === 400, "KG: a guest race longer than it has been going: refused");
+  const before = arclKeys(); r = await W.handle({ action: "world-kart-end", guest: gid, raceId: s.body.raceId, place: 1, ...L3(), ghost: G1 });
+  check(r.status === 200 && r.body.guest && r.body.earned === 500 && r.body.pending === 500 && r.body.waiting === 1 && r.body.claimable && arclKeys() === before && !r.body.credited, "KG: a guest's race is accepted and kept, not paid (would be +500)");
+  check(db.get(`worldKartGuest/${gid}`).ends.length === 1 && db.get(`worldKartGuestG/${s.body.raceId}`).g === G1, "KG: the end waits under worldKartGuest/<gid>, its ghost beside it");
+  check((await W.handle({ action: "world-kart-end", guest: gid, raceId: s.body.raceId, place: 1, ...L3() })).status === 409, "KG: a guest's end counts once");
+  for (const pl of [2, 3, 1, 1]) r = await grace(gid, "race", pl);
+  check(r.body.pending === 2100 && r.body.earned === 500, "KG: five guest races wait: 500 + 350 + 250 + 500 + 500 (" + r.body.pending + ")");
+  r = await grace(gid, "race", 1); check(r.body.earned === 0 && r.body.why === "races" && r.body.pending === 2100, "KG: a sixth guest race would pay nothing (five paid races a day)");
+  r = await grace(gid, "daily", 2); check(r.body.earned === 300 && r.body.pending === 2400, "KG: the guest's daily would pay 300 (2,400 waiting)");
+  check(arclKeys() === before, "KG: seven guest races, not one ARCL credited");
+  // a signed race first today (5th: 100, slot 1) — the claim fills the rest of the day's caps
+  r = await race(q1, "race", 5, L3(32, 32, 32)); check(r.body.credited === 100, "KG: the wallet races signed first (slower): 100 ARCL");
+  r = await call(q1, "world-kart-claim", { gid });
+  check(r.status === 200 && r.body.credited === 500 + 350 + 250 + 500 + 300 && bal(q1) === 2000 && r.body.today === 2000 && r.body.racesLeft === 0, "KG: the claim pays within the caps: 4 slots left (500 + 350 + 250 + 500) + the daily 300 = 1,900 (" + r.body.credited + ")");
+  check(r.body.races.length === 7 && r.body.races.filter((x) => x.why === "races").length === 2 && r.body.meta.races === 8 && r.body.newAch.includes("win") && r.body.newAch.includes("daily"), "KG: every claimed race counts for the racer (8 races, titles), two past the five paid ones");
+  check(db.get(`worldKartGhost/nexus_${q1.address.toLowerCase()}`) && db.get(`worldKartGhost/nexus_${q1.address.toLowerCase()}`).g === G1, "KG: the claimed race's ghost becomes the wallet's");
+  check(db.get(`worldKartGuestBy/${gid}`).w === q1.address.toLowerCase() && (await read("world=kart-top&track=nexus")).body.top.some((x) => x.w === q1.address.slice(0, 6).toLowerCase() + "…" + q1.address.slice(-4).toLowerCase()), "KG: the guest id is bound to the wallet; the claimed race is on the week's board");
+  r = await call(q1, "world-kart-claim", { gid }); check(r.status === 200 && r.body.credited === 0 && r.body.races.length === 0 && bal(q1) === 2000, "KG: a second claim pays nothing");
+  r = await call(q2, "world-kart-claim", { gid }); check(r.status === 409, "KG: another wallet can't claim a bound guest id");
+  r = await grace(gid, "race", 1); r = await call(q2, "world-kart-claim", { gid }); check(r.status === 409 && bal(q2) === 0, "KG: …not even its new races");
+  r = await call(q1, "world-kart-claim", { gid: "zz" }); check(r.status === 400, "KG: a bad guest id: refused");
+  // an old day's races aren't paid
+  const gid2 = "cd".repeat(8); await grace(gid2, "race", 1); T += 864e5; r = await call(q2, "world-kart-claim", { gid: gid2 });
+  check(r.status === 200 && r.body.credited === 0 && r.body.expired === 1 && bal(q2) === 0 && db.get(`worldKartGuest/${gid2}`).ends.length === 0, "KG: yesterday's guest race isn't paid (expired, dropped)");
+  // a guest race run at the same time as the wallet's signed race isn't counted (one kart at a time)
+  const gid3 = "ef".repeat(8); s = await gstart(gid3); const s2 = await call(q2, "world-kart-start", { track: "nexus", mode: "race", racer: "pepe" }); T += 94e3;
+  await call(q2, "world-kart-end", { raceId: s2.body.raceId, place: 2, ...L3() }); await W.handle({ action: "world-kart-end", guest: gid3, raceId: s.body.raceId, place: 1, ...L3() });
+  r = await call(q2, "world-kart-claim", { gid: gid3 }); check(r.status === 200 && r.body.credited === 0 && r.body.races[0].why === "overlap" && bal(q2) === 350, "KG: a guest race overlapping the wallet's own race isn't counted");
+  // spam: a guest id starts at most GUEST.START_HR races an hour
+  { const g4 = "99".repeat(8); T = Math.floor(T / 3600e3) * 3600e3 + 60e3; let last = null; for (let i = 0; i < KART.GUEST.START_HR; i++) last = await gstart(g4);
+    check(last.status === 200 && (await gstart(g4)).status === 429 && (T += 3600e3, (await gstart(g4)).status === 200), `KG: ${KART.GUEST.START_HR} guest starts an hour, then 429 until the next hour`); }
+  // a wallet takes at most GUEST.GIDS guest ids
+  { let st = []; for (let i = 0; i < KART.GUEST.GIDS + 1; i++) st.push((await call(q3, "world-kart-claim", { gid: (i + 10).toString(16).padStart(2, "0").repeat(8) })).status);
+    check(st.slice(0, -1).every((x) => x === 200) && st[st.length - 1] === 409 && !db.has(`worldKartGuestBy/${(KART.GUEST.GIDS + 10).toString(16).padStart(2, "0").repeat(8)}`), `KG: a wallet claims from up to ${KART.GUEST.GIDS} guest ids (${st.join(",")})`); } }
 // ---- KQ (the premium remaster): every track's props stand off the road, clear of the line, the screen, the podium; fewer on a phone, a quarter and no landmarks on low; the flames and the speed lines grow with speed ----
 { const Q = await import("../../world-kart-kq.js"), N = 900, WALL = 8 + 3.2, ROAD = 16, fs2 = await import("node:fs");
   for (const id of C.TRACK_IDS) { const T0 = C.TRACKS[id], P = curveOf(id).getSpacedPoints(N), S = []; for (let i = 0; i < N; i++) { const p = P[i], q = P[(i + 1) % N], t = q.clone().sub(p).normalize(); S.push({ p, t, r: new THREE.Vector3(-t.z, 0, t.x) }); }
