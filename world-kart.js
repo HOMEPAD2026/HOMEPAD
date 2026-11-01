@@ -48,6 +48,7 @@
 import { KQ, KQ_SHARED, PAINT, flameOf, flameSet, flameMesh, nozzles, shadowMesh, makePuffs, makeStreaks, skyEnv, propSpots, streakOf, overlayOf } from "./world-kart-kq.js";
 import { createKartMusic } from "./world-kart-music.js";
 import { KEV } from "./world-kart-event-data.js";
+import { BASE_STATS, statsOf, carOf } from "./world-kart-shop-data.js";
 import { makeDress, makePodium, makeRings, makeChecker, outSide, rampModel, RAMPS, RAMP, PODIUM_I, OUTSIDE, STANDS, TUNNEL, SCREEN_I } from "./world-kart-dress.js";
 export const LAPS = 3;
 export const TRACK_PTS = [[0, 0], [120, -10], [190, 40], [200, 130], [140, 190], [60, 170], [20, 230], [-70, 240], [-150, 180], [-160, 90], [-100, 40], [-60, -40]];
@@ -193,6 +194,10 @@ Object.assign(LW.tr, { "Grab a box!": "Kutu topla!", "BEST LAP": "EN İYİ TUR",
 Object.assign(LW.ko, { "Hold behind": "뒤에 들고 있기", "Rocket blocked!": "로켓을 막았다!", "Perfect drift!": "퍼펙트 드리프트!" });
 Object.assign(LW.zh, { "Hold behind": "举在身后", "Rocket blocked!": "挡住了火箭！", "Perfect drift!": "完美漂移！" });
 Object.assign(LW.tr, { "Hold behind": "Arkada tut", "Rocket blocked!": "Roket engellendi!", "Perfect drift!": "Kusursuz drift!" });
+// KS (2026-11-01): the KART SHOP's words on the pick screen
+Object.assign(LW.ko, {"Car": "자동차", "LEGENDARY": "레전더리", "EPIC": "에픽", "Your racer's own kart": "레이서 기본 카트", "Get a car in the shop": "상점에서 차 구하기", "KART SHOP": "KART 상점", "SHOP": "상점", "The shop couldn't open. Try again.": "상점을 열지 못했어요. 다시 시도하세요."});
+Object.assign(LW.zh, {"Car": "赛车", "LEGENDARY": "传说", "EPIC": "史诗", "Your racer's own kart": "车手自带的卡丁车", "Get a car in the shop": "去商店买车", "KART SHOP": "卡丁车商店", "SHOP": "商店", "The shop couldn't open. Try again.": "商店无法打开，请重试。"});
+Object.assign(LW.tr, {"Car": "Araba", "LEGENDARY": "EFSANEVİ", "EPIC": "EPİK", "Your racer's own kart": "Yarışçının kendi kartı", "Get a car in the shop": "Mağazadan araba al", "KART SHOP": "KART MAĞAZASI", "SHOP": "MAĞAZA", "The shop couldn't open. Try again.": "Mağaza açılamadı. Tekrar dene."});
 // the GRAND OPENING EVENT (2026-10-31): the pick screen's chip, the result card's event line
 Object.assign(LW.ko, { "EVENT": "이벤트", "GRAND OPENING": "그랜드 오픈", "Magma Run championship: #{n} · {t}": "마그마 런 챔피언십: {n}위 · {t}", "Magma Run championship: {t}": "마그마 런 챔피언십: {t}", "Race challenge: {n}/{m} races": "레이스 챌린지: {n}/{m}회" });
 Object.assign(LW.zh, { "EVENT": "活动", "GRAND OPENING": "盛大开幕", "Magma Run championship: #{n} · {t}": "熔岩赛道锦标赛：第 {n} 名 · {t}", "Magma Run championship: {t}": "熔岩赛道锦标赛：{t}", "Race challenge: {n}/{m} races": "竞速挑战：{n}/{m} 场" });
@@ -207,7 +212,8 @@ export const RACERS = [
   { id: "bonk", name: "BONK", color: 0xff7a2e, line: "Bonks the line" },
 ];
 const CLIP = { idle: "Idle", drive: "Chair_Sit_Idle_M", win: "Seated_Fist_Pump", cheer: "Victory_Cheer", wave: "Big_Wave_Hello", lose: "Head_Hold_in_Pain" }, PICK = "arc.kart.racer";
-const SEAT = { h: 1.25, y: 0.18, z: -0.15 }, KART_LEN = 3.1; // (a racer stands 1.25 m; the seated clip's hips land on the seat)
+const SEAT = { h: 1.25, y: 0.18, z: -0.15 }, KART_LEN = 3.1;
+const CAR_TURN = {}; // (KS: a shop car's yaw when Meshy's nose isn't at −X like the karts' — set per car when it's packed) // (a racer stands 1.25 m; the seated clip's hips land on the seat)
 
 export function createKart(ctx) {
   const { THREE, esc } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => { let r = L[s] != null ? L[s] : ctx.T(s, v); if (v) r = String(r).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m)); return r; };
@@ -561,10 +567,10 @@ export function createKart(ctx) {
   // ---------- the physics step (fixed 1/60 s) ----------
   function stepKart(k, inp, dt) {
     const offRoad = Math.abs(lateral(k.pos, k.idx)) > ROAD / 2 + 1.2; k.off = offRoad; const sp0 = k.speed;
-    let top = (k.boostT > 0 ? BOOST_TOP : TOP) * R.top * (offRoad && k.boostT <= 0 ? (TD.feel.lava ? 0.42 : 0.55) : 1) * (k.me ? 1 : k.skill) * (k.slip > 1 ? 1.06 : 1);
+    const cs = k.cs || BASE_STATS; /* (KS: the shop car's numbers — top only off a boost, so nothing passes BOOST_TOP) */ let top = (k.boostT > 0 ? BOOST_TOP : Math.min(BOOST_TOP, TOP * cs.top)) * R.top * (offRoad && k.boostT <= 0 ? (TD.feel.lava ? 0.42 : 0.55) : 1) * (k.me ? 1 : k.skill) * (k.slip > 1 ? 1.06 : 1);
     if (k.stall > 0) { k.stall -= dt; top = 4; }
     if (k.magT > 0) top = Math.max(top, TOP * ITEM.magnet.top * R.top); if (k.spinT > 0) top = Math.min(top, 5); // (K3: the magnet pulls you up to TOP × 1.2 — under BOOST_TOP —; a spin-out crawls)
-    if (inp.gas) k.speed += ACC * R.acc * dt * (k.speed > top ? -0.6 : 1); else k.speed -= DRAG * 18 * dt; // (1.7: off the gas the kart rolls down at ~6 m/s², was ~3: it felt like it kept going)
+    if (inp.gas) k.speed += ACC * R.acc * cs.acc * dt * (k.speed > top ? -0.6 : 1); else k.speed -= DRAG * 18 * dt; // (1.7: off the gas the kart rolls down at ~6 m/s², was ~3: it felt like it kept going)
     if (inp.brake) k.speed -= BRAKE * dt;
     if (k.boostT > 0) { k.boostT -= dt; k.speed = Math.max(k.speed, top * (0.86 + 0.14 * k.boostK)); }
     k.speed = Math.max(0, Math.min(k.speed, top + 6)); if (k.speed > top) k.speed -= (k.speed - top) * 2 * dt;
@@ -574,8 +580,8 @@ export function createKart(ctx) {
       const pw = track.perf ? track.perf[k.idx] : 0; if (pw && pw === k.driftDir && (k.aiPerf || (k.me && !autoMe)) && clock - (k.perfAt ?? -9) > 2.5 && rule !== "nodrift") perfectStart(k); } /* (the computers — and the tests' autopilot — only when they meant to: k.aiPerf) */ // (KX2: a drift started right at a corner's entry, the corner's way: PERFECT)
     if (k.drift && (!inp.drift || k.speed < 8)) releaseDrift(k);
     let turn;
-    if (k.drift) { turn = k.driftDir * (1.05 + 0.55 * inp.steer * k.driftDir) * 1.45; k.charge += dt * (0.6 + 0.8 * Math.abs(inp.steer)) * (sp > 0.5 ? 1 : 0.4); k.nitro = Math.min(2, k.nitro + dt * (rule === "nitro" ? 0.3 : 0.12)); const lv = lvOf(k.charge); if (lv > (k.lv || 0)) { k.lv = lv; if (k.me) { snd("kartSpark", lv); buzz(10 + lv * 8); vig(lv); } } }
-    else turn = inp.steer * (2.2 - 0.9 * Math.min(1, sp));
+    if (k.drift) { turn = k.driftDir * (1.05 + 0.55 * inp.steer * k.driftDir) * 1.45; k.charge += dt * (0.6 + 0.8 * Math.abs(inp.steer)) * (sp > 0.5 ? 1 : 0.4) * cs.drift; k.nitro = Math.min(2, k.nitro + dt * (rule === "nitro" ? 0.3 : 0.12) * cs.nitro); const lv = lvOf(k.charge); if (lv > (k.lv || 0)) { k.lv = lv; if (k.me) { snd("kartSpark", lv); buzz(10 + lv * 8); vig(lv); } } }
+    else turn = inp.steer * (2.2 - 0.9 * Math.min(1, sp)) * cs.turn;
     if (k.air) turn *= 0.35; k.st = inp.steer;
     if (rule === "nitro" && phase === "race") k.nitro = Math.min(2, k.nitro + dt * 0.05); // (the nitro rule: it fills by itself too)
     k.yaw -= turn * dt * Math.min(1, sp * 1.6 + 0.15);
@@ -597,7 +603,7 @@ export function createKart(ctx) {
         if (k.me) { shake = 0.12 + hit * 0.45; buzz(Math.round(15 + hit * 45)); snd("kartBump", hit); } if (hit > 0.45) react(k, CLIP.lose, 1.1); } }
     for (const p of tracks[0].pads || []) if (!k.air && Math.abs(k.idx - p.i) < 4 && Math.abs(lat - p.lat * mir) < 2.6 && k.boostT < 0.3) { boost(k, 0.9, 0.8, k.me ? "" : ""); if (rings && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) rings.at(k.pos, k.me ? 0xffc23c : 0x38d8ff); }
   }
-  function boost(k, secs, kk, say, lv = 1) { k.boostT = Math.max(k.boostT, secs); k.boostK = kk; k.boostLv = lv;
+  function boost(k, secs, kk, say, lv = 1) { secs *= (k.cs || BASE_STATS).boost; /* (KS: a car's turbos last longer, never faster) */ k.boostT = Math.max(k.boostT, secs); k.boostK = kk; k.boostLv = lv;
     if (fx && (k.me || (me && k.pos.distanceToSquared(me.pos) < 1600))) { const b = at(k, 0, -1.8, tmp2); for (let j = 0; j < 8 + lv * 4; j++) { const a = (j / (8 + lv * 4)) * Math.PI * 2; fx.emit(b, Math.cos(a) * 4 - Math.sin(k.vh) * 6, 1 + Math.random(), Math.sin(a) * 4 - Math.cos(k.vh) * 6, SPARK[Math.max(1, lv)], 0.45); } }
     if (k.me) { shake = 0.18 + lv * 0.06; camBack = 1.2 + lv * 0.5; if (say) flash(T(say)); snd("kartTurbo", lv); buzz(20 + lv * 15); } }
   function hop(k) { k.hopY = 0.4; }
@@ -700,7 +706,7 @@ export function createKart(ctx) {
     if (simLog && iOrd[0] === k) simLog.leadHits++; if (simLog) simLog.hits++;
     k.spinN = kind === "rug" ? 3 : 2; if (kind === "rocket") { k.popT = POP; kx2.pops++; } if (kind === "rug") { kx2.rugged++; if (stickers && !simOn && near(k, 3600)) stickers.show(k, "rugged"); } // (KX2: a rocket throws the kart up, a rug pull spins it three times under RUGGED!)
     if (kmus && near(k, 900)) kmus.duck(0.4, 0.7);
-    k.spinT = ITEM.spin; k.safeT = ITEM.safe; k.spinCk = false; k.speed *= 0.4; k.boostT = 0; k.magT = 0; if (k.drift) { k.drift = 0; k.charge = 0; k.lv = 0; }
+    k.spinT = ITEM.spin * (k.cs || BASE_STATS).spin; k.safeT = ITEM.safe; k.spinCk = false; k.speed *= 0.4; k.boostT = 0; k.magT = 0; if (k.drift) { k.drift = 0; k.charge = 0; k.lv = 0; }
     if (react(k, CLIP.lose, 1.1, true)) itemLog.spinReact++; itemLog.spins++;
     if (by && by !== k) { itemLog.hits++; react(by, CLIP.win, 1.4, true); if (by.me) { flash(T("Hit!")); snd("kartPass"); buzz(15); } }
     if (fx && near(k)) fx.burst(tmp2.copy(k.pos).setY(1.4), [0xffd36a, 0xffffff, 0xff6fc8], 16, 6, 5, 0.6);
@@ -828,8 +834,9 @@ export function createKart(ctx) {
       // eases off (px / pz), the one behind loses some speed, the one hit gains a little (never past TOP); sparks, a thud, a buzz
       const sa = Math.sin(A.vh), ca = Math.cos(A.vh), sb = Math.sin(B.vh), cb = Math.cos(B.vh), j = bumpJ(sa * A.speed, ca * A.speed, sb * B.speed, cb * B.speed, nx, nz);
       if (j > BUMP.min && phase === "race") { const fa = Math.max(0, nx * sa + nz * ca), fb = Math.max(0, nx * sb + nz * cb), jj = Math.min(j, 14);
-        A.px = (A.px || 0) - nx * jj * BUMP.side; A.pz = (A.pz || 0) - nz * jj * BUMP.side; B.px = (B.px || 0) + nx * jj * BUMP.side; B.pz = (B.pz || 0) + nz * jj * BUMP.side;
-        A.speed = Math.max(0, A.speed - jj * fa * 0.6); const top0 = TOP * R.top; if (B.speed < top0) B.speed = Math.min(top0, B.speed + jj * fb * 0.4); kx2.bumps++;
+        const mA = (A.cs || BASE_STATS).mass, mB = (B.cs || BASE_STATS).mass, wA = (2 * mB) / (mA + mB), wB = (2 * mA) / (mA + mB); /* (KS: a heavier car shoves more and is shoved less) */
+        A.px = (A.px || 0) - nx * jj * BUMP.side * wA; A.pz = (A.pz || 0) - nz * jj * BUMP.side * wA; B.px = (B.px || 0) + nx * jj * BUMP.side * wB; B.pz = (B.pz || 0) + nz * jj * BUMP.side * wB;
+        A.speed = Math.max(0, A.speed - jj * fa * 0.6 * wA); const top0 = TOP * R.top; if (B.speed < top0) B.speed = Math.min(top0, B.speed + jj * fb * 0.4 * wB); kx2.bumps++;
         if (fx && !simOn && (A.me || B.me || (me && A.pos.distanceToSquared(me.pos) < 900))) { const c = tmp2.set((A.pos.x + B.pos.x) / 2, 0.6, (A.pos.z + B.pos.z) / 2); fx.burst(c, [0xffd36a, 0xffffff, 0xff8a3a], 6 + Math.round(jj), 8, 3, 0.4); }
         const front = A.prog > B.prog ? A : B; if (jj > 4) react(front, CLIP.lose, 1.0);
         if ((A.me || B.me) && clock - (me.bumpAt || -9) > 0.3) { me.bumpAt = clock; shake = Math.max(shake, 0.12 + Math.min(0.35, jj * 0.03)); snd("kartBump", Math.min(1, jj / 9)); buzz(Math.round(18 + Math.min(40, jj * 4))); kx2.bumpBuzz++; } } } } // (K6: hit from behind → Head_Hold_in_Pain)
@@ -1064,7 +1071,7 @@ export function createKart(ctx) {
   function raceStart() {
     raceP = null; raceG = false; if (simOn || !ctx.post) return; const s = ctx.sess ? ctx.sess() : null, gid = s ? "" : gidOf(); if (!s && !gid) return;
     raceG = !s;
-    raceP = ctx.post({ action: "world-kart-start", ...(s || { guest: gid }), track: tid, mode, racer: me && me.racer ? me.racer.id : "" })
+    raceP = ctx.post({ action: "world-kart-start", ...(s || { guest: gid }), track: tid, mode, racer: me && me.racer ? me.racer.id : "", car: s && me ? me.carId0 || "" : "" })
       .then((r) => { if (r && r.ok && r.j && r.j.raceId) return r.j; throw new Error((r && r.j && r.j.error) || "start"); })
       .catch((e) => { console.warn("kart start:", e && e.message); say(T("Couldn't reach the server — this race won't count")); return null; });
   }
@@ -1257,6 +1264,29 @@ export function createKart(ctx) {
   }
   // ---------- the racer pick: five cards over the grid; the chosen one waves in 3D; the mode pills over the Race button ----------
   let pickEl = null, picked = "", pickFill = null;
+  // KS (2026-11-01): the shop's cars — the ones you own (?world=kart-shop), the one in use (arc.kart.car), shown on the chosen
+  // racer's kart on the pick screen and driven in the race with its numbers (k.cs); a guest drives the racer's own kart
+  let ownedCars = [], shopUi = null; const carGlb = {};
+  const carNow = () => { let id = ""; try { id = localStorage.getItem("arc.kart.car") || ""; } catch { id = ""; } return id && ownedCars.includes(id) && carOf(id) ? id : ""; };
+  function loadOwned() { const s = ctx.sess && ctx.sess(); if (!s || !s.wallet) { ownedCars = []; return; }
+    fetch("/api/social?world=kart-shop&wallet=" + String(s.wallet).toLowerCase(), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && Array.isArray(j.owned)) { ownedCars = j.owned; if (phase === "pick") { paintCar(); choose(picked); } } }).catch(() => { /* the racer's own kart */ }); }
+  /// a shop car's body on a kart (or back to the racer's own when id is ""): models/world/kart/cars/<id>.glb, fitted like the karts
+  async function wearCar(k, id) {
+    if (!k || !k.kartObj) return; k.carId = id || "";
+    if (k.carObj) { k.carObj.visible = false; }
+    if (!id) { k.kartObj.visible = true; k.carObj = null; return; }
+    try { if (!carGlb[id]) carGlb[id] = load("cars/" + id).then((g) => fit(g.scene, { len: KART_LEN * 1.05, turn: CAR_TURN[id] ?? Math.PI / 2 }));
+      const obj = await carGlb[id]; if (k.carId !== id) return; if (obj.parent && obj.parent !== k.m.g) obj.parent.remove(obj); k.m.g.add(obj); obj.visible = true; k.carObj = obj; k.kartObj.visible = false; }
+    catch (e) { console.warn("kart car " + id + ":", e && e.message); k.kartObj.visible = true; k.carObj = null; } // (not packed yet / failed: the racer's own kart, the car's numbers still count)
+  }
+  function paintCar() { const el = pickEl && pickEl.querySelector(".wk-car-l"); if (!el) return; const c = carOf(carNow());
+    el.innerHTML = c ? `🏎️ ${esc(T("Car"))}: <b style="color:${c.color}">${esc(c.name)}</b> <em class="${c.grade}">${esc(T(c.grade === "legendary" ? "LEGENDARY" : "EPIC"))}</em>` : `🏁 ${esc(T("Your racer's own kart"))} · <button type="button" data-shop>${esc(T("Get a car in the shop"))}</button>`; }
+  async function openShopUi() {
+    if (shopUi) return; try { const M = await import("./world-kart-shop.js");
+      shopUi = M.openShop({ T, esc, ver: ctx.ver || "", post: ctx.post, sess: ctx.sess, tx: ctx.tx, toast: ctx.toast, Snd: ctx.Snd, root: ui, signIn: async () => { if (ctx.signIn) await ctx.signIn(); },
+        onOwned: (o) => { ownedCars = o || []; paintCar(); }, onChange: () => { paintCar(); choose(picked); }, onClose: () => { shopUi = null; } }); }
+    catch (e) { console.warn("kart shop", e); ctx.toast(esc(T("The shop couldn't open. Try again."))); }
+  }
   function showPick(id) {
     phase = "pick"; picked = id; ui.classList.add("picking"); clearItems(); if (boxes) for (const im of boxes.ims) im.visible = false; mode = mode || "race"; rule = ""; world.scale.x = 1; mir = 1; track = tracks[0]; clearGhosts();
     if (wantTrack() !== tid) { setTrack(wantTrack()); grid(); } // (K5: the Daily races the day's track)
@@ -1269,9 +1299,9 @@ export function createKart(ctx) {
     pickEl.innerHTML = `<img class="wk-logo" src="/images/kart/logo.webp" alt="ARCIRCLE KART" width="420" height="172"><h3>${esc(T("Pick your racer"))}</h3>
       <div class="wk-cards">${RACERS.map((r) => `<button type="button" class="wk-card" data-r="${r.id}" style="--c:#${r.color.toString(16).padStart(6, "0")}"><img src="/images/kart/card-${r.id}.webp" alt="" width="160" height="205"><b>${esc(r.name)}</b><small>${esc(T(r.line))}</small></button>`).join("")}</div>
       <div class="wk-tracks" role="radiogroup" aria-label="${esc(T("Track"))}"></div><p class="wk-trk-info" aria-live="polite"></p><div class="wk-modes" role="radiogroup" aria-label="${esc(T("Mode"))}"></div><p class="wk-mode-l"></p>
-      <button type="button" class="wk-go wk-race" data-race><i class="wk-flag"></i><span>${esc(T("Race!"))}</span><em></em></button><button type="button" class="wk-optb" data-opts aria-label="${esc(T("Settings"))}" title="${esc(T("Settings"))}">⚙</button>${ctx.eventOn && ctx.eventOn() ? `<button type="button" class="wk-evchip" data-ev>🏁 ${esc(T("EVENT"))}</button>` : ""}`;
-    ui.appendChild(pickEl); paintModes(); sideHint();
-    pickEl.addEventListener("click", (e) => { if (e.target.closest("[data-opts]")) return openOpts(); if (e.target.closest("[data-ev]")) { if (ctx.event) ctx.event(); return; } const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); const m = e.target.closest("[data-mode]"); if (m) setMode(m.dataset.mode); const tk = e.target.closest("[data-track]"); if (tk && !tk.disabled) chooseTrack(tk.dataset.track); if (e.target.closest("[data-race]")) pick(picked); });
+      <button type="button" class="wk-go wk-race" data-race><i class="wk-flag"></i><span>${esc(T("Race!"))}</span><em></em></button><p class="wk-car-l"></p><button type="button" class="wk-shopb" data-shop aria-label="${esc(T("KART SHOP"))}"><i></i><span>${esc(T("SHOP"))}</span></button><button type="button" class="wk-optb" data-opts aria-label="${esc(T("Settings"))}" title="${esc(T("Settings"))}">⚙</button>${ctx.eventOn && ctx.eventOn() ? `<button type="button" class="wk-evchip" data-ev>🏁 ${esc(T("EVENT"))}</button>` : ""}`;
+    ui.appendChild(pickEl); paintModes(); sideHint(); paintCar(); loadOwned();
+    pickEl.addEventListener("click", (e) => { if (e.target.closest("[data-opts]")) return openOpts(); if (e.target.closest("[data-shop]")) return openShopUi(); if (e.target.closest("[data-ev]")) { if (ctx.event) ctx.event(); return; } const c = e.target.closest("[data-r]"); if (c) choose(c.dataset.r); const m = e.target.closest("[data-mode]"); if (m) setMode(m.dataset.mode); const tk = e.target.closest("[data-track]"); if (tk && !tk.disabled) chooseTrack(tk.dataset.track); if (e.target.closest("[data-race]")) pick(picked); });
     choose(id);
   }
   /// K5: the track chooser — four cards with the track's art; in the Daily only the day's track
@@ -1299,14 +1329,14 @@ export function createKart(ctx) {
     ln.textContent = mode === "daily" ? T(RULE_LINE[daily.rule]) : T(MODE_LINE[mode]); }
   function setMode(m) { if (!MODE_NAME[m]) return; mode = m; try { localStorage.setItem(MODE, m); } catch { /* the default next time */ } if (phase === "pick" && wantTrack() !== tid) { setTrack(wantTrack()); grid(); pickVis(); } paintModes(); if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick(); }
   function choose(id) {
-    picked = id; for (const k of karts) k.m.g.visible = !k.racer || k.racer.id === id; if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
+    picked = id; for (const k of karts) { k.m.g.visible = !k.racer || k.racer.id === id; if (k.racer) { const want = k.racer.id === id ? carNow() : ""; if ((k.carId || "") !== want) wearCar(k, want); } } if (pickEl) pickEl.querySelectorAll("[data-r]").forEach((b) => b.classList.toggle("on", b.dataset.r === id));
     const k = karts.find((x) => x.racer && x.racer.id === id); if (k && k.hero && k.hero.has) { const r = k.racer; k.hero.after = CLIP.drive; k.hero.play(r.yes && k.hero.has(r.yes) ? r.yes : CLIP.wave, { once: true }); }
     if (ctx.Snd && ctx.Snd.tick) ctx.Snd.tick();
   }
   function pick(id) {
     if (phase !== "pick") return; try { localStorage.setItem(PICK, id); } catch { /* private */ }
     const mine = karts.find((x) => x.racer && x.racer.id === id) || karts[0], rest = karts.filter((x) => x !== mine);
-    mine.i = 0; mine.me = true; rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest]; karts.forEach((k, n) => { k.tr = n; }); /* (KX2: your tails first — low graphics draws only yours) */
+    mine.i = 0; mine.me = true; mine.cs = statsOf(carNow()); mine.carId0 = carNow(); if ((mine.carId || "") !== mine.carId0) wearCar(mine, mine.carId0); if (shopUi) shopUi.close(); rest.forEach((k, n) => { k.i = n + 1; k.me = false; k.cs = null; if (k.carId) wearCar(k, ""); k.lane = ((n + 1) % 3 - 1) * 2.6; }); me = mine; karts = [mine, ...rest]; karts.forEach((k, n) => { k.tr = n; }); /* (KX2: your tails first — low graphics draws only yours) */
     if (pickEl) { pickEl.remove(); pickEl = null; } ui.querySelectorAll(".wk-side, .wk-opts").forEach((e) => e.remove()); if (pickFill) pickFill.visible = false; if (pickStage) pickStage.visible = false; ui.classList.remove("picking"); for (const k of karts) k.m.g.visible = true; applyRule(); reset();
   }
   // ---------- K6: the settings (⚙), the sideways hint, tilt ----------
