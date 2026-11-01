@@ -36,6 +36,13 @@
 // 1,056 m → 19 s (world-kart.js TRACKS[id].pts). Their feel (low gravity, ice, lava) never makes a kart faster than BOOST_TOP.
 // tests/world/kart.test.mjs measures every client track and checks these numbers. The pay rules and day caps are the same
 // on every track (PAY, DAILY_PAY, DAY_RACES, DAY_ARCL — one place). The daily's track comes from the day like its rule.
+// KS (2026-11-01, the owner): the SHOP — cars bought with $ARCIRCLE (world-kart-shop-data.js KSHOP: the cars, prices, numbers).
+//   GET  ?world=kart-shop[&wallet=0x…]          → { cars, depts, prices, burnPct, owned: [ids], pay: { token, to } }
+//   POST { action: "world-kart-car-buy", …sig, id, tx } → { ok, owned } — the player's wallet sent the car's price in $ARCIRCLE to
+//        FeeBurn (BURN_PCT burned, the rest to the treasury); the server reads the receipt's Transfer (from this wallet to FeeBurn,
+//        at least the price) and takes each transaction once (worldPayTx/<tx>). Without tx → 400 with the payment's details.
+//   world-kart-start { car }: the car counts only if this wallet owns it (a guest's / an unowned car → the racer's own kart, "").
+// Firestore: worldKartCars/<wallet> { ids } · worldStats/kartShop { sold, arc, burned, <id> }
 export const KART = {
   DAY_RACES: 5, DAY_ARCL: 2500, PAY: [500, 350, 250, 150, 100], DAILY_PAY: 300,
   TRACKS: { nexus: { laps: 3, minLap: 19 }, moon: { laps: 3, minLap: 21 }, ice: { laps: 3, minLap: 19 }, volcano: { laps: 3, minLap: 19 } }, MAX_GHOST: 40000,
@@ -52,6 +59,9 @@ const dayHash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h 
 /// the day's challenge: the same rule for everyone on a Seoul day (world-kart.js has the same function)
 export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("kart:" + day); return { day, seed, rule: KART.RULES[seed % KART.RULES.length], track: KART.TRACK_IDS[(seed >>> 8) % KART.TRACK_IDS.length] }; };
 export const GHOST_RE = /^[0-9a-z,;.-]*$/;
+import { KSHOP, carOf, priceOf } from "../world-kart-shop-data.js";
+import { ARCIRCLE, FEE_BURN } from "./_world-shop.mjs";
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad32 = (a) => "0x" + String(a || "").toLowerCase().replace(/^0x/, "").padStart(64, "0");
 const RACE_TTL = 30 * 60e3, TOP_N = 20, MODES = ["race", "ta", "daily"];
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -78,10 +88,11 @@ export function makeKart(deps) {
     } else { const s = signer(b); if (s.err) return s.err; key = `worldKartRace/${s.wallet}`; }
     let track = trackOf(String(b.track || "nexus")); if (!track) return json(400, { error: "no such track" });
     const mode = MODES.includes(b.mode) ? b.mode : "race", racer = KART.RACERS.includes(b.racer) ? b.racer : KART.RACERS[0];
+    const car = !gid && carOf(String(b.car || "")) && (await carsOf(key.slice("worldKartRace/".length))).includes(String(b.car)) ? String(b.car) : ""; // (KS: only a car this wallet owns)
     const raceId = rid(), startedAt = now(), dd = mode === "daily" ? dailyOf(startedAt) : null;
     if (dd) track = dd.track; // (K5: the daily runs on the day's track — one board, one track)
-    await setDoc(key, { raceId, startedAt, mode, track, racer, ...(dd ? { day: dd.day, rule: dd.rule } : {}) });
-    return json(200, { raceId, startedAt, mode, track, ...(gid ? { guest: true } : {}), ...(dd ? { daily: { day: dd.day, rule: dd.rule, seed: dd.seed, track: dd.track } } : {}) });
+    await setDoc(key, { raceId, startedAt, mode, track, racer, ...(car ? { car } : {}), ...(dd ? { day: dd.day, rule: dd.rule } : {}) });
+    return json(200, { raceId, startedAt, mode, track, car, ...(gid ? { guest: true } : {}), ...(dd ? { daily: { day: dd.day, rule: dd.rule, seed: dd.seed, track: dd.track } } : {}) });
   }
 
   /// the end's numbers checked against the race and the server's clock → { place, tm, laps } or { err }
@@ -102,7 +113,7 @@ export function makeKart(deps) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, t = now(), run = await one(`worldKartRace/${w}`), c = checkEnd(run, b, t); if (c.err) return c.err;
     // the end counts once (a repeated request is refused, a lost reply can't be paid twice)
-    if (!(await commit([{ create: `worldKartEnd/${run.raceId}`, data: { at: t, wallet: w, mode: run.mode, track: run.track, place: c.place, time: c.tm, laps: c.laps, racer: run.racer } }])).ok) return json(409, { error: "that race has ended" });
+    if (!(await commit([{ create: `worldKartEnd/${run.raceId}`, data: { at: t, wallet: w, mode: run.mode, track: run.track, place: c.place, time: c.tm, laps: c.laps, racer: run.racer, car: run.car || "" } }])).ok) return json(409, { error: "that race has ended" });
     return json(200, await settle(w, run, { place: c.place, tm: c.tm, laps: c.laps, t }, typeof b.ghost === "string" ? b.ghost : ""));
   }
 
@@ -195,6 +206,32 @@ export function makeKart(deps) {
     return json(200, { ok: true, credited, races: done, expired, newAch, ...(ev ? { ev } : {}), meta: last ? last.meta : metaView(metaOf(await one(`worldKartMeta/${w}`))), racesLeft: await left(w, day), today: ((await one(dk)) || {}).n || 0, cap: KART.DAY_ARCL });
   }
 
+  // ---- KS: the shop's cars ----
+  const carsOf = async (w) => (/^0x[0-9a-f]{40}$/.test(w) ? ((await one(`worldKartCars/${w}`)) || {}).ids || [] : []);
+  const payOf = () => ({ token: ARCIRCLE, to: FEE_BURN, burnPct: KSHOP.BURN_PCT });
+  async function shopView(w) {
+    return json(200, { cars: KSHOP.CARS.map((c) => ({ id: c.id, price: priceOf(c), grade: c.grade })), depts: KSHOP.DEPTS.map((d) => ({ id: d.id, open: d.open })), prices: KSHOP.PRICE, burnPct: KSHOP.BURN_PCT, owned: await carsOf(w), pay: payOf() }, "no-store");
+  }
+  async function buyCar(b) {
+    const s = signer(b); if (s.err) return s.err; const w = s.wallet, c = carOf(String(b.id || ""));
+    if (!c) return json(404, { error: "no such car" });
+    const price = priceOf(c), own = await carsOf(w);
+    if (own.includes(c.id)) return json(200, { ok: true, owned: own, already: true });
+    const tx = String(b.tx || "").toLowerCase(); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "which transaction?", pay: { ...payOf(), amount: (BigInt(price) * 10n ** 18n).toString(), price } });
+    const txk = `worldPayTx/${tx}`; if (await one(txk)) return json(409, { error: "this transaction was already used" });
+    const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null;
+    if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet" });
+    if (rc.status !== "0x1") return json(400, { error: "the transaction failed" });
+    const lcs = (a) => String(a || "").toLowerCase();
+    const paid = (rc.logs || []).filter((l) => lcs(l.address) === lcs(ARCIRCLE) && l.topics && lcs(l.topics[0]) === TRANSFER && lcs(l.topics[1]) === pad32(w) && lcs(l.topics[2]) === pad32(FEE_BURN)).reduce((x, l) => x + BigInt(l.data), 0n);
+    if (paid < BigInt(price) * 10n ** 18n) return json(400, { error: `the transfer is less than ${price.toLocaleString("en-US")} $ARCIRCLE` });
+    if (!(await commit([{ create: txk, data: { wallet: w, item: "kart-car-" + c.id, at: now() } }])).ok) return json(409, { error: "this transaction was already used" });
+    const ids = [...new Set([...(await carsOf(w)), c.id])]; await setDoc(`worldKartCars/${w}`, { ids, at: now() });
+    const tok = Number(paid / 10n ** 12n) / 1e6, burned = (tok * KSHOP.BURN_PCT) / 100;
+    await commit([{ inc: "worldStats/kartShop", fields: { sold: 1, arc: tok, burned, [c.id]: 1 } }, { inc: "worldStats/shop", fields: { paid: 1, arcPaid: tok, arcBurned: burned } }]).catch(() => {});
+    return json(200, { ok: true, owned: ids, car: c.id });
+  }
+
   // the racer's meta: races, wins, XP → level, the best time a track, the five achievements (town titles "kt-<id>")
   const metaOf = (m) => ({ races: 0, wins: 0, xp: 0, best: {}, ach: {}, ...(m || {}) });
   const metaView = (m) => ({ races: m.races, wins: m.wins, xp: m.xp, lv: kartLv(m.xp), best: m.best, ach: Object.keys(m.ach) });
@@ -237,6 +274,7 @@ export function makeKart(deps) {
         const g = await one(`worldKartGhost/${track}_${w}`); if (!g || !g.g) return json(404, { error: "no ghost" });
         return json(200, { t: g.t, g: g.g, racer: g.racer || "", name: await nameOf(w) }, q("who") === "me" ? "no-store" : "public, max-age=30");
       }
+      if (v === "kart-shop") { const w = q("wallet").toLowerCase(); return shopView(/^0x[0-9a-f]{40}$/.test(w) ? w : ""); }
       if (v !== "kart") return null;
       const w = q("wallet").toLowerCase();
       if (!/^0x[0-9a-f]{40}$/.test(w)) return json(200, { today: 0, cap: KART.DAY_ARCL, racesLeft: KART.DAY_RACES });
@@ -247,6 +285,7 @@ export function makeKart(deps) {
       if (b.action === "world-kart-start") return start(b);
       if (b.action === "world-kart-end") return end(b);
       if (b.action === "world-kart-claim") return claim(b);
+      if (b.action === "world-kart-car-buy") return buyCar(b);
       return null;
     },
   };

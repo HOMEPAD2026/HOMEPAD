@@ -651,7 +651,7 @@ export function make(deps) {
       if (w === "mythic-nftmkt") return mythic.nftMkt();
       if (w === "mythic-worn") return mythic.worn(url);
       if (w === "surv" || w === "surv-top" || w === "surv-daily" || w === "surv-endless") return surv.read(w, url);
-      if (w === "kart" || w === "kart-top" || w === "kart-daily" || w === "kart-ghost") return kart.read(w, url);
+      if (w === "kart" || w === "kart-shop" || w === "kart-top" || w === "kart-daily" || w === "kart-ghost") return kart.read(w, url);
       if (w === "kart-event" || w === "kart-event-ta" || w === "kart-event-gm") return kartEv.read(w, url);
       if (w === "rings" || w === "rings-top" || w === "rings-ta" || w === "rings-chal") return rings.read(w, url);
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest" || w === "poker-rule") return poker.read(w, url);
