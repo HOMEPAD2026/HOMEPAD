@@ -119,6 +119,8 @@ The owner asked for this on every deploy (2026-10-27: "디플로이 하면 항�
   add every release that players can see, newest first (the owner asked for this on 2026-10-23: "keep reflecting the
   updates there"). `nbody` lines up with `news` by index, so a new item goes in front of both (an item without a long body still gets a `""` there — three news once showed the wrong body; tests/world/gwlists.test.mjs now checks the counts match); NOTE_D (gw.js) holds each notice's date by its place, so a new notice's date goes in front of NOTE_D too (it was skipped once and every date shifted).
 
+- ARCIA's game knowledge (api/_arcia-world.mjs WORLD_NOW — what she says in the site chat, Telegram, her X replies and her hourly X post): add every release players can see the same day it ships, like /game's news, newest first, and take out events that are over (the owner, 2026-11-01: "ARCIA should learn our latest news, tell new players how to get in, existing players what's new, rankings and events"). Her live boards come from worldLive (stats, kart-event, kart-top, surv-top, rings-top); her hourly X post is api/arcia-x.mjs hourlyPost (HOUR_TOPICS, a link every HOURLY_LINK_EVERY hours, DAY_CAP 36).
+
 ## Meshy and performance (the owner, 2026-10-25: standing rules)
 
 - **Use Meshy as much as possible** for the game's art: images (text-to-image) and models (text/image-to-3D, remesh,

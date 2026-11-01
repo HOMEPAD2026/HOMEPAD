@@ -33,6 +33,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
+import { WORLD_NOW, worldLive, worldText } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
@@ -297,35 +298,33 @@ async function deskWatchdog(origin) {
 // ---------- the hourly game post (2026-11-01, the owner: ARCIA posts on X every hour) ----------
 // One post a UTC hour (id hour:<YYYY-MM-DDTHH>), its topic turning with the hour; ARCIA writes it from live game numbers
 // (Claude, the same mind as her replies). Never promises earnings; no hashtags; a link only every HOURLY_LINK_EVERY hours.
+// the hour's topic (one each hour, round the list): new players' way in, what's new for players who know us, the rankings,
+// the events, and each game in turn — every post a reason to come and play (2026-11-01, the owner)
 const HOUR_TOPICS = [
-  { k: "kart", say: "ARCIRCLE KART — kart racing in the browser with PEPE, DOGE, PENGU, WIF and BONK on 4 tracks (Nexus Circuit, Lunar Loop, Frost Drift, Magma Run), drifts, items, time attack and a daily rule" },
-  { k: "play", say: "ARCIRCLE WORLD — a free 3D game world in the browser (phone or PC): a town, hunting grounds, 9 games in one place; play as a guest, sign in with a wallet to keep progress" },
-  { k: "board", say: "this week's KART leaderboard: the best lap times to beat" },
-  { k: "studio", say: "ARCIRCLE Studio — make your own game in the browser from templates or a 3D builder, publish it with its own page and race friends on it" },
-  { k: "survivors", say: "SURVIVORS ARENA — a 12-minute survival run with 3 heroes, weapons that evolve and bosses" },
-  { k: "raid", say: "RAID QUEENS — boss raids in the Sky Realm (Lv 100+), three queens, a secret dungeon, Mythic gear" },
-  { k: "jurassic", say: "Jurassic World — gather, craft, fish, camp, hunt dinosaurs and join the boss hour at 12:00 and 20:00 KST" },
-  { k: "poker", say: "ARCIA POKER LOUNGE — Hold'em vs ARCIA's AI players, Sit & Go every 2 hours, blackjack; chips only" },
-  { k: "rings", say: "INFINITY RINGS — 200 ring puzzles and a 60-second time attack" },
+  { k: "start", say: "for people who've never played: how to get in — arcircle.app/game, PLAY FREE, in the browser on a phone or PC, play as a guest first, a wallet later to keep progress" },
+  { k: "kart", say: "ARCIRCLE KART — the newest game, and its Grand Opening event if it's on" },
+  { k: "new", say: "for players who already know us: the newest updates (from 'Newest updates')" },
+  { k: "ranks", say: "this week's leaderboards: name the #1s from LIVE and dare people to beat them" },
+  { k: "events", say: "what's on today and right now (the KART event if on, KART's Daily race, Jurassic boss hour 12:00/20:00 KST, Sit & Go on even UTC hours)" },
+  { k: "studio", say: "ARCIRCLE Studio — make your own game in the browser and share it" },
+  { k: "start", say: "for newcomers: one quick reason to try ARCIRCLE WORLD today and how to start in a minute" },
+  { k: "survivors", say: "SURVIVORS ARENA" },
+  { k: "raid", say: "RAID QUEENS and the Halloween Realm, for the strongest players" },
+  { k: "jurassic", say: "Jurassic World and its boss hour" },
+  { k: "poker", say: "ARCIA POKER LOUNGE and its Sit & Go tournaments" },
+  { k: "rings", say: "INFINITY RINGS puzzles and the time attack" },
 ];
-async function worldGet(origin, q) { try { const r = await fetch(`${origin}/api/social?world=${q}`); return r.ok ? await r.json() : null; } catch { return null; } }
 export function hourId(t) { return "hour:" + new Date(t * 1000).toISOString().slice(0, 13); }
 async function hourlyPost(origin, st) {
   if (!HOURLY_ON) return [];
   const t = now(), id = hourId(t);
   if (st.sent[id]) return [];
-  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = h % HOURLY_LINK_EVERY === 0;
-  const [stats, ev, top] = await Promise.all([worldGet(origin, "stats"), worldGet(origin, "kart-event"), topic.k === "board" || topic.k === "kart" ? worldGet(origin, "kart-top&track=volcano") : null]);
-  const facts = [
-    `Topic of this hour: ${topic.say}.`,
-    stats ? `Right now: ${stats.online || 0} online; ${stats.players || 0} players have a saved hero.` : "",
-    ev && ev.phase === "on" ? `KART GRAND OPENING EVENT is on until ${new Date(ev.end).toUTCString()} (3 events: 10 races, the Magma Run time attack championship, an X clip contest; prizes are paid by the team after a review).` : "",
-    top && top.top && top.top.length ? `KART week board (${top.track}): ${top.top.slice(0, 3).map((x, i) => `#${i + 1} ${x.name || x.w} ${x.t}s`).join(", ")}.` : "",
-  ].filter(Boolean).join("\n");
-  const brief = `Write ONE post for your own X account (@ARCIAonArc) about the topic below, as ARCIA — the idol of ARCIRCLE, cheerful, playful, specific. Under ${link ? 230 : 260} characters. Use the numbers given only when they're interesting (never post a zero). At most two emoji, no hashtags, don't @mention anyone, no links (${link ? "the link is added after your text" : "say \"play free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what the facts say. Different from your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 4).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nFACTS:\n${facts}\n\nAnswer with the post text only.`;
+  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || h % HOURLY_LINK_EVERY === 0;
+  const W = await worldLive(origin).catch(() => null);
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
   const out = await askClaude({ messages: [{ role: "user", content: brief }], L: "en", maxTokens: 220 });
   if (!out) return [];
-  let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  let text = out.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
   if (link) text = `${text}\n\n🎮 ${SITE}/game`;
   if (xLen(text) > 278) return [];
