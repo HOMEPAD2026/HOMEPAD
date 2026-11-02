@@ -9,7 +9,9 @@
 // $ARCIRCLE → $ARCL: the player's wallet sends the tokens to the treasury from here, then the request goes in with that
 // transaction. A payment waiting for its block is kept on the device (arc.swap.pend / arc.swap.pay) and checked again on open.
 // Loaded the first time the dock's Exchange is pressed.
-const IMG = { arcl: "/images/arcl2-logo.webp?v=1", arc: "/images/arcircle-mark-sm.webp?v=1" };
+const UIX = "/images/ui/exchange/"; // (Meshy art, raw/ex on claude/meshy-exchange: coins, icons, header, vault, sparkle)
+const IMG = { arcl: UIX + "coin-arcl.webp?v=1", arc: UIX + "coin-arc.webp?v=1" };
+const ic = (n, cls = "") => `<img class="wx-mi ${cls}" src="${UIX}ic-${n}.webp?v=1" alt="" draggable="false">`;
 const ICON = {
   arcl: `<i class="wx-coin arcl"><img src="${IMG.arcl}" alt="" draggable="false"></i>`,
   arc: `<i class="wx-coin arc"><img src="${IMG.arc}" alt="" draggable="false"></i>`,
@@ -88,7 +90,7 @@ export function createSwap(ctx) {
   }
   function paintHead() {
     const r = el.querySelector("[data-rate]"); if (!r) return;
-    r.innerHTML = rate() ? `<span class="wx-dot${isOpen() ? "" : " off"}"></span><b>1 ${NAME.arc} = ${fmtR(rate())} ${NAME.arcl}</b><small>${esc(isOpen() ? T("Rate set by the treasury") : T("Paused"))}</small>` : `<span class="wx-dot off"></span><b>${esc(T("Rate coming soon"))}</b><small>${esc(T("Set by the treasury"))}</small>`;
+    r.innerHTML = rate() ? `${ic("rate", "wx-rateic")}<span class="wx-dot${isOpen() ? "" : " off"}"></span><b>1 ${NAME.arc} = ${fmtR(rate())} ${NAME.arcl}</b><small>${esc(isOpen() ? T("Rate set by the treasury") : T("Paused"))}</small>` : `${ic("rate", "wx-rateic")}<span class="wx-dot off"></span><b>${esc(T("Rate coming soon"))}</b><small>${esc(T("Set by the treasury"))}</small>`;
   }
   function paintTabs() {
     const pend = data && data.mine ? data.mine.filter((r) => r.status === "pending").length : 0, tq = queue ? queue.filter((r) => r.status === "pending" || r.status === "returning").length : 0;
@@ -100,16 +102,16 @@ export function createSwap(ctx) {
     const card = (k, give) => `<div class="wx-card ${give ? "give" : "get"} ${k}"><div class="wx-row"><small>${esc(T(give ? "You give" : "You get"))}</small><small class="wx-bal">${esc(T("Balance"))} <b>${fmt(give ? h : hTo)}</b></small></div>
       <div class="wx-row big"><span class="wx-tok">${ICON[k]}<b>${NAME[k]}</b></span>${give ? `<input class="wx-amt" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="${esc(T("Amount"))}">` : `<output class="wx-quote">0</output>`}</div>
       ${give ? `<div class="wx-pcts">${[25, 50, 75, 100].map((p) => `<button type="button" data-pct="${p}"${h == null ? " disabled" : ""}>${p === 100 ? "MAX" : p + "%"}</button>`).join("")}${L ? `<small>${esc(T("Min {n}", { n: fmt(L.min[from]) }))}</small>` : ""}</div>` : `<div class="wx-pcts"><small>${esc(T("At the rate locked into your request"))}</small></div>${k === "arc" && data && data.daily ? `<div class="wx-daily"><span>${esc(T("Today's limit"))}</span><i><b style="width:${Math.min(100, (100 * data.daily.used) / data.daily.cap).toFixed(1)}%"></b></i><em>${fmt(data.daily.used)} / ${fmt(data.daily.cap)} $ARCIRCLE</em></div>` : ""}`}</div>`;
-    const steps = dir === "arcl2arc" ? [["🔒", T("Request: your $ARCL is held right away, and the rate is locked in.")], ["🏦", T("The treasury sends you $ARCIRCLE on Arc from its wallet.")], ["🧾", T("It goes on the public record with its transaction.")]]
-      : [["📤", T("Your wallet sends $ARCIRCLE to the treasury (one tap).")], ["🔒", T("The request goes in with that transaction; the rate is locked in.")], ["🪙", T("The treasury credits your $ARCL.")]];
+    const steps = dir === "arcl2arc" ? [[ic("lock"), T("Request: your $ARCL is held right away, and the rate is locked in.")], [ic("bank"), T("The treasury sends you $ARCIRCLE on Arc from its wallet.")], [ic("receipt"), T("It goes on the public record with its transaction.")]]
+      : [[ic("swap"), T("Your wallet sends $ARCIRCLE to the treasury (one tap).")], [ic("lock"), T("The request goes in with that transaction; the rate is locked in.")], [ic("treasury"), T("The treasury credits your $ARCL.")]];
     const tot = (data && data.totals) || { n: 0, arcl: 0, arc: 0 };
     return `<div class="wx-swap">${card(from, true)}<button type="button" class="wx-flip" aria-label="${esc(T("Switch direction"))}">${ARROWS}</button>${card(to, false)}</div>
       <p class="wx-warn" hidden></p>
       <button type="button" class="wx-go">${esc(T("Request exchange"))}</button>
       <ol class="wx-steps">${steps.map(([i, s], k) => `<li><i>${i}</i><span><small>${k + 1}</small>${esc(s)}</span></li>`).join("")}</ol>
       <div class="wx-loop"><b>${esc(T("The $ARCIRCLE loop"))}</b>
-        <div class="wx-loop-row"><div><i>🎮</i><span>${esc(T("Play and earn $ARCL"))}</span></div><u></u><div><i>⇄</i><span>${esc(T("Exchange for $ARCIRCLE"))}</span></div><u></u><div><i>🛒</i><span>${esc(T("Spend $ARCIRCLE in the game"))}</span></div></div>
-        <div class="wx-split"><span class="burn">🔥 50% ${esc(T("burned forever"))}</span><span class="tre">🏦 50% ${esc(T("to the treasury — it funds the exchange"))}</span></div>
+        <div class="wx-loop-row"><div><i>${ic("play")}</i><span>${esc(T("Play and earn $ARCL"))}</span></div><u></u><div><i>${ic("swap")}</i><span>${esc(T("Exchange for $ARCIRCLE"))}</span></div><u></u><div><i>${ic("shop")}</i><span>${esc(T("Spend $ARCIRCLE in the game"))}</span></div></div>
+        <div class="wx-split"><span class="burn">${ic("burn")}<b>50%</b> ${esc(T("burned forever"))}</span><span class="tre">${ic("treasury")}<b>50%</b> ${esc(T("to the treasury — it funds the exchange"))}</span></div>
         <div class="wx-nums"><span><small>${esc(T("Treasury reserve"))}</small><b>${data && data.reserve != null ? fmt(data.reserve) : "—"}</b><em>$ARCIRCLE</em></span><span><small>${esc(T("Exchanges settled"))}</small><b>${fmt(tot.n)}</b></span><span><small>${esc(T("Paid out"))}</small><b>${fmt(tot.arc)}</b><em>$ARCIRCLE</em></span></div></div>`;
   }
   function paintMine() {
@@ -122,12 +124,12 @@ export function createSwap(ctx) {
     const tot = (data && data.totals) || { n: 0, arcl: 0, arc: 0 }, L = (data && data.log) || [];
     const stat = (label, v, unit) => `<div><small>${esc(T(label))}</small><b>${fmt(v)}</b>${unit ? `<em>${unit}</em>` : ""}</div>`;
     return `<div class="wx-stats">${stat("Exchanges", tot.n)}${stat("$ARCL exchanged", tot.arcl, "$ARCL")}${stat("Paid out", tot.arc, "$ARCIRCLE")}</div>
-      <p class="wx-note">${esc(T("Every exchange the treasury settles is listed here with its transaction on Arc — open it on the explorer or copy its link."))}</p>
+      <p class="wx-note wx-noteic">${ic("record")}<span>${esc(T("Every exchange the treasury settles is listed here with its transaction on Arc — open it on the explorer or copy its link."))}</span></p>
       ${L.length ? `<ul class="wx-list log">${L.map((r) => { const [f, t] = DIRS[r.dir] || ["arcl", "arc"]; return `<li><div class="wx-pair">${ICON[f]}${ICON[t]}</div><div class="wx-li"><b>${fmt(r.amount)} ${NAME[f]} <s>→</s> ${fmt(r.give)} ${NAME[t]}</b><small><code>${esc(r.who)}</code> · ${esc(when(r.at))}${r.rate ? ` · @ ${fmtR(r.rate)}` : ""}</small>${txBtns(r.tx)}</div></li>`; }).join("")}</ul>` : `<p class="wx-empty">${esc(T("No exchanges settled yet"))}</p>`}`;
   }
   function paintTr() {
     const c = (queue && cfgT) || { rate: rate(), open: isOpen(), hist: [] };
-    const head = `<div class="wx-tr"><div class="wx-tr-rate"><small>${esc(T("Exchange rate"))}</small><div class="wx-row"><span>1 ${NAME.arc} =</span><input class="wx-ratein" inputmode="decimal" value="${c.rate ? esc(String(c.rate)) : ""}" placeholder="0" aria-label="${esc(T("Exchange rate"))}"><span>${NAME.arcl}</span><button type="button" class="wx-btn gold" data-saverate>${esc(T("Save rate"))}</button></div>
+    const head = `<div class="wx-tr"><img class="wx-vault" src="${UIX}vault.webp?v=1" alt="" draggable="false"><div class="wx-tr-rate"><small>${esc(T("Exchange rate"))}</small><div class="wx-row"><span>1 ${NAME.arc} =</span><input class="wx-ratein" inputmode="decimal" value="${c.rate ? esc(String(c.rate)) : ""}" placeholder="0" aria-label="${esc(T("Exchange rate"))}"><span>${NAME.arcl}</span><button type="button" class="wx-btn gold" data-saverate>${esc(T("Save rate"))}</button></div>
         <p class="wx-ratepv" data-ratepv></p><div class="wx-row"><button type="button" class="wx-switch${c.open ? " on" : ""}" data-toggle role="switch" aria-checked="${!!c.open}"><i></i>${esc(c.open ? T("Open for requests") : T("Paused"))}</button><small>${esc(T("Treasury reserve"))} <b>${data && data.reserve != null ? fmt(data.reserve) : "—"} $ARCIRCLE</b></small></div>
         ${c.hist && c.hist.length ? `<small class="wx-hist">${esc(T("Recent rates"))}: ${c.hist.slice(0, 5).map((h) => `${fmtR(h.rate)} <i>${esc(when(h.at))}</i>`).join(" · ")}</small>` : ""}</div></div>`;
     if (!queue) return head + `<p class="wx-empty">${esc(T("Loading…"))}</p>`;
@@ -202,7 +204,7 @@ export function createSwap(ctx) {
     const q = S.get("arc.swap.pay"); if (q && data && data.isTreasury && q.tx && !busy) { const r = await adminLoop({ op: q.op || "done", id: q.id, ...(q.op === "return" ? { tx: q.tx } : { gmTx: q.tx }) }); if (r && (r.ok || r.status === 409 || r.status === 400)) { S.set("arc.swap.pay", null); if (r.ok) { await load(); await loadQueue(); } } }
   }
   function celebrate(msg) {
-    toast(msg); const fx = document.createElement("div"); fx.className = "wx-burst"; fx.innerHTML = `${ICON.arcl}${ICON.arc}`; el.querySelector(".wx-in").appendChild(fx); setTimeout(() => fx.remove(), 1400);
+    toast(msg); const fx = document.createElement("div"); fx.className = "wx-burst"; fx.innerHTML = `<img class="wx-spark" src="${UIX}fx-sparkle.webp?v=1" alt="">${ICON.arcl}${ICON.arc}`; el.querySelector(".wx-in").appendChild(fx); setTimeout(() => fx.remove(), 1400);
   }
   async function open() {
     if (!el) build(); el.hidden = false; requestAnimationFrame(() => el.classList.add("on")); tab = "ex"; paint();
