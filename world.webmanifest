@@ -1,0 +1,20 @@
+{
+  "name": "ARCIRCLE WORLD",
+  "short_name": "ARCIRCLE",
+  "description": "One world, many games: race, raid, hunt, build and play together — free on phone and PC.",
+  "id": "/play",
+  "start_url": "/play?app=1",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#050a1a",
+  "theme_color": "#050a1a",
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "icons": [
+    { "src": "/images/gw/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/images/brand/logo-512-v2.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/images/brand/icon-maskable-512-v2.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
