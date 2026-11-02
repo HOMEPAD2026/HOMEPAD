@@ -6761,3 +6761,6 @@ html.wp-pcphone .wks-grid{grid-template-columns:1fr}
 .wks-new{position:absolute;left:8px;top:30px;font-style:normal;font:900 10px/1 Sora,sans-serif;letter-spacing:.1em;padding:4px 7px;border-radius:7px;background:#ff3b4e;color:#fff;box-shadow:0 0 12px rgba(255,59,78,.6)}
 .wks-jet{position:absolute;left:8px;bottom:8px;font-style:normal;font:900 10px/1 Sora,sans-serif;letter-spacing:.08em;padding:5px 8px;border-radius:8px;background:linear-gradient(90deg,#1a2a7a,#2a6bff);color:#e8fbff;border:1px solid rgba(127,246,255,.7);box-shadow:0 0 14px rgba(127,246,255,.45)}
 .wks-car.jet{box-shadow:0 0 0 1.5px rgba(255,59,78,.55),0 0 26px rgba(255,59,78,.25)}
+
+/* EX (2026-11-02): the Treasury tab for a connected treasury wallet whose session ran out — sign in there */
+.wx-trsign{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:34px 20px}.wx-trsign b{font:800 18px/1.2 Sora,sans-serif;color:#ffe08a}.wx-trsign p{max-width:340px;color:#bcd0f0;font-size:14px;line-height:1.45}
