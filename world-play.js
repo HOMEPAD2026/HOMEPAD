@@ -4685,10 +4685,10 @@ $("wp-dk-bag").addEventListener("click", () => { closeAll(); if (rpg) { rpg.pane
 try { if (localStorage.getItem("arc.world.petSeen")) $("wp-dk-pet-new").hidden = true; } catch { /* private mode */ }
 // the Exchange ($ARCL ⇄ $ARCIRCLE by request, world-swap.js): loaded the first time it's opened
 let swapUi = null;
-try { if (localStorage.getItem("arc.world.swapSeen")) $("wp-dk-swap-new").hidden = true; } catch { /* private mode */ }
+try { if (localStorage.getItem("arc.world.swapSeen2")) $("wp-dk-swap-new").hidden = true; } catch { /* private mode */ } // (EX: the relaunch shows LIVE once more)
 $("wp-dk-swap").addEventListener("click", async () => {
-  $("wp-dk-swap-new").hidden = true; try { localStorage.setItem("arc.world.swapSeen", "1"); } catch { /* private mode */ } closeAll();
-  try { if (!swapUi) { let M; try { M = await import("./world-swap.js"); } catch (e) { if (staleReload()) return; throw e; } swapUi = M.createSwap({ T: TW, esc, toast, sess, post, Snd, refresh: () => refreshPurse(true), onClose: () => { if (!jurOn) frozen = false; } }); }
+  $("wp-dk-swap-new").hidden = true; try { localStorage.setItem("arc.world.swapSeen2", "1"); } catch { /* private mode */ } closeAll();
+  try { if (!swapUi) { let M; try { M = await import("./world-swap.js"); } catch (e) { if (staleReload()) return; throw e; } swapUi = M.createSwap({ T: TW, esc, toast, sess, post, Snd, refresh: () => refreshPurse(true), tx: (to, data) => walletTx(to, data), explorer: CFG.BLOCK_EXPLORER, signIn: async () => { await signIn(); try { refreshPurse(true); paintHud(); } catch { /* the town reads them again */ } }, onClose: () => { if (!jurOn) frozen = false; } }); } /* (EX: the treasury pays from its own wallet, a player sends $ARCIRCLE to the treasury from here) */
     frozen = true; keys.clear(); await swapUi.open();
   } catch (e) { frozen = false; console.warn("exchange", e); toast(TW("The exchange couldn't open. Try again.")); if (diag && diag.err) diag.err("exchange: " + String((e && e.message) || e), "swap"); }
 });

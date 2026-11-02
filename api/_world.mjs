@@ -660,7 +660,8 @@ export function make(deps) {
       if (w === "refer") return refer.read(w, url);
       if (w === "gm-rewards") return gmReward.read(w, url);
       if (w === "land" || w === "land-refunds") return land.read(w, url);
-      if (w === "swap") { const a = url.searchParams.get("wallet"); if (!isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(lc(a)); }
+      if (w === "swap") { const a = url.searchParams.get("wallet"); if (a && !isAddr(a)) return json(400, { error: "wallet must be an address" }); return swap.view(a ? lc(a) : ""); }
+      if (w === "swap-log") return swap.logView();
       if (w === "jur-boss" || w === "jur-top" || w === "jur-camp") return jur.read(w, url);
       if (w === "agent-id") return agentDim.idFree(url.searchParams.get("id"));
       if (w === "agent-top") return agentDim.top();
