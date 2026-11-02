@@ -61,6 +61,10 @@
       "destination": "/play.html"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
       "source": "/game",
       "destination": "/game.html"
     },
