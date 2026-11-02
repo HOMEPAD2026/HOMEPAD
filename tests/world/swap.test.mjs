@@ -79,6 +79,18 @@ r = await call(TRE, "world-swap-admin", { op: "done", id: q2.id, gmTx: h("b5") }
 r = await call(TRE, "world-swap-admin", { op: "reject", id: q2.id, note: "test" }); check(r.status === 200 && r.body.request.status === "rejected" && bal(a).bal === 95000 && bal(a).held === 0, "turned down: the 4,000 ARCL is back");
 r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 3000 }); const q3 = r.body.request; r = await call(A, "world-swap-cancel", { id: q3.id }); check(r.status === 200 && r.body.request.status === "cancelled" && bal(a).bal === 95000, "the player cancels a waiting request: the ARCL is back");
 
+// ---- the day's allowance: 300,000 $ARCIRCLE a wallet a Seoul day (rate 20: 20 ARCL a token)
+db.get(`worldArclBal/${a}`).bal += 20_000_000;
+v = await read("world=swap&wallet=" + A.address); const used0 = v.daily.used, left0 = SWAP.DAY_ARC - used0;
+check(v.daily.cap === 300000 && used0 === 800, `the window shows today's use (the settled 800 counts; cancelled and turned-down ones don't): ${used0}`);
+r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 20 * (left0 + 1) }); check(r.status === 400 && /300,000/.test(r.body.error) && r.body.daily.cap === SWAP.DAY_ARC, "one $ARCIRCLE over the day's 300,000 is refused");
+r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 20 * left0 }); const qd = r.body.request; check(r.status === 200 && qd.quote === left0, `the rest of the day exactly (${left0.toLocaleString()}) is allowed`);
+check((await read("world=swap&wallet=" + A.address)).daily.used === 300000, "the day is full");
+r = await call(A, "world-swap-cancel", { id: qd.id }); check(r.status === 200 && (await read("world=swap&wallet=" + A.address)).daily.used === used0, "a cancelled request gives its allowance back");
+r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 20 * left0 }); check(r.status === 200, "so the same request can be made again");
+r = await call(TRE, "world-swap-admin", { op: "reject", id: r.body.request.id }); check(r.status === 200 && (await read("world=swap&wallet=" + A.address)).daily.used === used0, "turned down: its allowance comes back too");
+T += 864e5; check((await read("world=swap&wallet=" + A.address)).daily.used === 0, "a new Seoul day starts at 0");
+
 // ---- $ARCIRCLE → ARCL: sent to the treasury first
 r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500 }); check(r.status === 400 && r.body.pay && r.body.pay.to === SWAP.TREASURY, "no tx: told to send to the treasury first (with the payment's details)");
 RC[h("c1")] = { status: "0x1", logs: [xfer(b, SWAP.DESK, 500)] }; r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500, tx: h("c1") }); check(r.status === 400, "a transfer to the old desk isn't a transfer to the treasury");
