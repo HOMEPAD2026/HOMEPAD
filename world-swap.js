@@ -36,9 +36,13 @@ export function createSwap(ctx) {
   const S = { get: (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } }, set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* this visit only */ } } };
   // the signed-in wallet — or, with no session (it lasts 23.5 h), the wallet that's connected: the treasury then still sees its tab
   // and is asked to sign in there (the owner, 2026-11-02: connected as the treasury, the tab wasn't there — the session had run out)
-  const wallet = () => { const s = ctx.sess && ctx.sess(); if (s && s.wallet) return String(s.wallet).toLowerCase(); const a = ctx.addr && ctx.addr(); return a && /^0x[0-9a-fA-F]{40}$/.test(a) ? a.toLowerCase() : ""; };
-  const signedIn = () => !!(ctx.sess && ctx.sess());
-  const api = async (action, extra = {}) => { const s = ctx.sess(); if (!s) return { ok: false, j: { error: T("Connect your wallet to exchange") } }; try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, j: { error: String((e && e.message) || e) } }; } };
+  // …and when the wallet app has switched to another account than the session's (the owner, 2026-11-02: the treasury connected,
+  // the session still the GM wallet's — the window showed the GM's requests), the connected one wins and is asked to sign in
+  const conn = () => { const a = ctx.addr && ctx.addr(); return a && /^0x[0-9a-fA-F]{40}$/.test(a) ? a.toLowerCase() : ""; };
+  const sessW = () => { const s = ctx.sess && ctx.sess(); return s && s.wallet ? String(s.wallet).toLowerCase() : ""; };
+  const wallet = () => conn() || sessW();
+  const signedIn = () => !!sessW() && (!conn() || conn() === sessW());
+  const api = async (action, extra = {}) => { const s = ctx.sess(); if (!s || !signedIn()) return { ok: false, j: { error: T("Connect your wallet to exchange") } }; try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, j: { error: String((e && e.message) || e) } }; } };
   const errOf = (r) => String((r && r.j && r.j.error) || T("No connection — try again")).slice(0, 120);
   const copy = async (t, msg) => { try { await navigator.clipboard.writeText(t); toast(msg); } catch { toast(t); } };
   const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
