@@ -12,6 +12,9 @@
 //                     transfer (from them, to the treasury, at least the amount, once); the treasury then credits the
 //                     ARCL at the locked rate (or turns it down and sends the tokens back on Arc).
 //
+// The day's limit (SWAP.DAY_ARC, the owner 2026-11-02): one wallet asks for at most 300,000 $ARCIRCLE in a Seoul day (ARCL → $ARCIRCLE;
+// worldSwapDay/<wallet>_<day>.arc counts the quotes; a cancelled / turned-down request gives its share back) — more is refused.
+//
 // The relaunch (SWAP.RELAUNCH): every request still waiting from before it is closed once, by itself — held ARCL goes back
 // to its owner ("refunded"); a $ARCIRCLE → ARCL one sent to the old desk is marked "returning" until the treasury sends
 // the tokens back (op return, checked on Arc).
@@ -33,6 +36,7 @@ export const SWAP = {
   RELAUNCH: Date.parse("2026-11-02T06:00:00Z"), // requests before it that were still waiting are closed and refunded once
   MIN: { arcl: 1000, arc: 100 }, MAX: { arcl: 50_000_000, arc: 100_000_000 },
   RATE: { min: 0.0001, max: 1_000_000 }, // $ARCL per 1 $ARCIRCLE
+  DAY_ARC: 300_000, // the most $ARCIRCLE one wallet can ask for in a Seoul day (ARCL → $ARCIRCLE; the owner, 2026-11-02) — over it a request is refused
   KEEP: 30, // a player's own list: the latest 30
   LOG: 300, // the public record keeps the latest 300 ids (the read gives 100)
 };
@@ -55,6 +59,10 @@ export function makeSwap(deps) {
   const one = async (p) => (await getDocs([p]))[p];
   const rid = () => (deps.randomId ? deps.randomId() : Math.random().toString(16).slice(2) + Date.now().toString(16)).replace(/[^0-9a-z]/gi, "").slice(0, 24);
   const month = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 7);
+  const dayOf = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10); // (a Seoul day)
+  const usedOf = async (w, t) => Math.floor(((await one(`worldSwapDay/${w}_${dayOf(t)}`)) || {}).arc || 0);
+  // a request that ends without paying gives its $ARCIRCLE back to that day's allowance
+  const unday = (r) => (r.dir === "arcl2arc" && r.day && r.quote ? [{ inc: `worldSwapDay/${r.w}_${r.day}`, fields: { arc: -r.quote } }] : []);
   const isTreasury = (w) => lc(w) === SWAP.TREASURY;
   const arclOf = async (w) => { const b = (await one(`worldArclBal/${w}`)) || {}; return { bal: Math.floor(b.bal || 0), held: Math.floor(b.held || 0) }; };
   const arcOf = async (w) => { try { return deps.tokenBalance ? Number(BigInt(await deps.tokenBalance(ARCIRCLE, w)) / WEI) : null; } catch { return null; } };
@@ -106,7 +114,7 @@ export function makeSwap(deps) {
     if (!w) return json(200, out);
     const [arcl, arc, mine] = await Promise.all([arclOf(w), arcOf(w), one(`worldSwapMine/${w}`)]);
     const reqs = await listOf(((mine && mine.ids) || []).slice(0, SWAP.KEEP));
-    return json(200, { ...out, arcl, arcircle: arc, mine: reqs.map(pub), isTreasury: isTreasury(w), gm: !!(deps.isGM && deps.isGM(w)) });
+    return json(200, { ...out, arcl, arcircle: arc, mine: reqs.map(pub), daily: { cap: SWAP.DAY_ARC, used: await usedOf(w, now()) }, isTreasury: isTreasury(w), gm: !!(deps.isGM && deps.isGM(w)) });
   }
   async function logView() { await relaunch().catch(() => {}); return json(200, { ok: true, ...(await publicLog(100)) }, "public, max-age=20"); }
 
@@ -124,9 +132,11 @@ export function makeSwap(deps) {
     if (open) return json(409, { error: "you have a request waiting already", id: open.id });
     const id = rid(), t = now(), rec = { id, w, dir, amount, rate: cfg.rate, quote, status: "pending", at: t };
     if (dir === "arcl2arc") {
+      const used = await usedOf(w, t); if (used + quote > SWAP.DAY_ARC) return json(400, { error: `the most a day is ${SWAP.DAY_ARC.toLocaleString("en-US")} $ARCIRCLE — ${Math.max(0, SWAP.DAY_ARC - used).toLocaleString("en-US")} left today`, daily: { cap: SWAP.DAY_ARC, used } });
+      rec.day = dayOf(t);
       const a = await arclOf(w); if (a.bal < amount) return json(400, { error: "not enough ARCL" });
       // held in the same write as a lock (two at once can't both spend the same balance)
-      if (!(await commit([{ create: `worldSwapLock/${w}_${Math.floor(t / 3000)}`, data: { at: t } }, { inc: `worldArclBal/${w}`, fields: { bal: -amount, held: amount } }])).ok) return json(429, { error: "one moment" });
+      if (!(await commit([{ create: `worldSwapLock/${w}_${Math.floor(t / 3000)}`, data: { at: t } }, { inc: `worldArclBal/${w}`, fields: { bal: -amount, held: amount } }, { inc: `worldSwapDay/${w}_${rec.day}`, fields: { arc: quote } }])).ok) return json(429, { error: "one moment" });
       if (deps.ledger) try { rec.parts = await deps.ledger.afterSpend(w, amount); await deps.ledger.record(w, "hold", "swap", -amount, { b: rec.parts, ref: id }); } catch { /* recorded best effort */ }
     } else {
       const tx = lc(b.tx); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "send the $ARCIRCLE to the treasury first, then give its transaction hash", pay: { token: ARCIRCLE, to: SWAP.TREASURY, amount: (BigInt(amount) * WEI).toString() } });
@@ -148,7 +158,7 @@ export function makeSwap(deps) {
     if (r.status !== "pending") return json(409, { error: "it's not waiting any more" });
     if (r.dir !== "arcl2arc") return json(400, { error: "a $ARCIRCLE transfer can't be taken back here: the treasury will return it" });
     if (!(await commit([{ create: `worldSwapEnd/${r.id}`, data: { at: now(), by: "cancel" } }])).ok) return json(409, { error: "it's being settled" });
-    await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r)]);
+    await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r), ...unday(r)]);
     if (deps.ledger) deps.ledger.record(r.w, "unhold", "swap-cancel", r.amount, { b: r.parts, ref: r.id }).catch(() => {});
     const next = { ...r, status: "cancelled", doneAt: now() }; await setDoc(`worldSwap/${r.id}`, next);
     return json(200, { ok: true, request: pub(next) });
@@ -211,7 +221,7 @@ export function makeSwap(deps) {
     }
     if (op === "reject") {
       if (!(await commit([{ create: `worldSwapEnd/${r.id}`, data: { at: now(), by: s.wallet } }])).ok) return json(409, { error: "it's being settled" });
-      if (r.dir === "arcl2arc") { await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r)]); if (deps.ledger) deps.ledger.record(r.w, "unhold", "swap-reject", r.amount, { b: r.parts, ref: r.id }).catch(() => {}); }
+      if (r.dir === "arcl2arc") { await commit([{ inc: `worldArclBal/${r.w}`, fields: { bal: r.amount, held: -r.amount } }, ...back(r), ...unday(r)]); if (deps.ledger) deps.ledger.record(r.w, "unhold", "swap-reject", r.amount, { b: r.parts, ref: r.id }).catch(() => {}); }
       const next = { ...r, status: r.dir === "arcl2arc" ? "rejected" : "returning", reason: note || (r.dir === "arcl2arc" ? "turned down — your $ARCL is back" : "turned down — the treasury sends your $ARCIRCLE back"), doneAt: now(), by: s.wallet }; await setDoc(`worldSwap/${r.id}`, next);
       return json(200, { ok: true, request: { ...pub(next), w: r.w } });
     }

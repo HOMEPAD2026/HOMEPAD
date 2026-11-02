@@ -41,6 +41,8 @@ export function createSwap(ctx) {
     try { const w = wallet(); const r = await fetch("/api/social?world=swap" + (w ? "&wallet=" + w : ""), { cache: "no-store" }); data = r.ok ? await r.json() : data; } catch { /* the last read stays */ }
   }
   const rate = () => (data && data.rate) || 0, isOpen = () => !!(data && data.open);
+  // the day's allowance ($ARCIRCLE a wallet can ask for in a Seoul day; the server refuses more)
+  const dayLeft = () => (data && data.daily ? Math.max(0, data.daily.cap - data.daily.used) : null);
   const have = (k) => (!data ? null : k === "arcl" ? (data.arcl ? data.arcl.bal : null) : data.arcircle);
   const statusChip = (st) => `<span class="wx-st ${esc(st)}">${esc(T({ pending: "Waiting", done: "Done", rejected: "Turned down", cancelled: "Cancelled", refunded: "Refunded", returning: "Returning", returned: "Returned" }[st] || st))}</span>`;
   const when = (t) => { try { return new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
@@ -58,7 +60,7 @@ export function createSwap(ctx) {
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.tab) { tab = b.dataset.tab; if (tab === "tr") loadQueue(); if (tab === "log") load().then(paint); paint(); (Snd.tab || (() => {}))(); }
       else if (b.classList.contains("wx-flip")) { dir = dir === "arcl2arc" ? "arc2arcl" : "arcl2arc"; b.classList.add("spin"); paint(); (Snd.tab || (() => {}))(); }
-      else if (b.dataset.pct) { const i = el.querySelector(".wx-amt"); const [from] = DIRS[dir]; const h = have(from); if (i && h != null) { const L = data.limits.max[from]; i.value = fmt(Math.min(L, Math.floor((h * Number(b.dataset.pct)) / 100))); live(); } }
+      else if (b.dataset.pct) { const i = el.querySelector(".wx-amt"); const [from] = DIRS[dir]; const h = have(from); if (i && h != null) { let L = data.limits.max[from]; if (dir === "arcl2arc" && dayLeft() != null && rate()) L = Math.min(L, Math.floor(dayLeft() * rate())); i.value = fmt(Math.min(L, Math.floor((h * Number(b.dataset.pct)) / 100))); live(); } }
       else if (b.classList.contains("wx-go")) ask();
       else if (b.dataset.sign) { Promise.resolve(ctx.signIn && ctx.signIn()).then(load).then(paint).catch(() => {}); }
       else if (b.dataset.cancel) cancel(b.dataset.cancel);
@@ -79,7 +81,7 @@ export function createSwap(ctx) {
   function live() {
     const [from, to] = DIRS[dir], a = amtNow(), h = have(from), L = data && data.limits, go = el.querySelector(".wx-go"), w = el.querySelector(".wx-warn"), q = el.querySelector(".wx-quote"); if (!go) return;
     const qt = a ? quoteOf(a) : 0; if (q) { q.textContent = a ? fmt(qt) : "0"; q.classList.toggle("on", !!qt); }
-    let why = ""; if (!wallet()) why = ""; else if (!isOpen()) why = rate() ? T("The exchange is paused for a moment") : T("The treasury hasn't set the rate yet"); else if (!a) why = ""; else if (L && a < L.min[from]) why = T("The least is {n}", { n: fmt(L.min[from]) + " " + NAME[from] }); else if (L && a > L.max[from]) why = T("The most at once is {n}", { n: fmt(L.max[from]) + " " + NAME[from] }); else if (h != null && a > h) why = T("More than your balance"); else if (!qt) why = T("Too little for one {x} at this rate", { x: NAME[to] });
+    let why = ""; if (!wallet()) why = ""; else if (!isOpen()) why = rate() ? T("The exchange is paused for a moment") : T("The treasury hasn't set the rate yet"); else if (!a) why = ""; else if (L && a < L.min[from]) why = T("The least is {n}", { n: fmt(L.min[from]) + " " + NAME[from] }); else if (L && a > L.max[from]) why = T("The most at once is {n}", { n: fmt(L.max[from]) + " " + NAME[from] }); else if (h != null && a > h) why = T("More than your balance"); else if (!qt) why = T("Too little for one {x} at this rate", { x: NAME[to] }); else if (dir === "arcl2arc" && dayLeft() != null && qt > dayLeft()) why = T("Over today's limit: {n} $ARCIRCLE left today (300,000 a day)", { n: fmt(dayLeft()) });
     w.textContent = why; w.hidden = !why; go.disabled = !wallet() ? false : !a || !!why || !!busy;
     go.innerHTML = !wallet() ? esc(T("Connect wallet")) : busy === "ask" ? `<i class="wx-spin"></i>${esc(T("Checking…"))}` : dir === "arc2arcl" ? esc(T("Send {x} to the treasury & request", { x: NAME.arc })) : esc(T("Request exchange"));
     if (!wallet()) go.dataset.sign = "1"; else delete go.dataset.sign;
@@ -97,7 +99,7 @@ export function createSwap(ctx) {
     const [from, to] = DIRS[dir], h = have(from), hTo = have(to), L = data && data.limits;
     const card = (k, give) => `<div class="wx-card ${give ? "give" : "get"} ${k}"><div class="wx-row"><small>${esc(T(give ? "You give" : "You get"))}</small><small class="wx-bal">${esc(T("Balance"))} <b>${fmt(give ? h : hTo)}</b></small></div>
       <div class="wx-row big"><span class="wx-tok">${ICON[k]}<b>${NAME[k]}</b></span>${give ? `<input class="wx-amt" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="${esc(T("Amount"))}">` : `<output class="wx-quote">0</output>`}</div>
-      ${give ? `<div class="wx-pcts">${[25, 50, 75, 100].map((p) => `<button type="button" data-pct="${p}"${h == null ? " disabled" : ""}>${p === 100 ? "MAX" : p + "%"}</button>`).join("")}${L ? `<small>${esc(T("Min {n}", { n: fmt(L.min[from]) }))}</small>` : ""}</div>` : `<div class="wx-pcts"><small>${esc(T("At the rate locked into your request"))}</small></div>`}</div>`;
+      ${give ? `<div class="wx-pcts">${[25, 50, 75, 100].map((p) => `<button type="button" data-pct="${p}"${h == null ? " disabled" : ""}>${p === 100 ? "MAX" : p + "%"}</button>`).join("")}${L ? `<small>${esc(T("Min {n}", { n: fmt(L.min[from]) }))}</small>` : ""}</div>` : `<div class="wx-pcts"><small>${esc(T("At the rate locked into your request"))}</small></div>${k === "arc" && data && data.daily ? `<div class="wx-daily"><span>${esc(T("Today's limit"))}</span><i><b style="width:${Math.min(100, (100 * data.daily.used) / data.daily.cap).toFixed(1)}%"></b></i><em>${fmt(data.daily.used)} / ${fmt(data.daily.cap)} $ARCIRCLE</em></div>` : ""}`}</div>`;
     const steps = dir === "arcl2arc" ? [["🔒", T("Request: your $ARCL is held right away, and the rate is locked in.")], ["🏦", T("The treasury sends you $ARCIRCLE on Arc from its wallet.")], ["🧾", T("It goes on the public record with its transaction.")]]
       : [["📤", T("Your wallet sends $ARCIRCLE to the treasury (one tap).")], ["🔒", T("The request goes in with that transaction; the rate is locked in.")], ["🪙", T("The treasury credits your $ARCL.")]];
     const tot = (data && data.totals) || { n: 0, arcl: 0, arc: 0 };
