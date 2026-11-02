@@ -33,7 +33,7 @@ export const KSHOP = {
   // over rug pulls, bombs and item boxes (they only touch karts on the road).
   JET: { lift: 8.5, hover: 1.5, g: 0.35, cd: 7, land: 0.6, turn: 0.6 },
   CARS: [
-    { id: "roadster", name: "ROCKET ROADSTER", brand: "Roadster", grade: "legendary", color: "#ff3b4e", jet: true, isNew: true,
+    { id: "roadster", name: "ROCKET ROADSTER", brand: "Roadster", grade: "legendary", price: 1000000, color: "#ff3b4e", jet: true, isNew: true, /* (the owner, 2026-11-02: 1,000,000 $ARCIRCLE — its own price, above the grade's) */
       line: "Rocket thrusters. It flies.", pro: "ROCKET JUMP — fly over hazards · quickest off the line", con: "Wide turns at top speed",
       s: { top: 1.035, acc: 1.07, turn: 0.97, drift: 1.02, boost: 1.04, nitro: 1.05, mass: 1.05, spin: 0.9 } },
     { id: "arc", name: "ARC LIGHTSPEED", brand: "Arc", grade: "legendary", color: "#7fb8ff",
@@ -60,7 +60,7 @@ export const BASE_STATS = { top: 1, acc: 1, turn: 1, drift: 1, boost: 1, nitro: 
 /// does this car have the ROCKET JUMP?
 export const jetOf = (id) => !!((KSHOP.CARS.find((c) => c.id === id) || {}).jet);
 export const carOf = (id) => KSHOP.CARS.find((c) => c.id === id) || null;
-export const priceOf = (c) => (c ? KSHOP.PRICE[c.grade] || 0 : 0);
+export const priceOf = (c) => (c ? c.price || KSHOP.PRICE[c.grade] || 0 : 0); // (a car may carry its own price: the ROCKET ROADSTER)
 /// a car's numbers (the racer's own kart: all 1)
 export const statsOf = (id) => ({ ...BASE_STATS, ...((carOf(id) || {}).s || {}) });
 /// a 0–100 bar for the shop's card: 1.0 → 50, each 1 % → 5 points (mass and spin shown as "Toughness")

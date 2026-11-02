@@ -58,6 +58,7 @@ r = await call(A, "world-kart-car-buy", { id: "usdc", tx: t4 }); check(r.status 
 r = await call(A, "world-kart-car-buy", { id: "kairo", tx: t4 }); check(r.status === 409, "the same tx can't buy a second car");
 r = await call(B, "world-kart-car-buy", { id: "usdc", tx: t4 }); check(r.status === 409, "nor anyone else's");
 const t5 = "0x" + "f6".repeat(32); RC[t5] = { status: "0x1", logs: [xfer(a, FEE_BURN, L)] }; r = await call(A, "world-kart-car-buy", { id: "arc", tx: t5 }); check(r.status === 200 && r.body.owned.includes("arc") && r.body.owned.includes("usdc"), "ARC LIGHTSPEED bought too; both owned");
+{ const tr = "0x" + "e7".repeat(32); RC[tr] = { status: "0x1", logs: [xfer(a, FEE_BURN, L)] }; const rr0 = await call(A, "world-kart-car-buy", { id: "roadster", tx: tr }); const rr1 = await call(A, "world-kart-car-buy", { id: "roadster" }); check(rr0.status === 400 && rr1.status === 400 && BigInt(rr1.body.pay.amount) === 1000000n * 10n ** 18n, "the ROCKET ROADSTER asks 1,000,000 $ARCIRCLE; a LEGENDARY 300,000 transfer doesn't buy it"); }
 r = await call(A, "world-kart-car-buy", { id: "arc", tx: "0x" + "77".repeat(32) }); check(r.status === 200 && r.body.already, "an owned car isn't charged again");
 check(db.get("worldStats/kartShop").sold === 2 && Math.round(db.get("worldStats/kartShop").burned) === (E + L) / 2, "the shop's tally: 2 sold, half of it burned");
 r = (await W.read(new URL("https://x/api/social?world=kart-shop&wallet=" + A.address))).body; check(r.owned.length === 2, "the shop lists what you own");
@@ -71,7 +72,7 @@ r = await W.handle({ action: "world-kart-start", guest: "0123456789abcdef", trac
 // ---- RR: the ROCKET ROADSTER's ROCKET JUMP — only that car, a short flight that lands, never faster than a boost ----
 { const J = KSHOP.JET, rs = carOf("roadster"), { jetOf } = await import("../../world-kart-shop-data.js");
   check(rs && rs.jet && jetOf("roadster") && KSHOP.CARS.filter((c) => c.jet).length === 1 && !jetOf("arc") && !jetOf(""), "only the ROCKET ROADSTER has the ROCKET JUMP");
-  check(priceOf(rs) === KSHOP.PRICE.legendary && score("roadster") >= Math.max(...lg) - 1e-9, `the ROCKET ROADSTER is LEGENDARY (${priceOf(rs).toLocaleString()} $ARCIRCLE) and scores at the top (${score("roadster").toFixed(3)})`);
+  check(priceOf(rs) === 1000000 && rs.grade === "legendary" && score("roadster") >= Math.max(...lg) - 1e-9, `the ROCKET ROADSTER is LEGENDARY (${priceOf(rs).toLocaleString()} $ARCIRCLE) and scores at the top (${score("roadster").toFixed(3)})`);
   const air = (g) => { let t = 0; while (C.jetY(t + 0.01, g) > 0 && t < 10) t += 0.01; let mx = 0; for (let u = 0; u < t; u += 0.01) mx = Math.max(mx, C.jetY(u, g)); return [t, mx]; };
   const [t21, y21] = air(21), [t16] = air(16), [t11, y11] = air(11);
   check(t21 > 1.6 && t21 < 2.6 && y21 > 3 && y21 < 6 && t16 > t21 && t11 > t16 && y11 < 10, `a rocket jump flies ${t21.toFixed(2)} s (peak ${y21.toFixed(1)} m) on a normal track, longer in lower gravity (${t16.toFixed(2)} s at 16, ${t11.toFixed(2)} s / ${y11.toFixed(1)} m on the moon)`);
