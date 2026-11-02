@@ -1063,16 +1063,16 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx.on .wx-in{transform:none;opacity:1}
 .wx-aura{position:absolute;inset:-40% -20% auto;height:70%;z-index:-1;background:radial-gradient(40% 50% at 25% 50%,rgba(255,196,64,.22),transparent 70%),radial-gradient(40% 50% at 75% 45%,rgba(53,184,255,.24),transparent 70%);filter:blur(10px);animation:wxAura 9s ease-in-out infinite alternate;pointer-events:none}
 @keyframes wxAura{to{transform:translateX(6%) rotate(4deg)}}
-.wx-hd{flex:none;display:flex;align-items:center;gap:12px;padding:18px 18px 12px}
+.wx-hd{position:relative;flex:none;display:flex;align-items:center;gap:12px;padding:18px 18px 14px;background:linear-gradient(90deg,rgba(8,14,38,.96) 30%,rgba(8,14,38,.55) 65%,rgba(8,14,38,.2)),url("/images/ui/exchange/header.webp?v=1") right 30%/auto 170% no-repeat;border-bottom:1px solid rgba(255,214,110,.18)}
 .wx-coin{position:relative;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;flex:none;font-style:normal;overflow:hidden}
 .wx-coin img{width:100%;height:100%;object-fit:contain;display:block}
-.wx-coin.arc{background:radial-gradient(circle at 40% 35%,#1d2c6e,#070c2a);box-shadow:0 0 0 1.5px rgba(255,214,110,.85) inset,0 0 10px rgba(53,184,255,.5)}
-.wx-coin.arc img{width:78%;height:78%}
-.wx-coin.arcl{box-shadow:0 0 12px rgba(53,184,255,.55)}
+.wx-coin{overflow:visible;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))}
+.wx-coin img{width:118%;height:118%;margin:-9%}
 .wx-logos{position:relative;display:flex;flex:none}.wx-logos .wx-coin{width:42px;height:42px}.wx-logos .wx-coin+.wx-coin{margin-left:-12px;transform:translateY(8px)}
 .wx-tt{display:grid;line-height:1}.wx-tt small{font:900 10px/1 var(--hud-font,var(--f-ui));letter-spacing:.32em;color:#ffd77a}.wx-tt b{font:900 24px/1.1 var(--hud-font,var(--f-ui));letter-spacing:.01em;background:linear-gradient(180deg,#fff,#bfe2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.wx-rate{margin-left:auto;display:grid;grid-template-columns:auto auto;align-items:center;column-gap:7px;padding:7px 12px;border-radius:14px;background:rgba(4,10,30,.6);box-shadow:inset 0 0 0 1px rgba(120,200,255,.28)}
-.wx-rate b{font:900 13px/1.1 var(--hud-font,var(--f-ui));color:#fff;white-space:nowrap}.wx-rate small{grid-column:2;font:700 10px/1.2 var(--f-ui);color:#8fb0d8}
+.wx-rate .wx-rateic{width:30px!important;min-width:30px;height:30px!important;grid-row:1/3;grid-column:1}.wx-rate .wx-dot{grid-column:2}.wx-rate b{grid-column:3;grid-row:1}
+.wx-rate{margin-left:auto;display:grid;grid-template-columns:auto auto auto;align-items:center;column-gap:7px;padding:7px 12px;border-radius:14px;background:rgba(4,10,30,.6);box-shadow:inset 0 0 0 1px rgba(120,200,255,.28)}
+.wx-rate b{font:900 13px/1.1 var(--hud-font,var(--f-ui));color:#fff;white-space:nowrap}.wx-rate small{grid-column:3;font:700 10px/1.2 var(--f-ui);color:#8fb0d8}
 .wx-dot{grid-row:1/3;width:9px;height:9px;border-radius:50%;background:#2ee08a;box-shadow:0 0 0 3px rgba(46,224,138,.18),0 0 10px #2ee08a;animation:wxPulse 1.8s ease-in-out infinite}.wx-dot.off{background:#ffb648;box-shadow:0 0 0 3px rgba(255,182,72,.18);animation:none}
 @keyframes wxPulse{50%{box-shadow:0 0 0 6px rgba(46,224,138,0),0 0 14px #2ee08a}}
 .wx-x{flex:none;width:36px;height:36px;border-radius:12px;border:0;background:rgba(255,255,255,.07);color:#cfe0ff;font-size:16px;cursor:pointer}.wx-x:hover{background:rgba(255,255,255,.14)}
@@ -1109,13 +1109,14 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 @keyframes wxRot{to{transform:rotate(360deg)}}
 .wx-steps{display:grid;gap:6px;margin:14px 0 0;padding:0;list-style:none}
 .wx-steps li{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.035)}
-.wx-steps i{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:11px;background:rgba(255,255,255,.07);font-style:normal;font-size:16px}
+.wx-steps i{display:grid;place-items:center;flex:none;width:40px;height:40px;font-style:normal}.wx-mi{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 5px rgba(0,0,0,.4))}
 .wx-steps span{font:700 12.5px/1.35 var(--f-ui);color:#d5e2f7}.wx-steps small{display:inline-grid;place-items:center;width:17px;height:17px;margin-right:6px;border-radius:50%;background:#ffd66e;color:#2a1600;font:900 10px var(--f-ui)}
 .wx-loop{margin-top:14px;padding:14px;border-radius:20px;background:radial-gradient(120% 120% at 0% 0%,rgba(255,196,64,.12),transparent 60%),radial-gradient(120% 120% at 100% 100%,rgba(46,224,160,.12),transparent 60%),rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,214,110,.22)}
 .wx-loop>b{display:block;margin-bottom:10px;font:900 13px var(--hud-font,var(--f-ui));letter-spacing:.06em;color:#ffe08a;text-transform:uppercase}
-.wx-loop-row{display:flex;align-items:center;gap:6px}.wx-loop-row div{flex:1;display:grid;justify-items:center;gap:5px;text-align:center}.wx-loop-row i{display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:rgba(255,255,255,.08);font-style:normal;font-size:19px;color:#fff}.wx-loop-row span{font:800 11px/1.25 var(--f-ui);color:#dbe7fb}
+.wx-loop-row{display:flex;align-items:center;gap:6px}.wx-loop-row div{flex:1;display:grid;justify-items:center;gap:5px;text-align:center}.wx-loop-row i{display:grid;place-items:center;width:58px;height:58px;font-style:normal;animation:wxBob 3s ease-in-out infinite}.wx-loop-row div:nth-child(3) i{animation-delay:.4s}.wx-loop-row div:nth-child(5) i{animation-delay:.8s}
+@keyframes wxBob{50%{transform:translateY(-4px)}}.wx-loop-row span{font:800 11px/1.25 var(--f-ui);color:#dbe7fb}
 .wx-loop-row u{flex:none;width:18px;height:2px;margin-bottom:22px;background:linear-gradient(90deg,#ffd66e,#35b8ff);border-radius:2px}
-.wx-split{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.wx-split span{padding:8px 10px;border-radius:12px;font:800 11.5px/1.3 var(--f-ui)}.wx-split .burn{background:rgba(255,110,60,.14);color:#ffb68a}.wx-split .tre{background:rgba(53,184,255,.13);color:#9fd8ff}
+.wx-split{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.wx-split span{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;font:800 11.5px/1.3 var(--f-ui)}.wx-split .wx-mi{width:34px;height:34px;flex:none}.wx-split b{font:900 15px var(--hud-font,var(--f-ui))}.wx-split .burn{background:rgba(255,110,60,.14);color:#ffb68a}.wx-split .tre{background:rgba(53,184,255,.13);color:#9fd8ff}
 .wx-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.wx-nums span{display:grid;gap:2px;padding:8px;border-radius:12px;background:rgba(255,255,255,.04);text-align:center}.wx-nums small{font:700 10px var(--f-ui);color:#8ea4c8}.wx-nums b{font:900 15px var(--hud-font,var(--f-ui));color:#fff}.wx-nums em{font:700 9.5px var(--f-ui);font-style:normal;color:#7f95bb}
 /* lists */
 .wx-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
@@ -1137,11 +1138,13 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .wx-stats div{display:grid;gap:3px;padding:12px 8px;border-radius:16px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .wx-stats small{font:800 10.5px var(--f-ui);color:#93a8cc}.wx-stats b{font:900 20px var(--hud-font,var(--f-ui));color:#fff}.wx-stats em{font:700 10px var(--f-ui);font-style:normal;color:#7f95bb}
+.wx-noteic{display:flex;align-items:center;gap:10px}.wx-noteic .wx-mi{width:44px;height:44px;flex:none}
 .wx-note{margin:10px 2px;font:600 12px/1.45 var(--f-ui);color:#93a8cc}
 .wx-empty{margin:26px 0;text-align:center;font:700 13px var(--f-ui);color:#93a8c7}.wx-empty p{margin:0}
 /* the treasury */
-.wx-tr{padding:14px;border-radius:20px;background:linear-gradient(160deg,rgba(255,196,64,.12),rgba(0,0,0,.25) 60%);box-shadow:inset 0 0 0 1px rgba(255,214,110,.35)}
-.wx-tr-rate{display:grid;gap:10px}.wx-tr-rate>small{font:900 11px var(--f-ui);letter-spacing:.14em;color:#ffd77a;text-transform:uppercase}
+.wx-tr{position:relative;overflow:hidden;padding:14px;border-radius:20px;background:linear-gradient(160deg,rgba(255,196,64,.12),rgba(0,0,0,.25) 60%);box-shadow:inset 0 0 0 1px rgba(255,214,110,.35)}
+.wx-vault{position:absolute;right:-30px;bottom:-40px;width:170px;opacity:.22;pointer-events:none}
+.wx-tr-rate{position:relative;display:grid;gap:10px}.wx-tr-rate>small{font:900 11px var(--f-ui);letter-spacing:.14em;color:#ffd77a;text-transform:uppercase}
 .wx-tr .wx-row{flex-wrap:wrap}.wx-tr .wx-row span{font:900 14px var(--hud-font,var(--f-ui));color:#fff;white-space:nowrap}
 .wx-ratein{min-width:0;width:0;flex:1;height:42px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,214,110,.4);background:rgba(0,0,0,.35);color:#fff;font:900 18px var(--hud-font,var(--f-ui));text-align:right;outline:none}
 .wx-ratepv{margin:0;font:700 11.5px var(--f-ui);color:#9fd8ff;min-height:14px}
@@ -1157,7 +1160,7 @@ body.wp #wp-dk-swap:hover{filter:brightness(1.1) drop-shadow(0 0 10px rgba(255,1
 .wx-retin{display:flex;gap:6px;flex:1 1 100%}.wx-rettx{min-width:0;flex:1;height:34px;padding:0 10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#fff;font:700 11px ui-monospace,monospace;outline:none}
 /* the moment a request goes in / a payment lands */
 .wx-burst{position:absolute;left:50%;top:42%;z-index:5;display:flex;gap:6px;pointer-events:none;transform:translate(-50%,-50%);animation:wxBurst 1.3s cubic-bezier(.2,.9,.3,1) forwards}
-.wx-burst .wx-coin{width:56px;height:56px;box-shadow:0 0 30px rgba(255,214,110,.8)}
+.wx-burst .wx-coin{width:64px;height:64px}.wx-spark{position:absolute;left:50%;top:50%;width:260px;height:260px;margin:-130px 0 0 -130px;mix-blend-mode:screen;pointer-events:none}
 @keyframes wxBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}25%{opacity:1;transform:translate(-50%,-60%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-140%) scale(.9)}}
 @media (prefers-reduced-motion:reduce){.wx-aura,.wx-go::after,.wx-dot,.wx-burst{animation:none}}
 html.wp-less .wx-aura,html.wp-less .wx-go::after{animation:none}
@@ -4458,7 +4461,7 @@ body.wp #wp-dk-games::after{background-image:url("/images/hud/dk3-games.webp?v=1
 /* EX (2026-11-02): the Exchange's dock button — the real $ARCL and $ARCIRCLE coins with the swap arrows, on a dark-glass
    tile with a gold rim, a slow shine and a LIVE badge */
 body.wp #wp-dk-swap{background:radial-gradient(120% 90% at 50% 0%,rgba(255,214,110,.28),transparent 60%),linear-gradient(180deg,#1a2550,#0a1030)!important;border:1.5px solid transparent!important;background-clip:padding-box!important;box-shadow:0 0 0 1.5px #f2b53a,0 0 14px rgba(255,190,70,.45),inset 0 1px 0 rgba(255,255,255,.2)!important;overflow:visible}
-body.wp #wp-dk-swap::after{background:url("/images/hud/dk4-swap.webp?v=1") center/contain no-repeat!important;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
+body.wp #wp-dk-swap::after{background:url("/images/ui/exchange/dock.webp?v=1") center/contain no-repeat!important;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
 body.wp #wp-dk-swap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%) 0 0/250% 100% no-repeat;animation:wxDkShine 4.5s ease-in-out infinite;pointer-events:none}
 @keyframes wxDkShine{0%,60%{background-position:150% 0}100%{background-position:-60% 0}}
 body.wp #wp-dk-swap span{color:#ffe08a!important;text-shadow:0 1px 2px rgba(0,0,0,.8)}
