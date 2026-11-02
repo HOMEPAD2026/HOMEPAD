@@ -34,8 +34,8 @@ export function openShop(ctx) {
     const own = owned().includes(c.id), inUse = carInUse(owned()) === c.id, leg = c.grade === "legendary", wait = busy === c.id;
     const btn = !own ? `<button type="button" class="wks-buy" data-buy="${c.id}"${wait ? " disabled" : ""}><span class="wks-cart" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 4h2.2l2.3 10.2a1.6 1.6 0 0 0 1.6 1.3h8.2a1.6 1.6 0 0 0 1.6-1.2L21 7H6.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.3" r="1.6" fill="currentColor"/><circle cx="17" cy="19.3" r="1.6" fill="currentColor"/></svg></span><b>${wait ? esc(T("Checking…")) : `${esc(T("BUY NOW"))} <s>·</s> ${fmt(priceOf(c))} <i class="wks-arc"></i>`}</b><span class="wks-chev" aria-hidden="true">›</span></button>`
       : inUse ? `<button type="button" class="wks-use on" disabled>✓ ${esc(T("In use"))}</button>` : `<button type="button" class="wks-use" data-use="${c.id}">${esc(T("Use this car"))}</button>`;
-    return `<article class="wks-car${leg ? " leg" : ""}${own ? " own" : ""}" style="--c:${c.color}">
-      <div class="wks-pic"><img src="/images/kart/shop/car-${c.id}.webp${ver}" alt="" width="320" height="200" loading="lazy" onerror="this.src='/images/kart/shop/logo-${c.id}.webp${ver}';this.classList.add('logo');this.onerror=null"><em class="wks-grade">${esc(T(leg ? "LEGENDARY" : "EPIC"))}</em>${own ? `<em class="wks-own">${esc(T("OWNED"))}</em>` : ""}</div>
+    return `<article class="wks-car${leg ? " leg" : ""}${own ? " own" : ""}${c.jet ? " jet" : ""}" style="--c:${c.color}">
+      <div class="wks-pic"><img src="/images/kart/shop/car-${c.id}.webp${ver}" alt="" width="320" height="200" loading="lazy" onerror="this.src='/images/kart/shop/logo-${c.id}.webp${ver}';this.classList.add('logo');this.onerror=null"><em class="wks-grade">${esc(T(leg ? "LEGENDARY" : "EPIC"))}</em>${c.isNew ? `<em class="wks-new">${esc(T("NEW"))}</em>` : ""}${own ? `<em class="wks-own">${esc(T("OWNED"))}</em>` : ""}${c.jet ? `<em class="wks-jet">🚀 ${esc(T("ROCKET JUMP"))}</em>` : ""}</div>
       <h4><img class="wks-brand" src="/images/kart/shop/logo-${c.id}.webp${ver}" alt="" width="22" height="22">${esc(c.name)}</h4><p class="wks-line">${esc(T(c.line))}</p>
       <ul class="wks-stats">${STATS.map(([k, n]) => { const v = barOf(c.id, k); return `<li><span>${esc(T(n))}</span><b style="--v:${v}%" class="${v > 52 ? "up" : v < 48 ? "dn" : ""}"></b></li>`; }).join("")}</ul>
       <p class="wks-pc"><span class="pro">▲ ${esc(T(c.pro))}</span><span class="con">▼ ${esc(T(c.con))}</span></p>${btn}</article>`;
@@ -47,7 +47,7 @@ export function openShop(ctx) {
       <div class="wks-body">${!d.open ? `<div class="wks-soon">${icon(d)}<h4>${esc(T(d.name))}</h4><p>${esc(T("Coming soon — the garage opens first."))}</p></div>`
         : `<div class="wks-std${std ? " on" : ""}"><span>🏁 ${esc(T("Your racer's own kart"))}<small>${esc(T("Free · even numbers everywhere"))}</small></span>${std ? `<b>✓ ${esc(T("In use"))}</b>` : `<button type="button" data-use="">${esc(T("Use"))}</button>`}</div>
           ${wallet() ? "" : `<p class="wks-sign">${esc(T("Sign in with your wallet to buy a car. Guests race their racer's own kart."))} <button type="button" data-sign>${esc(T("Sign in"))}</button></p>`}
-          <div class="wks-grid">${KSHOP.CARS.map(carCard).join("")}</div><p class="wks-note">${esc(T("A car changes a few numbers a little — each has a strength and a weakness. ARC and CIRCLE are the top grade."))}</p>`}</div></div>`;
+          <div class="wks-grid">${KSHOP.CARS.map(carCard).join("")}</div><p class="wks-note">${esc(T("A car changes a few numbers a little — each has a strength and a weakness. ROCKET ROADSTER, ARC and CIRCLE are the top grade."))}</p>`}</div></div>`;
   }
   function close() { closed = true; el.remove(); if (ctx.onClose) ctx.onClose(); }
   async function buy(id) {

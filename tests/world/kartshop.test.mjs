@@ -13,8 +13,8 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
 
 // ---- the cars ----
 const ids = KSHOP.CARS.map((c) => c.id), leg = KSHOP.CARS.filter((c) => c.grade === "legendary").map((c) => c.id);
-check(JSON.stringify(ids.sort()) === JSON.stringify(["arc", "argus", "circle", "kairo", "roblox", "usdc"]), "six cars: USDC, Roblox, KAIRO, ARC, CIRCLE, Argus");
-check(JSON.stringify(leg.sort()) === JSON.stringify(["arc", "circle"]) && KSHOP.CARS.every((c) => c.grade === "legendary" || c.grade === "epic"), "ARC and CIRCLE are LEGENDARY, the rest EPIC");
+check(JSON.stringify(ids.slice().sort()) === JSON.stringify(["arc", "argus", "circle", "kairo", "roadster", "roblox", "usdc"]) && ids[0] === "roadster", "seven cars: the ROCKET ROADSTER first (the newest), USDC, Roblox, KAIRO, ARC, CIRCLE, Argus");
+check(JSON.stringify(leg.slice().sort()) === JSON.stringify(["arc", "circle", "roadster"]) && KSHOP.CARS.every((c) => c.grade === "legendary" || c.grade === "epic"), "ROCKET ROADSTER, ARC and CIRCLE are LEGENDARY (the top grade), the rest EPIC");
 check(KSHOP.BURN_PCT === 50 && KSHOP.PRICE.legendary > KSHOP.PRICE.epic && KSHOP.CARS.every((c) => priceOf(c) > 0), `prices: EPIC ${KSHOP.PRICE.epic.toLocaleString()} / LEGENDARY ${KSHOP.PRICE.legendary.toLocaleString()} $ARCIRCLE, half burned`);
 check(KSHOP.DEPTS.length === 5 && KSHOP.DEPTS.filter((d) => d.open).map((d) => d.id).join() === "cars", "five departments, only Cars open");
 check(KSHOP.CARS.every((c) => C.TOP * statsOf(c.id).top < C.BOOST_TOP), "no car's top speed reaches a boost's (TOP × top < BOOST_TOP): the server's minLap holds");
@@ -45,7 +45,7 @@ const xfer = (from, to, n) => ({ address: ARCIRCLE, topics: [TR, pad(from), pad(
 const E = KSHOP.PRICE.epic, L = KSHOP.PRICE.legendary;
 
 let r = (await W.read(new URL("https://x/api/social?world=kart-shop&wallet=" + A.address))).body;
-check(r.cars.length === 6 && r.pay.to === FEE_BURN && r.pay.token === ARCIRCLE && r.burnPct === 50 && !r.owned.length, "the shop: six cars, paid to FeeBurn in $ARCIRCLE, nothing owned yet");
+check(r.cars.length === 7 && r.pay.to === FEE_BURN && r.pay.token === ARCIRCLE && r.burnPct === 50 && !r.owned.length, "the shop: six cars, paid to FeeBurn in $ARCIRCLE, nothing owned yet");
 r = await call(A, "world-kart-car-buy", { id: "usdc" }); check(r.status === 400 && BigInt(r.body.pay.amount) === BigInt(E) * 10n ** 18n, "no tx: the payment's details come back");
 r = await call(A, "world-kart-car-buy", { id: "lambo", tx: "0x" + "1".repeat(64) }); check(r.status === 404, "no such car");
 const t0 = "0x" + "a1".repeat(32); r = await call(A, "world-kart-car-buy", { id: "usdc", tx: t0 }); check(r.status === 202, "a tx not confirmed yet: wait");
@@ -67,6 +67,16 @@ r = await call(A, "world-kart-start", { track: "nexus", mode: "race", racer: "pe
 r = await call(A, "world-kart-start", { track: "nexus", mode: "race", racer: "pepe", car: "circle" }); check(r.status === 200 && r.body.car === "" && !db.get("worldKartRace/" + a).car, "a car you don't own isn't counted (the racer's own kart)");
 r = await call(B, "world-kart-start", { track: "nexus", mode: "race", racer: "doge", car: "usdc" }); check(r.status === 200 && r.body.car === "", "nor someone else's car");
 r = await W.handle({ action: "world-kart-start", guest: "0123456789abcdef", track: "nexus", mode: "race", racer: "pepe", car: "arc" }); check(r.status === 200 && !r.body.car, "a guest races the racer's own kart");
+
+// ---- RR: the ROCKET ROADSTER's ROCKET JUMP — only that car, a short flight that lands, never faster than a boost ----
+{ const J = KSHOP.JET, rs = carOf("roadster"), { jetOf } = await import("../../world-kart-shop-data.js");
+  check(rs && rs.jet && jetOf("roadster") && KSHOP.CARS.filter((c) => c.jet).length === 1 && !jetOf("arc") && !jetOf(""), "only the ROCKET ROADSTER has the ROCKET JUMP");
+  check(priceOf(rs) === KSHOP.PRICE.legendary && score("roadster") >= Math.max(...lg) - 1e-9, `the ROCKET ROADSTER is LEGENDARY (${priceOf(rs).toLocaleString()} $ARCIRCLE) and scores at the top (${score("roadster").toFixed(3)})`);
+  const air = (g) => { let t = 0; while (C.jetY(t + 0.01, g) > 0 && t < 10) t += 0.01; let mx = 0; for (let u = 0; u < t; u += 0.01) mx = Math.max(mx, C.jetY(u, g)); return [t, mx]; };
+  const [t21, y21] = air(21), [t16] = air(16), [t11, y11] = air(11);
+  check(t21 > 1.6 && t21 < 2.6 && y21 > 3 && y21 < 6 && t16 > t21 && t11 > t16 && y11 < 10, `a rocket jump flies ${t21.toFixed(2)} s (peak ${y21.toFixed(1)} m) on a normal track, longer in lower gravity (${t16.toFixed(2)} s at 16, ${t11.toFixed(2)} s / ${y11.toFixed(1)} m on the moon)`);
+  check(J.cd > t11 + 1 && J.land <= 1 && J.lift > 0 && J.g > 0 && J.g < 1, `once every ${J.cd} s (longer than the longest flight), a ${J.land} s landing turbo (a boost's: BOOST_TOP at most)`);
+  check(C.TOP * statsOf("roadster").top < C.BOOST_TOP, "flying never makes it faster than a boost — the server's minLap holds"); }
 
 // ---- the words: every T("…") of the shop window in WORDS ko / zh / tr; the shop data's words too ----
 { const fs = await import("node:fs"), src = fs.readFileSync(new URL("../../world-kart-shop.js", import.meta.url), "utf8"), want = new Set();

@@ -7,8 +7,8 @@
 // and sends the rest to the treasury (the owner's rule for a new game's shop: 50 % burned / 50 % treasury). The server only
 // reads the receipt back (the Transfer from that wallet to FeeBurn, each transaction used once: worldPayTx).
 //
-// Performance: each car changes a few of the kart's numbers by a little — a strength and a weakness each; ARC and CIRCLE are
-// the top grade (LEGENDARY), the other four EPIC and about even. A car never makes a kart faster than a boost does (top ×
+// Performance: each car changes a few of the kart's numbers by a little — a strength and a weakness each; ROCKET ROADSTER, ARC and
+// CIRCLE are the top grade (LEGENDARY), the other four EPIC and about even. A car never makes a kart faster than a boost does (top ×
 // TOP ≤ BOOST_TOP, and a boost's speed isn't changed — only how long it lasts), so the server's minLap check holds for every
 // car (tests/world/kartshop.test.mjs). A guest, or a car you don't own, races the racer's own kart (all 1.0).
 //   top    top speed (the kart's TOP)            acc    acceleration          turn   steering
@@ -25,7 +25,17 @@ export const KSHOP = {
     { id: "items", name: "Item Skins", open: false, icon: "itemskins" },
   ],
   STAT_KEYS: ["top", "acc", "turn", "drift", "boost", "mass"],
+  // RR (2026-11-02, the owner: "a new Roadster at the highest grade, with a jump button that flies on rocket thrusters like the
+  // Roadster's video"): a car with `jet` gets the ROCKET JUMP — Q on a computer, the Jump button on a phone. It lifts the car
+  // off the road (lift m/s up), the thrusters hold it up for hover s at g × the track's gravity (a slow arc, ~2 s in the air),
+  // then it falls; landing gives a short turbo (land s). Once every cd s. It never adds speed (the speed is held, the turbo is
+  // a boost's — BOOST_TOP at most), and the walls still hold it on the road, so the server's minLap holds. In the air it flies
+  // over rug pulls, bombs and item boxes (they only touch karts on the road).
+  JET: { lift: 8.5, hover: 1.5, g: 0.35, cd: 7, land: 0.6, turn: 0.6 },
   CARS: [
+    { id: "roadster", name: "ROCKET ROADSTER", brand: "Roadster", grade: "legendary", color: "#ff3b4e", jet: true, isNew: true,
+      line: "Rocket thrusters. It flies.", pro: "ROCKET JUMP — fly over hazards · quickest off the line", con: "Wide turns at top speed",
+      s: { top: 1.035, acc: 1.07, turn: 0.97, drift: 1.02, boost: 1.04, nitro: 1.05, mass: 1.05, spin: 0.9 } },
     { id: "arc", name: "ARC LIGHTSPEED", brand: "Arc", grade: "legendary", color: "#7fb8ff",
       line: "The fastest thing on Arc.", pro: "Highest top speed · longer turbos", con: "Heavy steering",
       s: { top: 1.04, acc: 1.0, turn: 0.95, drift: 1.0, boost: 1.1, nitro: 1.0, mass: 1.1, spin: 1.0 } },
@@ -47,6 +57,8 @@ export const KSHOP = {
   ],
 };
 export const BASE_STATS = { top: 1, acc: 1, turn: 1, drift: 1, boost: 1, nitro: 1, mass: 1, spin: 1 };
+/// does this car have the ROCKET JUMP?
+export const jetOf = (id) => !!((KSHOP.CARS.find((c) => c.id === id) || {}).jet);
 export const carOf = (id) => KSHOP.CARS.find((c) => c.id === id) || null;
 export const priceOf = (c) => (c ? KSHOP.PRICE[c.grade] || 0 : 0);
 /// a car's numbers (the racer's own kart: all 1)

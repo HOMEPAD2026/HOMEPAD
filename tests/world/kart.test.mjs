@@ -21,10 +21,11 @@ let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS"
   check(KART.TRACKS.nexus.laps === C.LAPS, "the laps match the game's"); }
 // ---- K5: four tracks — each one's minLap from its own spline, the places on it, the daily's track ----
 const curveOf = (id) => new THREE.CatmullRomCurve3(C.TRACKS[id].pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "centripetal");
-check(JSON.stringify(C.TRACK_IDS) === JSON.stringify(KART.TRACK_IDS) && C.TRACK_IDS.every((id) => KART.TRACKS[id] && C.TRACKS[id]) && Object.keys(KART.TRACKS).length === C.TRACK_IDS.length, "K5: the same four tracks on both sides (" + C.TRACK_IDS.join(", ") + ")");
+check(JSON.stringify(C.TRACK_IDS) === JSON.stringify(KART.TRACK_IDS) && C.TRACK_IDS.every((id) => KART.TRACKS[id] && C.TRACKS[id]) && Object.keys(KART.TRACKS).length === C.TRACK_IDS.length, "K5/RR: the same tracks on both sides (" + C.TRACK_IDS.join(", ") + ")");
+check(JSON.stringify(C.DAILY_IDS) === JSON.stringify(KART.DAILY_IDS) && JSON.stringify(KART.DAILY_IDS) === JSON.stringify(["nexus", "moon", "ice", "volcano"]) && C.TRACK_IDS[0] === "galaxy", "RR: the daily still draws from the first four tracks (a new track never moves a day's daily); Galaxy Gauntlet listed first");
 for (const id of C.TRACK_IDS) { const len = curveOf(id).getLength();
   check(KART.TRACKS[id].minLap === Math.floor((len / C.BOOST_TOP) * 0.85) && KART.TRACKS[id].laps === C.LAPS, `${id}: minLap ${KART.TRACKS[id].minLap} = floor(${len.toFixed(1)} m / ${C.BOOST_TOP} m/s × 0.85), ${C.LAPS} laps`);
-  check(len >= 1000 && len <= 1300 && len <= C.MAX_LEN, `${id}: ${len.toFixed(0)} m long (1,000–1,300, under MAX_LEN for the gaps' marks)`);
+  check(len >= 1000 && len <= (id === "galaxy" ? 1800 : 1300) && len <= C.MAX_LEN, `${id}: ${len.toFixed(0)} m long (1,000–${id === "galaxy" ? "1,800 — the long one" : "1,300"}, under MAX_LEN for the gaps' marks)`);
   check(len / (C.BOOST_TOP * 1.15) >= KART.TRACKS[id].minLap, `${id}: the fastest lap items or the turbo rule allow (${(len / (C.BOOST_TOP * 1.15)).toFixed(1)} s) is no faster than minLap`); }
 { const D = await import("../../world-kart-dress.js"), N = 900, WALL = 8 + 3.2;
   for (const id of C.TRACK_IDS) { const T0 = C.TRACKS[id], curve = curveOf(id), P = curve.getSpacedPoints(N), len = curve.getLength();
@@ -42,6 +43,11 @@ for (const id of C.TRACK_IDS) { const len = curveOf(id).getLength();
     check(T0.stands.length === 2 && !off.length, `${id}: the grandstands, the screen and the podium stand off every other stretch of road${off.length ? ": " + off.slice(0, 6).join(", ") : ""}`);
     let sep = 1e9; for (let i = 0; i < N; i += 3) for (let j = 0; j < N; j += 3) if (!near(i, j, Math.ceil(60 / (len / N)))) sep = Math.min(sep, S[i].p.distanceTo(S[j].p));
     check(sep > 2 * WALL + 8, `${id}: no two stretches of road closer than ${(2 * WALL + 8).toFixed(1)} m (${sep.toFixed(1)} m)`); }
+  { const G = C.TRACKS.galaxy, N0 = 900, inO = (i, m = 0) => G.open.some(([a, b]) => i >= a - m && i <= b + m);
+    check(G.feel.void && G.open.length >= 2 && G.open.every(([a, b]) => b - a >= 60 && a > 60 && b < N0 - 60) && !G.ramps.some((r) => inO(r.i, 25)) && !G.stands.some(([a, b]) => inO(a, 6) || inO(b, 6)) && !inO(0, 60) && !inO(G.screen, 14) && !inO(G.podium, 14), `RR galaxy: ${G.open.length} open stretches (no rails) away from the line, the ramps, the stands, the screen and the podium`);
+    check(C.openAt(G, G.open[0][0] + 5) && !C.openAt(G, 5) && C.fallsAt(G, G.open[0][0] + 5, C.VOID_EDGE + 0.1, false) && !C.fallsAt(G, G.open[0][0] + 5, C.VOID_EDGE + 0.1, true) && C.fallsAt(G, G.open[0][0] + 5, C.VOID_LOST + 0.1, true) && !C.fallsAt(G, 5, 30, false) && !C.fallsAt(C.TRACKS.nexus, 150, 30, false), "RR galaxy: off an open stretch's edge you fall (in the air only past VOID_LOST — a flight never cuts across), never where the rails stand or on another track");
+    let cut = 1e9; { const P = curveOf("galaxy").getSpacedPoints(N0), len = curveOf("galaxy").getLength(); for (let i = 0; i < N0; i += 3) { if (!inO(i)) continue; for (let j = 0; j < N0; j += 3) if (Math.min(Math.abs(i - j), N0 - Math.abs(i - j)) > Math.ceil(60 / (len / N0))) cut = Math.min(cut, P[i].distanceTo(P[j])); } }
+    check(cut > 2 * C.VOID_LOST + 4, `RR galaxy: from an open stretch the nearest other road is ${cut.toFixed(1)} m away — more than twice the lost line (${C.VOID_LOST} m), so nobody lands on another stretch`); }
   const F = C.TRACKS; check(F.moon.feel.grav < F.nexus.feel.grav && F.ice.feel.grip < 1 && F.volcano.feel.lava && !F.nexus.feel.lava && F.nexus.feel.grip === 1, "each new track has its feel: the moon's low gravity, the ice's grip, the volcano's lava"); }
 { let same = true; for (let t = Date.parse("2026-10-30T00:00:00Z"), i = 0; i < 40; i++, t += 7 * 3600e3) { const a = dailyOf(t), b = C.dailyOf(t); if (a.day !== b.day || a.seed !== b.seed || a.rule !== b.rule || a.track !== b.track) same = false; }
   { const tr = new Set(); for (let i = 0; i < 60; i++) tr.add(dailyOf(Date.parse("2026-11-01T00:00:00Z") + i * 864e5).track); check(tr.size === 4, "K5: every track comes up as the daily's over two months"); }
@@ -223,7 +229,7 @@ r = await call(p1, "world-arcl-claim", { kind: "kart" }); check(r.status === 400
   for (const id of C.TRACK_IDS) { const T0 = C.TRACKS[id], P = curveOf(id).getSpacedPoints(N), S = []; for (let i = 0; i < N; i++) { const p = P[i], q = P[(i + 1) % N], t = q.clone().sub(p).normalize(); S.push({ p, t, r: new THREE.Vector3(-t.z, 0, t.x) }); }
     const archN = Math.floor(curveOf(id).getLength() / 60), arches = []; for (let k = 0; k < archN; k++) arches.push(Math.floor((k / archN) * N));
     const all = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches }), ph = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches, coarse: true }), lo = Q.propSpots(S, N, T0, Q.KQ[id], { WALL, ROAD, arches, low: true });
-    const cnt = (o) => Object.values(o).reduce((n, a) => n + a.length, 0), over = ["gate", "blimp", "ice/ice-arch", "moon/float-rock"];
+    const cnt = (o) => Object.values(o).reduce((n, a) => n + a.length, 0), over = ["gate", "blimp", "ice/ice-arch", "moon/float-rock", "galaxy/ring-gate"];
     let worst = 1e9, at = ""; for (const [k, a] of Object.entries(all)) { if (over.includes(k)) continue; for (const [x, z] of a) for (let j = 0; j < N; j += 2) { const d = Math.hypot(S[j].p.x - x, S[j].p.z - z); if (d < worst) { worst = d; at = k; } } }
     check(worst > WALL, `KQ ${id}: no prop on the road or the rail (nearest ${worst.toFixed(1)} m from the line's middle, ${at}; the rail at ${WALL})`);
     check(cnt(ph) <= cnt(all) * 0.75 && cnt(lo) <= cnt(all) * 0.45 && !lo.gate && !lo.blimp && !lo["nexus/billboard"] && !lo["moon/float-rock"] && !lo.stand, `KQ ${id}: ${cnt(all)} props on a computer, ${cnt(ph)} on a phone, ${cnt(lo)} on low (no landmarks, no Meshy stands)`);

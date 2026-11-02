@@ -6750,3 +6750,18 @@ html.wp-pcphone .wks-grid{grid-template-columns:1fr}
 
 /* EX (2026-11-02): the Treasury tab for a connected treasury wallet whose session ran out — sign in there */
 .wx-trsign{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:34px 20px}.wx-trsign b{font:800 18px/1.2 Sora,sans-serif;color:#ffe08a}.wx-trsign p{max-width:340px;color:#bcd0f0;font-size:14px;line-height:1.45}
+/* RR (2026-11-02): the ROCKET ROADSTER's jump — the phone's Jump button in the action cluster's free corner (above Nitro, beside the
+   item slot), a ring that fills while the thrusters recharge; the computer's Q chip under the item slot; the shop card's badges */
+.wk-act{grid-template-areas:"jet it" "bo dr" "br gas"}
+.wk-pad .wk-jet{grid-area:jet;position:relative;width:66px;height:66px;--b1:#7ff6ff;--b2:#1a2a7a;--g:rgba(127,246,255,.6);--art:url(/images/kart/hud/btn-jump.webp);--cd:1}
+.wk-pad .wk-jet[hidden]{display:none}
+.wk-pad .wk-jet::after{content:"";position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(#7ff6ff calc(var(--cd) * 360deg),rgba(255,255,255,.12) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));pointer-events:none}
+.wk-pad .wk-jet:not(.ready){filter:saturate(.45) brightness(.8)}.wk-pad .wk-jet.ready{animation:wkJetR 1.1s ease-in-out infinite alternate}.wk-pad .wk-jet.fly{filter:none;transform:scale(.92)}
+@keyframes wkJetR{to{box-shadow:0 0 0 7px rgba(127,246,255,.18),0 0 22px rgba(127,246,255,.55)}}
+.wk-jetk{position:absolute;left:12px;top:calc(176px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:7px;padding:6px 11px 6px 6px;border-radius:14px;background:linear-gradient(135deg,rgba(26,42,122,.86),rgba(6,14,38,.86));border:1.5px solid rgba(127,246,255,.55);color:#e8fbff;font:800 12px/1 Sora,sans-serif;letter-spacing:.04em;box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;--cd:1}
+.wk-jetk[hidden]{display:none}.wk-jetk i{width:26px;height:26px;border-radius:50%;background:url(/images/kart/hud/btn-jump.webp) center/cover,conic-gradient(#7ff6ff calc(var(--cd) * 360deg),rgba(255,255,255,.15) 0)}
+.wk-jetk kbd{font:900 11px/1 Sora,sans-serif;padding:3px 6px;border-radius:6px;background:#7ff6ff;color:#06203a}.wk-jetk:not(.ready){opacity:.62}.wk-jetk.fly{border-color:#ffb46b;box-shadow:0 0 18px rgba(127,246,255,.6)}
+.wk.picking .wk-jetk{display:none}
+.wks-new{position:absolute;left:8px;top:30px;font-style:normal;font:900 10px/1 Sora,sans-serif;letter-spacing:.1em;padding:4px 7px;border-radius:7px;background:#ff3b4e;color:#fff;box-shadow:0 0 12px rgba(255,59,78,.6)}
+.wks-jet{position:absolute;left:8px;bottom:8px;font-style:normal;font:900 10px/1 Sora,sans-serif;letter-spacing:.08em;padding:5px 8px;border-radius:8px;background:linear-gradient(90deg,#1a2a7a,#2a6bff);color:#e8fbff;border:1px solid rgba(127,246,255,.7);box-shadow:0 0 14px rgba(127,246,255,.45)}
+.wks-car.jet{box-shadow:0 0 0 1.5px rgba(255,59,78,.55),0 0 26px rgba(255,59,78,.25)}

@@ -11,6 +11,9 @@
 /// horizon colour; exp: the tone mapping's exposure in the race; grade: a CSS filter on the canvas (not on low graphics);
 /// road: [roughness, env intensity]; props: [file, kind, desktop count, height or length (m), lateral from the wall (m)]
 export const KQ = {
+  // RR (2026-11-02): Galaxy Gauntlet — a cold violet starlight, the nebula's dark violet as the fog, a glossy dark road that mirrors the sky
+  galaxy: { sun: [0xd8ccff, 2.0, 120, 30], hemi: [0xd6ccff, 0x1c1446, 1.15], fog: 0x1a1240, exp: 1.1, grade: "saturate(1.18) contrast(1.06)", road: [0.26, 0.9],
+    props: [["galaxy/satellite", "far", 20, 8, 9], ["galaxy/station", "mark", 2, 34, 40], ["galaxy/ring-gate", "arches", 0, 0, 0, 0.18]] },
   nexus: { sun: [0xffd6b0, 2.1, 200, 18], hemi: [0xd8dcff, 0x2c2c3c, 1.05], fog: 0x8b5063, exp: 1.12, grade: "saturate(1.14) contrast(1.05)", road: [0.38, 0.55],
     props: [["nexus/neon-tree", "side", 30, 8, 3.2], ["nexus/banner-pole", "stands", 14, 8.5, 1.4], ["nexus/tyre-stack", "apex", 10, 1.5, 0.9], ["nexus/billboard", "mark", 4, 10, 17]] },
   moon: { sun: [0xd9d0ff, 1.8, 140, 26], hemi: [0xdfe2ff, 0x2a2c48, 1.15], fog: 0x384b8b, exp: 1.12, grade: "saturate(1.16) contrast(1.04)", road: [0.3, 0.75],
@@ -114,13 +117,13 @@ export function propSpots(S, N, TD, cfg, { coarse = false, low = false, WALL = 1
   // shared: grandstands — every 14 m along each straight on its outside, facing the road (none on low: the drawn blocks stay)
   if (!low) for (const [a, b] of TD.stands) { const step = 11; for (let i = a + 4; i < b - 2; i += step) { const s = S[i], sd = side(S, i), d = WALL + 4.6; put("stand", s.p.x + s.r.x * sd * d, s.p.z + s.r.z * sd * d, yawTo(-s.r.x * sd, -s.r.z * sd), 14, i, 0.1); } }
   // fences on the outside of the tightest corners, end to end (4 m each), behind the rail
-  { const n = cnt(44, false); let c = 0; for (let i = 0; i < N && c < n; i += 3) { if (busy(i)) continue; const { ang, out: o } = bendAt(S, N, i); if (ang < 0.16) continue; const s = S[i], d = WALL + 1.1, x = s.p.x + s.r.x * o * d, z = s.p.z + s.r.z * o * d; if (!clear(x, z, WALL + 0.4)) continue; put("fence", x, z, yawTo(-s.r.x * o, -s.r.z * o), 4, i, 1.2); c++; } }
+  { const n = cnt(44, false); let c = 0; for (let i = 0; i < N && c < n; i += 3) { if (busy(i) || (TD.open && TD.open.some(([a0, b0]) => i >= a0 - 3 && i <= b0 + 3))) continue; /* (RR: no fences where the rails stop) */ const { ang, out: o } = bendAt(S, N, i); if (ang < 0.16) continue; const s = S[i], d = WALL + 1.1, x = s.p.x + s.r.x * o * d, z = s.p.z + s.r.z * o * d; if (!clear(x, z, WALL + 0.4)) continue; put("fence", x, z, yawTo(-s.r.x * o, -s.r.z * o), 4, i, 1.2); c++; } }
   // the arch gate over the start straight (between two neon arches), the blimp's path round the middle
   if (!low) { const i = 32, s = S[i]; out.gate = [[s.p.x, s.p.z, yawTo(s.t.x, s.t.z), ROAD + 14, i]]; out.blimp = [[TD.c[0], TD.c[1], 0, 26, 0]]; }
   // the track's own kinds
-  for (const [file, kind, n0, size, lat] of cfg.props) {
+  for (const [file, kind, n0, size, lat, maxBend] of cfg.props) {
     const lm = kind === "mark" || kind === "sky", n = kind === "arches" ? (low ? 0 : arches.length) : cnt(n0, lm); if (!n) continue; const key = file;
-    if (kind === "arches") { for (const i of arches) { const s = S[i]; (out[key] = out[key] || []).push([s.p.x, s.p.z, yawTo(s.t.x, s.t.z), ROAD + 5, i]); } continue; }
+    if (kind === "arches") { for (const i of arches) { if (maxBend != null && bendAt(S, N, i).ang > maxBend) continue; /* (RR: a chunky ring only where the road runs nearly straight — on a hairpin the chase camera swung through one) */ const s = S[i]; (out[key] = out[key] || []).push([s.p.x, s.p.z, yawTo(s.t.x, s.t.z), ROAD + 5, i]); } continue; }
     if (kind === "sky") { for (let k = 0; k < n; k++) { const a = (k / n) * Math.PI * 2 + 0.4, r = 120 + ((k * 53) % 90); (out[key] = out[key] || []).push([TD.c[0] + Math.cos(a) * r, TD.c[1] + Math.sin(a) * r, k * 1.3, size * (0.7 + ((k * 7) % 5) * 0.15), 22 + ((k * 29) % 30)]); } continue; }
     let c = 0;
     for (let k = 0; k < n * 6 && c < n; k++) {
