@@ -3906,9 +3906,12 @@ function plazaEvents(now = Date.now()) {
   { const c = hwClock(now); ev.push({ ic: "🌕", t: TW("The Cursed Night (Halloween Realm)"), at: c.night ? now : now + c.left * 1000, live: c.night }); } // HX2
   return ev.sort((a, b) => (b.live ? 1 : 0) - (a.live ? 1 : 0) || a.at - b.at);
 }
-// HX2: in town (or any other land) a minute before the Cursed Night: a toast that takes you to the realm's gate; once a cycle
+// HX2: in town (or any other land) a minute before the Cursed Night: a toast that takes you to the realm's gate; once a cycle.
+// OFF since 2026-11-02 (the owner: "Take me there — don't show it"; the night every 30 min popped it over the plaza). The events
+// pill still lists the Cursed Night. HW_CALL true brings it back.
+const HW_CALL = false;
 let hwCalled = -1;
-every(5000, () => { try { if (mode !== "hub" || landNow === "hw" || introOn || level() < 15) return; const c = hwClock(Date.now()); if (!c.warn || hwCalled === c.cycle) return; hwCalled = c.cycle;
+every(5000, () => { try { if (!HW_CALL || mode !== "hub" || landNow === "hw" || introOn || level() < 15) return; const c = hwClock(Date.now()); if (!c.warn || hwCalled === c.cycle) return; hwCalled = c.cycle;
   const el = document.createElement("div"); el.className = "wp-toast wp-hwcall"; el.innerHTML = `<b>🌕 ${esc(TW("The Cursed Night falls in a minute"))}</b><span>${esc(TW("Monsters ×1.5 · EXP ×2 · ARCL ×1.5 · drops ×1.5"))}</span><button type="button">${esc(TW("Take me there"))}</button>`;
   document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("on")); const bye = () => { el.classList.remove("on"); setTimeout(() => el.remove(), 400); };
   el.querySelector("button").onclick = () => { bye(); hwGo(); }; setTimeout(bye, 12000); if (Snd.bell) Snd.bell(); } catch { /* the next time */ } });
