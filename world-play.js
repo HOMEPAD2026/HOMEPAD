@@ -1754,7 +1754,7 @@ st.on((dt, t) => { if (land && mode === "hub") land.tick(dt, t, { x: -planet.pos
 // ---------------- ARCL (world-shop.js): the counter, the shop, the exchange, the daily check-in ----------------
 P.style = P.style || { plate: "", trail: "" };
 const arclShop = SHOP.createShop({
-  T, lang: LANG, esc, toast, post, sess, Snd, P, coarse, reduce, AC, addr,
+  T, lang: LANG, esc, toast, post, sess, Snd, P, coarse, reduce, AC, addr, buyArc: (need, label) => buyArc(need, label),
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
   openAuth: () => openAuth(), openForge: () => rpg && rpg.show("forge"),
   // the daily chest's bonus (the ARCL part comes from the server): potions, scrap, XP or a gear chest
@@ -4716,12 +4716,25 @@ async function walletSignTyped(td) {
   return prov.request({ method: "eth_signTypedData_v4", params: [addr(), JSON.stringify(data)] });
 }
 /// one transaction from the player's own wallet on Arc (the agent's vault: open, fund, allow a token, pause, withdraw)
-async function walletTx(to, data) {
+async function walletTx(to, data, opts = {}) {
   const s = sess(); if (!AC || !s) throw new Error(TW("Wallet connect isn't available here."));
   if (!AC.live || !AC.live()) await AC.connect();
   if (String(addr()).toLowerCase() !== String(s.wallet).toLowerCase()) throw new Error(TW("Switch your wallet to the one you signed in with ({w})", { w: String(s.wallet).slice(0, 6) + "…" + String(s.wallet).slice(-4) }));
   const prov = await AC.provider(); try { await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] }); } catch (e2) { if (e2 && e2.code === 4001) throw e2; }
+  if (!opts.noBuy && /^0xa9059cbb/i.test(String(data || "")) && String(to).toLowerCase() === String(CFG.ARCIRCLE_TOKEN || "").toLowerCase()) { // MK1: a $ARCIRCLE payment the wallet can't cover → buy the rest with USDC first
+    const need = BigInt("0x" + String(data).slice(-64)); let have = null;
+    try { have = BigInt(await rpcRead("eth_call", [{ to, data: "0x70a08231" + String(addr()).slice(2).toLowerCase().padStart(64, "0") }, "latest"])); } catch { /* fail open: the wallet still checks */ }
+    if (have !== null && have < need && !(await buyArc(need, opts.label))) { const e = new Error(TW("Cancelled")); e.code = 4001; throw e; }
+  }
   return prov.request({ method: "eth_sendTransaction", params: [{ from: addr(), to, data }] });
+}
+/// MK1: the "buy $ARCIRCLE with USDC" sheet (world-buyarc.js, loaded the first time it's needed); resolves true once the wallet holds `need`
+let buyArcUi = null;
+async function buyArc(need, label) {
+  try { if (!buyArcUi) { let M; try { M = await import("./world-buyarc.js"); } catch (e) { if (staleReload()) return false; throw e; }
+      buyArcUi = M.createBuyArc({ T: TW, esc, toast, addr, Snd, rpcs: () => RPCS, tx: (t, d) => walletTx(t, d, { noBuy: true }), bridge: () => { try { openBridge(); } catch { toast(TW("Menu → Bring USDC to Arc")); } }, swapPage: "/arcpad#swap", onBought: () => { try { refreshPurse(true); } catch { /* the purse */ } } }); }
+    return await buyArcUi.open(need, label);
+  } catch (e) { console.warn("buyarc", e); toast(TW("The $ARCIRCLE purchase couldn't open. Try again.")); if (diag && diag.err) diag.err("buyarc: " + String((e && e.message) || e), "buyarc"); return false; }
 }
 async function openMarket(tab) {
   closeAll();

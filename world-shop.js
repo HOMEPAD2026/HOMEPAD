@@ -344,7 +344,7 @@ export function createShop(ctx) {
       // enough $ARCIRCLE? read through the wallet's own node; if the read fails, go on (the wallet still checks)
       let have = null;
       try { have = BigInt(await prov.request({ method: "eth_call", params: [{ to: q.j.token, data: "0x70a08231" + pad(ctx.addr()) }, "latest"] })); } catch { /* fail open */ }
-      if (have !== null && have < BigInt(q.j.amount)) { status(T("You need {n} $ARCIRCLE; you have {m}.", { n: fmt(q.j.tokens), m: fmt(Number(have / 10n ** 14n) / 1e4) })); Snd.bad(); return; }
+      if (have !== null && have < BigInt(q.j.amount) && !(ctx.buyArc && (await ctx.buyArc(BigInt(q.j.amount))))) { status(T("You need {n} $ARCIRCLE; you have {m}.", { n: fmt(q.j.tokens), m: fmt(Number(have / 10n ** 14n) / 1e4) })); Snd.bad(); return; } // (MK1: short → buy the rest with USDC first)
       status(T("Confirm sending {n} $ARCIRCLE in your wallet. Half is burned, half goes to the treasury.", { n: fmt(q.j.tokens) }));
       const data = "0xa9059cbb" + pad(q.j.to) + pad(BigInt(q.j.amount).toString(16));
       tx = await prov.request({ method: "eth_sendTransaction", params: [{ from: ctx.addr(), to: q.j.token, data }] });
