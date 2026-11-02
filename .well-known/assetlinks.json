@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.arcircle.world",
+        "sha256_cert_fingerprints": ["C2:07:95:17:9C:96:B3:A6:A9:D8:A0:FC:45:B1:B8:55:59:FA:CA:BE:34:F8:D6:CD:4A:BC:89:97:4C:9E:D6:85"]
+      }
+    }]
