@@ -4456,6 +4456,8 @@ body.wp #wp-dk-char::after{background-image:url("/images/hud/dk3-char.webp?v=1")
 body.wp #wp-dk-bag::after{background-image:url("/images/hud/dk3-bag.webp?v=1")!important}
 body.wp #wp-dk-craft::after{background-image:url("/images/hud/dk3-craft.webp?v=1")!important}
 body.wp #wp-dk-pet::after{background-image:url("/images/hud/dk3-pet.webp?v=1")!important}
+/* the dock's Pets button is off (the owner, 2026-11-02: "왼쪽 하단 Pet 버튼 없애줘"); Menu → Pets and the N key still open the pets */
+body.wp #wp-dk-pet{display:none!important}
 body.wp #wp-dk-build::after{background-image:url("/images/hud/dk3-build.webp?v=1")!important}
 body.wp #wp-dk-games::after{background-image:url("/images/hud/dk3-games.webp?v=1")!important;top:9px!important;height:42px!important}
 /* EX (2026-11-02): the Exchange's dock button — the real $ARCL and $ARCIRCLE coins with the swap arrows, on a dark-glass
