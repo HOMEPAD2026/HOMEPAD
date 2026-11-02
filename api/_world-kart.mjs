@@ -34,6 +34,8 @@
 // 1,079 m long (world-kart.js TRACK_PTS as a closed centripetal Catmull-Rom spline) → floor(19.5) = 19 s.
 // K5 (2026-10-30): three more tracks, the same rule — Lunar Loop 1,170 m → 21 s, Frost Drift 1,092 m → 19 s, Magma Run
 // 1,056 m → 19 s (world-kart.js TRACKS[id].pts). Their feel (low gravity, ice, lava) never makes a kart faster than BOOST_TOP.
+// RR (2026-11-02): Galaxy Gauntlet, the long hard space circuit — 1,711 m → 30 s (open stretches with no rails: off the edge you
+// fall and are put back, only slower). It isn't a daily track (DAILY_IDS).
 // tests/world/kart.test.mjs measures every client track and checks these numbers. The pay rules and day caps are the same
 // on every track (PAY, DAILY_PAY, DAY_RACES, DAY_ARCL — one place). The daily's track comes from the day like its rule.
 // KS (2026-11-01, the owner): the SHOP — cars bought with $ARCIRCLE (world-kart-shop-data.js KSHOP: the cars, prices, numbers).
@@ -45,8 +47,9 @@
 // Firestore: worldKartCars/<wallet> { ids } · worldStats/kartShop { sold, arc, burned, <id> }
 export const KART = {
   DAY_RACES: 5, DAY_ARCL: 2500, PAY: [500, 350, 250, 150, 100], DAILY_PAY: 300,
-  TRACKS: { nexus: { laps: 3, minLap: 19 }, moon: { laps: 3, minLap: 21 }, ice: { laps: 3, minLap: 19 }, volcano: { laps: 3, minLap: 19 } }, MAX_GHOST: 40000,
-  TRACK_IDS: ["nexus", "moon", "ice", "volcano"], /* (the order the daily's track is drawn from: world-kart.js TRACK_IDS is the same) */
+  TRACKS: { galaxy: { laps: 3, minLap: 30 }, nexus: { laps: 3, minLap: 19 }, moon: { laps: 3, minLap: 21 }, ice: { laps: 3, minLap: 19 }, volcano: { laps: 3, minLap: 19 } }, MAX_GHOST: 40000,
+  TRACK_IDS: ["galaxy", "nexus", "moon", "ice", "volcano"], /* (every track, newest first: world-kart.js TRACK_IDS is the same) */
+  DAILY_IDS: ["nexus", "moon", "ice", "volcano"], /* (the order the daily's track is drawn from — the first four only, so adding a track never moves a day's daily: world-kart.js DAILY_IDS is the same) */
   RACERS: ["pepe", "doge", "pengu", "wif", "bonk"], RULES: ["mirror", "nitro", "nodrift", "night", "turbo"],
   XP: { place: [60, 45, 35, 25, 20], lap: 10, ta: 30, daily: 20 }, LV: { per: 100, max: 50 },
   // KG (2026-11-01): guests' races — kept under the guest id (the last KEEP), claimed by a wallet the same Seoul day; a guest id
@@ -57,7 +60,7 @@ export const GID_RE = /^[0-9a-f]{16,32}$/;
 export const kartLv = (xp) => Math.min(KART.LV.max, 1 + Math.floor(Math.sqrt(Math.max(0, xp) / KART.LV.per)));
 const dayHash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; };
 /// the day's challenge: the same rule for everyone on a Seoul day (world-kart.js has the same function)
-export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("kart:" + day); return { day, seed, rule: KART.RULES[seed % KART.RULES.length], track: KART.TRACK_IDS[(seed >>> 8) % KART.TRACK_IDS.length] }; };
+export const dailyOf = (t) => { const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10), seed = dayHash("kart:" + day); return { day, seed, rule: KART.RULES[seed % KART.RULES.length], track: KART.DAILY_IDS[(seed >>> 8) % KART.DAILY_IDS.length] }; };
 export const GHOST_RE = /^[0-9a-z,;.-]*$/;
 import { KSHOP, carOf, priceOf } from "../world-kart-shop-data.js";
 import { ARCIRCLE, FEE_BURN } from "./_world-shop.mjs";
