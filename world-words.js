@@ -373,3 +373,6 @@ Object.assign(WORDS.tr, {"Connect your wallet to exchange": "Takas için cüzdan
 Object.assign(WORDS.ko, {"Over today's limit: {n} $ARCIRCLE left today (300,000 a day)": "오늘 한도 초과: 오늘 남은 수량 {n} $ARCIRCLE (하루 300,000)", "Today's limit": "오늘 한도"});
 Object.assign(WORDS.zh, {"Over today's limit: {n} $ARCIRCLE left today (300,000 a day)": "超出今日上限：今天还剩 {n} $ARCIRCLE（每天 300,000）", "Today's limit": "今日上限"});
 Object.assign(WORDS.tr, {"Over today's limit: {n} $ARCIRCLE left today (300,000 a day)": "Bugünkü sınır aşıldı: bugün {n} $ARCIRCLE kaldı (günde 300.000)", "Today's limit": "Bugünkü sınır"});
+Object.assign(WORDS.ko, {"Treasury wallet connected": "트레저리 지갑이 연결됐어요", "Sign in with it to see the requests, send payouts and set the rate.": "이 지갑으로 로그인하면 신청 목록을 보고, 지급하고, 비율을 정할 수 있어요.", "Sign in": "로그인"}); // (EX: the treasury's sign-in card)
+Object.assign(WORDS.zh, {"Treasury wallet connected": "金库钱包已连接", "Sign in with it to see the requests, send payouts and set the rate.": "用它登录即可查看申请、发放兑换并设置比例。", "Sign in": "登录"}); // (EX: the treasury's sign-in card)
+Object.assign(WORDS.tr, {"Treasury wallet connected": "Hazine cüzdanı bağlandı", "Sign in with it to see the requests, send payouts and set the rate.": "Talepleri görmek, ödemeleri göndermek ve kuru ayarlamak için bu cüzdanla giriş yap.", "Sign in": "Giriş yap"}); // (EX: the treasury's sign-in card)

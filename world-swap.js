@@ -34,7 +34,10 @@ export function createSwap(ctx) {
   const EXP = String(ctx.explorer || "https://arc.etherscan.io").replace(/\/$/, ""), txUrl = (h) => EXP + "/tx/" + h;
   let el = null, data = null, dir = "arcl2arc", tab = "ex", busy = "", queue = null, cfgT = null;
   const S = { get: (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } }, set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* this visit only */ } } };
-  const wallet = () => { const s = ctx.sess && ctx.sess(); return s && s.wallet ? String(s.wallet).toLowerCase() : ""; };
+  // the signed-in wallet — or, with no session (it lasts 23.5 h), the wallet that's connected: the treasury then still sees its tab
+  // and is asked to sign in there (the owner, 2026-11-02: connected as the treasury, the tab wasn't there — the session had run out)
+  const wallet = () => { const s = ctx.sess && ctx.sess(); if (s && s.wallet) return String(s.wallet).toLowerCase(); const a = ctx.addr && ctx.addr(); return a && /^0x[0-9a-fA-F]{40}$/.test(a) ? a.toLowerCase() : ""; };
+  const signedIn = () => !!(ctx.sess && ctx.sess());
   const api = async (action, extra = {}) => { const s = ctx.sess(); if (!s) return { ok: false, j: { error: T("Connect your wallet to exchange") } }; try { return await ctx.post({ action, ...s, ...extra }); } catch (e) { return { ok: false, j: { error: String((e && e.message) || e) } }; } };
   const errOf = (r) => String((r && r.j && r.j.error) || T("No connection — try again")).slice(0, 120);
   const copy = async (t, msg) => { try { await navigator.clipboard.writeText(t); toast(msg); } catch { toast(t); } };
@@ -64,6 +67,7 @@ export function createSwap(ctx) {
       else if (b.classList.contains("wx-flip")) { dir = dir === "arcl2arc" ? "arc2arcl" : "arcl2arc"; b.classList.add("spin"); paint(); (Snd.tab || (() => {}))(); }
       else if (b.dataset.pct) { const i = el.querySelector(".wx-amt"); const [from] = DIRS[dir]; const h = have(from); if (i && h != null) { let L = data.limits.max[from]; if (dir === "arcl2arc" && dayLeft() != null && rate()) L = Math.min(L, Math.floor(dayLeft() * rate())); i.value = fmt(Math.min(L, Math.floor((h * Number(b.dataset.pct)) / 100))); live(); } }
       else if (b.classList.contains("wx-go")) ask();
+      else if (b.dataset.trsign) { Promise.resolve(ctx.signIn && ctx.signIn()).then(load).then(() => { paint(); if (signedIn()) loadQueue(); }).catch(() => {}); }
       else if (b.dataset.sign) { Promise.resolve(ctx.signIn && ctx.signIn()).then(load).then(paint).catch(() => {}); }
       else if (b.dataset.cancel) cancel(b.dataset.cancel);
       else if (b.dataset.pay) pay(b.dataset.pay);
@@ -115,7 +119,7 @@ export function createSwap(ctx) {
         <div class="wx-nums"><span><small>${esc(T("Treasury reserve"))}</small><b>${data && data.reserve != null ? fmt(data.reserve) : "—"}</b><em>$ARCIRCLE</em></span><span><small>${esc(T("Exchanges settled"))}</small><b>${fmt(tot.n)}</b></span><span><small>${esc(T("Paid out"))}</small><b>${fmt(tot.arc)}</b><em>$ARCIRCLE</em></span></div></div>`;
   }
   function paintMine() {
-    if (!wallet()) return `<div class="wx-empty"><p>${esc(T("Connect your wallet to exchange"))}</p><button type="button" class="wx-go sm" data-sign="1">${esc(T("Connect wallet"))}</button></div>`;
+    if (!signedIn()) return `<div class="wx-empty"><p>${esc(T("Connect your wallet to exchange"))}</p><button type="button" class="wx-go sm" data-sign="1">${esc(T("Connect wallet"))}</button></div>`;
     const L = (data && data.mine) || []; if (!L.length) return `<p class="wx-empty">${esc(T("No requests yet"))}</p>`;
     return `<ul class="wx-list">${L.map((r) => { const [f, t] = DIRS[r.dir] || ["arcl", "arc"], got = r.status === "done" ? r.give : r.quote;
       return `<li class="${esc(r.status)}"><div class="wx-pair">${ICON[f]}${ICON[t]}</div><div class="wx-li"><b>${fmt(r.amount)} ${NAME[f]}${got ? ` <s>→</s> ${fmt(got)} ${NAME[t]}` : ""}</b><small>${esc(when(r.at))}${r.rate ? ` · 1 ${NAME.arc} = ${fmtR(r.rate)} ${NAME.arcl}` : ""}${r.reason ? ` · ${esc(T(r.reason))}` : ""}</small>${txBtns(r.dir === "arcl2arc" ? r.gmTx : r.retTx || r.tx)}</div><div class="wx-side">${statusChip(r.status)}${r.status === "pending" && r.dir === "arcl2arc" ? `<button type="button" class="wx-cancel" data-cancel="${esc(r.id)}">${esc(T("Cancel"))}</button>` : ""}</div></li>`; }).join("")}</ul>`;
@@ -132,6 +136,7 @@ export function createSwap(ctx) {
     const head = `<div class="wx-tr"><img class="wx-vault" src="${UIX}vault.webp?v=1" alt="" draggable="false"><div class="wx-tr-rate"><small>${esc(T("Exchange rate"))}</small><div class="wx-row"><span>1 ${NAME.arc} =</span><input class="wx-ratein" inputmode="decimal" value="${c.rate ? esc(String(c.rate)) : ""}" placeholder="0" aria-label="${esc(T("Exchange rate"))}"><span>${NAME.arcl}</span><button type="button" class="wx-btn gold" data-saverate>${esc(T("Save rate"))}</button></div>
         <p class="wx-ratepv" data-ratepv></p><div class="wx-row"><button type="button" class="wx-switch${c.open ? " on" : ""}" data-toggle role="switch" aria-checked="${!!c.open}"><i></i>${esc(c.open ? T("Open for requests") : T("Paused"))}</button><small>${esc(T("Treasury reserve"))} <b>${data && data.reserve != null ? fmt(data.reserve) : "—"} $ARCIRCLE</b></small></div>
         ${c.hist && c.hist.length ? `<small class="wx-hist">${esc(T("Recent rates"))}: ${c.hist.slice(0, 5).map((h) => `${fmtR(h.rate)} <i>${esc(when(h.at))}</i>`).join(" · ")}</small>` : ""}</div></div>`;
+    if (!signedIn()) return `<div class="wx-trsign"><img src="${UIX}ic-treasury.webp?v=1" alt="" width="72" height="72"><b>${esc(T("Treasury wallet connected"))}</b><p>${esc(T("Sign in with it to see the requests, send payouts and set the rate."))}</p><button type="button" class="wx-go" data-trsign>${esc(T("Sign in"))}</button></div>`;
     if (!queue) return head + `<p class="wx-empty">${esc(T("Loading…"))}</p>`;
     const open = queue.filter((r) => r.status === "pending" || r.status === "returning").sort((a, b) => a.at - b.at), rest = queue.filter((r) => !open.includes(r)).sort((a, b) => (b.doneAt || b.at) - (a.doneAt || a.at)).slice(0, 30);
     const row = (r) => { const [f, t] = DIRS[r.dir] || ["arcl", "arc"], q = r.quote || (r.dir === "arcl2arc" ? arcFor(r.amount, r.rate || rate()) : arclFor(r.amount, r.rate || rate())), wb = busy === r.id;
@@ -149,10 +154,10 @@ export function createSwap(ctx) {
     const body = el.querySelector(".wx-body"); body.innerHTML = tab === "mine" ? paintMine() : tab === "log" ? paintLog() : tab === "tr" ? paintTr() : paintEx();
     body.dataset.tab = tab; if (tab === "ex") live(); if (tab === "tr") paintRatePreview();
   }
-  async function loadQueue() { const r = await api("world-swap-admin", { op: "list" }); queue = r.ok ? r.j.list : []; cfgT = r.ok ? r.j.cfg : null; if (tab === "tr") paint(); }
+  async function loadQueue() { if (!signedIn()) { paint(); return; } const r = await api("world-swap-admin", { op: "list" }); queue = r.ok ? r.j.list : []; cfgT = r.ok ? r.j.cfg : null; if (tab === "tr") paint(); }
   // a request (and for $ARCIRCLE → $ARCL the wallet's transfer to the treasury first)
   async function ask() {
-    if (busy) return; if (!wallet()) { if (ctx.signIn) { await ctx.signIn(); await load(); paint(); } return; }
+    if (busy) return; if (!signedIn()) { if (ctx.signIn) { await ctx.signIn(); await load(); paint(); } return; }
     const a = amtNow(); if (!a) return;
     const extra = { dir, amount: a };
     if (dir === "arc2arcl") {

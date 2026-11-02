@@ -6745,3 +6745,6 @@ html.wp-pcphone .wk-shopcard b{font-size:13px}html.wp-pcphone .wk-shopcard small
 html.wp-pcphone .wks{padding:0;inset:0;place-items:stretch}html.wp-pcphone .wks-in{max-height:none;height:100%;border-radius:0}html.wp-pcphone .wks-body{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 html.wp-pcphone .wks-grid{grid-template-columns:1fr}
 @media (prefers-reduced-motion:reduce){.wks,.wks-car.leg::before,.wks-new,.wks-buy::after{animation:none}}
+
+/* EX (2026-11-02): the Treasury tab for a connected treasury wallet whose session ran out — sign in there */
+.wx-trsign{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:34px 20px}.wx-trsign b{font:800 18px/1.2 Sora,sans-serif;color:#ffe08a}.wx-trsign p{max-width:340px;color:#bcd0f0;font-size:14px;line-height:1.45}
