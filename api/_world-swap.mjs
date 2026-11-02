@@ -36,6 +36,7 @@ export const SWAP = {
   RELAUNCH: Date.parse("2026-11-02T06:00:00Z"), // requests before it that were still waiting are closed and refunded once
   MIN: { arcl: 1000, arc: 100 }, MAX: { arcl: 50_000_000, arc: 100_000_000 },
   RATE: { min: 0.0001, max: 1_000_000 }, // $ARCL per 1 $ARCIRCLE
+  DEFAULT_RATE: 10, // the opening rate until the treasury saves its own (the owner, 2026-11-02: 10 $ARCL = 1 $ARCIRCLE)
   DAY_ARC: 300_000, // the most $ARCIRCLE one wallet can ask for in a Seoul day (ARCL → $ARCIRCLE; the owner, 2026-11-02) — over it a request is refused
   KEEP: 30, // a player's own list: the latest 30
   LOG: 300, // the public record keeps the latest 300 ids (the read gives 100)
@@ -66,7 +67,7 @@ export function makeSwap(deps) {
   const isTreasury = (w) => lc(w) === SWAP.TREASURY;
   const arclOf = async (w) => { const b = (await one(`worldArclBal/${w}`)) || {}; return { bal: Math.floor(b.bal || 0), held: Math.floor(b.held || 0) }; };
   const arcOf = async (w) => { try { return deps.tokenBalance ? Number(BigInt(await deps.tokenBalance(ARCIRCLE, w)) / WEI) : null; } catch { return null; } };
-  const cfgOf = async () => { const c = (await one("worldSwapCfg/main")) || {}; const rate = cleanRate(c.rate); return { rate, open: !!(rate && c.open !== false), at: c.at || 0, hist: Array.isArray(c.hist) ? c.hist.slice(0, 20) : [] }; };
+  const cfgOf = async () => { const c = (await one("worldSwapCfg/main")) || {}; const own = cleanRate(c.rate), rate = own || SWAP.DEFAULT_RATE; return { rate, own: !!own, open: !!(rate && c.open !== false), at: c.at || 0, hist: Array.isArray(c.hist) ? c.hist.slice(0, 20) : [] }; };
   const short = (w) => (w ? lc(w).slice(0, 6) + "…" + lc(w).slice(-4) : "");
   const pub = (r) => ({ id: r.id, dir: r.dir, amount: r.amount, status: r.status, at: r.at, doneAt: r.doneAt || 0, give: r.give || 0, quote: r.quote || 0, rate: r.rate || 0, gmTx: r.gmTx || "", tx: r.tx || "", retTx: r.retTx || "", note: r.note || "", reason: r.reason || "" });
   const rowOf = (r) => ({ id: r.id, dir: r.dir, who: short(r.w), amount: r.amount, give: r.give || 0, rate: r.rate || 0, at: r.doneAt || r.at, tx: r.dir === "arcl2arc" ? r.gmTx || "" : r.tx || "" });
@@ -178,7 +179,7 @@ export function makeSwap(deps) {
     }
     if (op === "rate") {
       const rate = cleanRate(b.rate); if (!rate) return json(400, { error: `the rate is $ARCL per 1 $ARCIRCLE, between ${SWAP.RATE.min} and ${SWAP.RATE.max.toLocaleString("en-US")}` });
-      const c = await cfgOf(), t = now(), open = b.open === undefined ? (c.rate ? c.open : true) : !!b.open;
+      const c = await cfgOf(), t = now(), open = b.open === undefined ? (c.own ? c.open : true) : !!b.open;
       await setDoc("worldSwapCfg/main", { rate, open, at: t, by: s.wallet, hist: [{ rate, at: t }, ...c.hist].slice(0, 20) });
       return json(200, { ok: true, cfg: await cfgOf() });
     }

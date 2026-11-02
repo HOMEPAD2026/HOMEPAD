@@ -37,17 +37,18 @@ const old2 = { id: "old2", w: b, dir: "arc2arcl", amount: 2000, status: "pending
 db.set("worldSwap/old1", old1); db.set("worldSwap/old2", old2); db.set("worldSwapQ/2026-10", { ids: ["old2", "old1"] }); db.set(`worldSwapMine/${a}`, { ids: ["old1"] }); db.set(`worldSwapMine/${b}`, { ids: ["old2"] });
 
 let v = await read("world=swap");
-check(v.ok && v.rate === 0 && v.open === false && v.treasury === SWAP.TREASURY && Array.isArray(v.log), "the exchange reads without a wallet: no rate yet, closed, the treasury's address, the public record");
+check(v.ok && v.rate === SWAP.DEFAULT_RATE && v.rate === 10 && v.open === true && v.treasury === SWAP.TREASURY && Array.isArray(v.log), "the exchange reads without a wallet: the opening rate 10 $ARCL = 1 $ARCIRCLE, open, the treasury's address, the public record");
 check(bal(a).bal === 105000 && bal(a).held === 0 && db.get("worldSwap/old1").status === "refunded", "the relaunch: A's held 5,000 ARCL is back and the old request says refunded");
 check(db.get("worldSwap/old2").status === "returning", "the relaunch: B's old $ARCIRCLE transfer is marked to be returned by the treasury");
 check(db.get("worldSwapMig/relaunch").done && db.get("worldSwapMig/relaunch").refunded === 1 && db.get("worldSwapMig/relaunch").returning === 1, "the relaunch ran once and counted what it closed");
 await read("world=swap"); check(bal(a).bal === 105000, "reading again doesn't refund twice");
 
 // ---- the rate: only the treasury sets it
-let r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 10000 }); check(r.status === 409, "no request before the treasury posts a rate");
+let r = await call(TRE, "world-swap-admin", { op: "open", open: false }); check(r.status === 200 && r.body.cfg.rate === 10 && !r.body.cfg.open, "the treasury can pause the opening rate");
+r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 10000 }); check(r.status === 409, "paused: no request");
 r = await call(A, "world-swap-admin", { op: "rate", rate: 10 }); check(r.status === 403, "a player can't set the rate");
 r = await call(TRE, "world-swap-admin", { op: "rate", rate: 0 }); check(r.status === 400, "a rate of 0 is refused");
-r = await call(TRE, "world-swap-admin", { op: "rate", rate: 12.5 }); check(r.status === 200 && r.body.cfg.rate === 12.5 && r.body.cfg.open, "the treasury sets 1 $ARCIRCLE = 12.5 $ARCL and the exchange opens");
+r = await call(TRE, "world-swap-admin", { op: "rate", rate: 12.5, open: true }); check(r.status === 200 && r.body.cfg.rate === 12.5 && r.body.cfg.open, "the treasury sets 1 $ARCIRCLE = 12.5 $ARCL and the exchange opens");
 v = await read("world=swap&wallet=" + A.address); check(v.rate === 12.5 && v.open && v.mine.some((x) => x.id === "old1" && x.status === "refunded") && !v.isTreasury, "everyone sees the rate; A sees the refunded old request");
 check((await read("world=swap&wallet=" + TRE.address)).isTreasury === true, "the treasury's wallet is told it's the treasury");
 
