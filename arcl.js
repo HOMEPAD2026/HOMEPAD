@@ -396,7 +396,7 @@
   function paintEarn() { $("#al-earn").innerHTML = EARN.filter(function (e) { return e[2] === tab; }).map(function (e) { return card("e." + e[0], e[1], true); }).join(""); watchReveal(); }
   function paintCa() {
     var el = $("#al-ca"); if (!el) return;
-    if (A.ca) el.innerHTML = "<code>" + esc(A.ca) + '</code><button type="button" id="al-ca-copy">' + esc(t("ca.copy")) + '</button><a href="' + esc(A.explorer + "/token/" + A.ca) + '" target="_blank" rel="noopener">' + esc(t("ca.view")) + "</a>";
+    if (A.ca) el.innerHTML = "<code>" + esc(A.ca) + '</code><button type="button" id="al-ca-copy">' + esc(t("ca.copy")) + '</button><a href="' + esc(A.explorer + "/token/" + A.ca) + '" target="_blank" rel="noopener">' + esc(t("ca.view")) + "</a>" + (A.buy ? '<a href="' + esc(A.buy) + '" target="_blank" rel="noopener">PONS Launchpad →</a>' : "");
     else el.innerHTML = '<span class="pend">🔒 ' + esc(t("ca.pend")) + '</span><a href="' + esc(A.x) + '" target="_blank" rel="noopener">X</a><a href="' + esc(A.tg) + '" target="_blank" rel="noopener">Telegram</a>';
   }
   // the launch in the reader's language, US Eastern first, then their own time and five more zones

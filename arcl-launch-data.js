@@ -13,7 +13,8 @@
     launch: Date.parse(LAUNCH), launchIso: LAUNCH, delayMin: DELAY_MIN, delayEnd: Date.parse(LAUNCH) + DELAY_MIN * 60e3,
     zone: "Asia/Seoul", // (the owner's own clock; the page names each language's zone first: en ET, ko KST, zh 北京, tr TSİ)
     chain: "Robinhood Chain", explorer: "https://robinhoodchain.blockscout.com",
-    ca: "", // (the official contract, set at launch; until then the page says it's posted on X and Telegram only)
+    ca: "0xcc0556ea30612ab2c088786acbedc060b0db055c", // the official contract (the owner, 3 Nov 2026)
+    buy: "https://ponsfamily.com/launchpad/0xcc0556ea30612ab2c088786acbedc060b0db055c", // where it trades at launch: the PONS launchpad
     fee: { total: 2, burn: 1, game: 1 },
     x: "https://x.com/ARCIRCLEonArc", tg: "https://t.me/ARCIRCLEonarc",
     // the phases the pages show: "soon" before the launch, "window" until the delay runs out, "live" after

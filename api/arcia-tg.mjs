@@ -177,9 +177,9 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
 // since 5 Oct 2026 exactly two official coins — the old $ARCIA on Arc and ♾️ Infinite are retired
 // the owner's form (2026-11-03): $ARCL first — its CA is posted after the launch (ARCL_CA stays "" until then) —, then $ARCIRCLE
-const ARCL_CA = "";
+const ARCL_CA = "0xcc0556ea30612ab2c088786acbedc060b0db055c", ARCL_BUY = "https://ponsfamily.com/launchpad/0xcc0556ea30612ab2c088786acbedc060b0db055c";
 const cardCA = () => `💚 <b>$ARCL</b>(Main):\n${ARCL_CA ? `<code>${h(ARCL_CA)}</code>` : "coming soon on robinhood"}\n\n💙 <b>$ARCIRCLE</b>(Main):\n<code>${h(CHECKSUM.arcircle)}</code>`;
-const caKb = () => kb([[{ text: "💚 $ARCL", url: `${SITE}/arcl` }, { text: "💙 $ARCIRCLE", url: `${SITE}/game` }]]);
+const caKb = () => kb([[{ text: "💚 $ARCL", url: `${SITE}/arcl` }, { text: "💙 $ARCIRCLE", url: `${SITE}/game` }], [{ text: "🚀 Buy $ARCL on PONS", url: ARCL_BUY }]]);
 const RETIRED_LABEL = {
   "0x9da6d5ce413e94264ea411372459413334a83be5": ["the old $ARCIA on Arc", "예전 $ARCIA on Arc", "旧的 Arc 上的 $ARCIA"],
   "0x2a15940316335bfb711db7cba98d637396e80c08": ["♾️ Infinite on Arc (the test coin)", "♾️ Infinite on Arc (테스트 코인)", "Arc 上的 ♾️ Infinite（测试币）"],
