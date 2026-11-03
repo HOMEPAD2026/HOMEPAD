@@ -36,7 +36,7 @@ import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.m
 import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_POST, OFFICIAL_EVERY, SHOP_POST, aboutShop, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
-const DAY_CAP = 50, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
+const DAY_CAP = 90, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
 // the hourly game post (hourlyPost): one an hour about ARCIRCLE WORLD; a link only every HOURLY_LINK_EVERY hours (X bills a
 // post with a link far more than one without)
 const HOURLY_ON = true, HOURLY_LINK_EVERY = 3;
@@ -306,7 +306,21 @@ async function deskWatchdog(origin) {
 // hourly run; the hourly game post rests while it's on. No automated @mentions of other accounts (X's automation rules).
 export const ARCL_LAUNCH = Date.parse("2026-11-03T11:00:00Z"), ARCL_WINDOW = 30 * 60e3, LAUNCH_EVERY = 20;
 export const LAUNCH_POST = "https://x.com/ARCIRCLEonArc/status/2117482384950235380";
-export const launchOn = (ms = Date.now()) => ms >= Date.parse("2026-11-03T05:00:00Z") && ms < ARCL_LAUNCH + ARCL_WINDOW;
+// after the launch (the owner, 2026-11-03: "런칭을 알리고 게임 내 코인에 대해 처음 온 사람들을 위해 20분마다"): the same 20-minute
+// slot carries a newcomer's guide to $ARCL — one topic a post, the languages still taking turns — until ARCL_INFO_END
+export const ARCL_INFO_END = Date.parse("2026-11-10T11:00:00Z");
+export const ARCL_CA = "0xcc0556ea30612ab2c088786acbedc060b0db055c", ARCL_BUY = "https://ponsfamily.com/launchpad/" + ARCL_CA;
+export const launchOn = (ms = Date.now()) => ms >= Date.parse("2026-11-03T05:00:00Z") && ms < ARCL_INFO_END;
+export const ARCL_TOPICS = [
+  { k: "live", say: "$ARCL is now live on Robinhood Chain, launched through the PONS launchpad — ARCIRCLE WORLD's own game coin is on-chain" },
+  { k: "what", say: "what $ARCL is, for newcomers: the game coin of ARCIRCLE WORLD, earned by playing its games (KART, SURVIVORS, RAID QUEENS, INFINITY RINGS, the ARCL Mine, Jurassic World …) and spent in the world — apart from $ARCIRCLE, the ecosystem token on Arc" },
+  { k: "earn", say: "how a newcomer starts earning ARCL: open arcircle.app/game, press PLAY FREE (phone or PC browser, no install), pick a hero and play — the server counts every ARCL a race, run or rock pays, inside daily limits" },
+  { k: "use", say: "what in-game ARCL buys: gear, forging, styles, islands, poker chips, the Studio and the Creator Market" },
+  { k: "fee", say: "the 2% fee on every $ARCL trade: 1% buys back and burns $ARCIRCLE, 1% goes to the game's development" },
+  { k: "next", say: "what's planned next for $ARCL (planned, details to be announced, no dates): in-game trading and rewards moving to $ARCL, and the in-game ARCL players already earned becoming exchangeable 1:1 for $ARCL on Robinhood Chain" },
+  { k: "safe", say: "safety: the only official $ARCL contract is the one ARCIRCLE posts (it's added under your text), nobody from the team DMs first, check every character before buying" },
+  { k: "bridge", say: "ARCIRCLE connects Arc and Robinhood Chain through a game: $ARCIRCLE on Arc, $ARCL on Robinhood Chain, one world to play in" },
+];
 export function launchLeft(ms) { const m = Math.max(0, Math.round((ARCL_LAUNCH - ms) / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; }
 // the posts take turns in five languages (the owner, 2026-11-03): en → ko → zh → ja → tr, one a slot
 export const LAUNCH_LANGS = ["en", "ko", "zh", "ja", "tr"];
@@ -327,6 +341,30 @@ function leftIn(lang, ms) {
   if (lang === "tr") return h ? `${h} sa ${r} dk` : `${r} dk`;
   return h ? `${h}h ${r}m` : `${r} min`;
 }
+const INFO_FALLBACK = {
+  en: "💚 $ARCL is live on Robinhood Chain — the game coin of ARCIRCLE WORLD. Play free in your browser, earn ARCL in every game.",
+  ko: "💚 $ARCL 로빈후드 체인 런칭 완료! ARCIRCLE WORLD의 게임 코인이에요. 브라우저에서 무료로 플레이하고 모든 게임에서 ARCL을 모아요.",
+  zh: "💚 $ARCL 已在 Robinhood Chain 上线！这是 ARCIRCLE WORLD 的游戏币。浏览器免费畅玩，每个游戏都能赚 ARCL。",
+  ja: "💚 $ARCL が Robinhood Chain でローンチ！ARCIRCLE WORLD のゲームコインです。ブラウザで無料プレイ、全ゲームで ARCL を集めよう。",
+  tr: "💚 $ARCL Robinhood Chain'de yayında! ARCIRCLE WORLD'ün oyun coini. Tarayıcında ücretsiz oyna, her oyunda ARCL kazan.",
+};
+async function infoPost(origin, st, slot, id, d, lang) {
+  const topic = ARCL_TOPICS[Math.floor(slot / LAUNCH_LANGS.length) % ARCL_TOPICS.length];
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain, PONS and @ARCIRCLEonArc as they are), for people who are new. Topic: ${topic.say}. Under 170 characters (CJK: under 95 characters), at most two emoji, no hashtags, no links and no contract address (the contract and link are added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards; say planned things are planned. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  let text = "";
+  try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 180 })) || ""; } catch { text = ""; }
+  text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/0x[0-9a-fA-F]{6,}/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  if (!text || /^SKIP\b/i.test(text)) text = INFO_FALLBACK[lang];
+  // the official contract + one link (PONS for trading topics, the ARCL page otherwise) — never written by the model
+  const link = /live|fee|safe/.test(topic.k) ? `🚀 ${ARCL_BUY}` : `🎮 arcircle.app/arcl`;
+  let out = `${text}\n\n💚 $ARCL CA: ${ARCL_CA}\n${link}`;
+  if (xLen(out) > 278) out = `${INFO_FALLBACK[lang]}\n\n💚 $ARCL CA: ${ARCL_CA}\n${link}`;
+  try {
+    const x = await xPost(out);
+    st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text: out }); st.dirty = true;
+    return { id, lang, topic: topic.k, posted: x, text: out };
+  } catch (e) { const msg = String(e.message || e); if (/duplicate/i.test(msg)) { st.sent[id] = { t: now(), x: "dup" }; st.dirty = true; } return { id, error: msg.slice(0, 200) }; }
+}
 async function launchPost(origin, st) {
   const ms = Date.now();
   if (!launchOn(ms)) return null;
@@ -335,6 +373,7 @@ async function launchPost(origin, st) {
   const d = dayOf(now());
   if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
   const live = ms >= ARCL_LAUNCH, lang = LAUNCH_LANGS[slot % LAUNCH_LANGS.length], left = leftIn(lang, ms);
+  if (live && ms >= ARCL_LAUNCH + ARCL_WINDOW) return infoPost(origin, st, slot, id, d, lang);
   const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain and @ARCIRCLEonArc as they are). ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 2% fee a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}") and the launch time in that language's own zone (Korean: 오후 8시 KST; Chinese: 北京时间 19:00; Japanese: 日本時間 20:00; Turkish: TSİ 14:00; English: 6:00 AM ET). Under 200 characters (CJK: under 110 characters), at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
   let text = "";
   try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 200 })) || ""; } catch { text = ""; }
