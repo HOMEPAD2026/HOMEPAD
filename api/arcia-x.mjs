@@ -306,6 +306,8 @@ async function deskWatchdog(origin) {
 // hourly run; the hourly game post rests while it's on. No automated @mentions of other accounts (X's automation rules).
 export const ARCL_LAUNCH = Date.parse("2026-11-03T11:00:00Z"), ARCL_WINDOW = 30 * 60e3, LAUNCH_EVERY = 20;
 export const LAUNCH_POST = "https://x.com/ARCIRCLEonArc/status/2117482384950235380";
+// the launch announcement (the owner, 3 Nov 2026, after the launch): every post-launch info post carries this link
+export const LIVE_POST = "https://x.com/ARCIRCLEonArc/status/2117573708328157456";
 // after the launch (the owner, 2026-11-03: "런칭을 알리고 게임 내 코인에 대해 처음 온 사람들을 위해 20분마다"): the same 20-minute
 // slot carries a newcomer's guide to $ARCL — one topic a post, the languages still taking turns — until ARCL_INFO_END
 export const ARCL_INFO_END = Date.parse("2026-11-10T11:00:00Z");
@@ -356,7 +358,7 @@ async function infoPost(origin, st, slot, id, d, lang) {
   text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/0x[0-9a-fA-F]{6,}/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
   if (!text || /^SKIP\b/i.test(text)) text = INFO_FALLBACK[lang];
   // the official contract + one link (PONS for trading topics, the ARCL page otherwise) — never written by the model
-  const link = /live|fee|safe/.test(topic.k) ? `🚀 ${ARCL_BUY}` : `🎮 arcircle.app/arcl`;
+  const link = `🚀 ${LIVE_POST}`; // one link a post: the official launch announcement
   let out = `${text}\n\n💚 $ARCL CA: ${ARCL_CA}\n${link}`;
   if (xLen(out) > 278) out = `${INFO_FALLBACK[lang]}\n\n💚 $ARCL CA: ${ARCL_CA}\n${link}`;
   try {
