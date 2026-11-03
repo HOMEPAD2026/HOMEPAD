@@ -41,6 +41,10 @@
       "destination": "/arcl.html"
     },
     {
+      "source": "/arcl-wallet",
+      "destination": "/arcl-wallet.html"
+    },
+    {
       "source": "/support",
       "destination": "/support.html"
     },
