@@ -58,7 +58,7 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   const top = await G(() => [...document.querySelectorAll(".wp-hud-btns>.wp-btn")].filter((x) => x.getClientRects().length).map((x) => x.id));
   check(top.includes("wp-rew-btn") && !top.includes("wp-gift-btn") && !top.includes("wp-shop-btn"), `${dev}: the top bar folds the rewards into one button (${top.join(" ")})`);
   check((await G(() => [...document.querySelectorAll("#wp-dock .wp-dk")].filter((x) => x.getClientRects().length).map((x) => x.id)))[0] === "wp-dk-games", `${dev}: Games is the dock's first button`);
-  await G(() => document.querySelectorAll(".wp-st .wp-st-x, .wp-qs [data-qs=go], #wp-guide-go").forEach((c) => c.click())); await p.waitForTimeout(400); /* (a slow machine reaches here past the minute the "first 5 minutes" card waits: it would sit over the Menu) */
+  await G(() => document.querySelectorAll(".wp-st .wp-st-x, .wp-qs [data-qs=go], #wp-guide-go, .kev-pop .kev-pop-x").forEach((c) => c.click())); await p.waitForTimeout(400); /* (a slow machine reaches here past the minute the "first 5 minutes" card waits: it would sit over the Menu) */
   await G(() => document.getElementById("wp-more-btn").click()); await p.waitForTimeout(800);
   check((await G(() => document.querySelectorAll(".wp-hub-main [data-hub]").length)) === 9, `${dev}: the Menu's nine big tiles`); await shot("menu");
   await G(() => document.querySelector("[data-hub-x]").click()); await p.waitForTimeout(400);
