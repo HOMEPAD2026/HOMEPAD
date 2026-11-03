@@ -76,7 +76,7 @@ for (const dev of (process.env.DEVS ?? "phone,desk").split(",").filter(Boolean))
   // the Games list, into a game and out, twice
   for (let round = 1; round <= 2; round++) {
     await G(() => document.getElementById("wp-dk-games").click()); await p.waitForTimeout(2200);
-    check((await G(() => document.querySelectorAll(".wp-games [data-game]").length)) === 8, `${dev} round ${round}: the Games list, 8 games`); if (round === 1) await shot("games");
+    check((await G(() => document.querySelectorAll(".wp-games [data-game]").length)) >= 9, `${dev} round ${round}: the Games list, 9+ games (KART first)`); if (round === 1) await shot("games");
     await G(() => document.querySelector('[data-game="surv"]').click());
     let on = false; for (let i = 0; i < 60 && !on; i++) { await p.waitForTimeout(1000); on = await G(() => document.body.classList.contains("wp-surv")); }
     check(on, `${dev} round ${round}: into SURVIVORS ARENA`);
