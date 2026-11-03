@@ -9,7 +9,7 @@ ok(A && A.launch === Date.parse("2026-11-03T11:00:00Z"), "the launch is Tue 3 No
 ok(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", hour: "numeric", minute: "2-digit" }).format(new Date(A.launch)) === "8:00 PM", "8:00 PM in Seoul on the day");
 ok(A.delayMin === 30 && A.delayEnd - A.launch === 30 * 60e3, "the delay window is 30 minutes");
 ok(A.phase(A.launch - 1) === "soon" && A.phase(A.launch) === "window" && A.phase(A.delayEnd - 1) === "window" && A.phase(A.delayEnd) === "live", "phases: soon → window (30 min) → live");
-ok(A.fee.total === 2 && A.fee.burn === 1 && A.fee.game === 1, "2% fee: 1% $ARCIRCLE buyback & burn + 1% for the game");
+ok(A.fee.total === 3 && A.fee.arcl === 1 && A.fee.burn === 1 && A.fee.game === 1, "3% fee: 1% $ARCL + 1% $ARCIRCLE buyback & burn + 1% the game platform");
 ok(A.ca === "" || /^0x[0-9a-fA-F]{40}$/.test(A.ca), "the contract is empty until posted, or a real address");
 ok(A.x === "https://x.com/ARCIRCLEonArc" && A.tg === "https://t.me/ARCIRCLEonarc", "the official links are the site's own");
 // the page and its wiring

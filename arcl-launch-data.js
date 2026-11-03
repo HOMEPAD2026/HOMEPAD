@@ -4,7 +4,7 @@
 //
 //   LAUNCH   Tue 3 Nov 2026, 8:00 PM Korea (KST) = 11:00 UTC = 6:00 AM US Eastern — the owner, 13:08 KST: "8:00 예정, 6시간 52분 뒤"
 //   DELAY    it may start up to 30 minutes late: the page shows "launch window" until LAUNCH + DELAY, then "see X / Telegram"
-//   FEE      2% a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development and in-game use
+//   FEE      3% a trade — 1% for $ARCL, 1% for $ARCL, 1% buys back and burns $ARCIRCLE, 1% for the game platform
 //   CA       the token's contract address: empty until the owner posts it (then set it here, and the pages show it)
 (function (g) {
   "use strict";
@@ -15,7 +15,7 @@
     chain: "Robinhood Chain", explorer: "https://robinhoodchain.blockscout.com",
     ca: "0xcc0556ea30612ab2c088786acbedc060b0db055c", // the official contract (the owner, 3 Nov 2026)
     buy: "https://ponsfamily.com/launchpad/0xcc0556ea30612ab2c088786acbedc060b0db055c", // where it trades at launch: the PONS launchpad
-    fee: { total: 2, burn: 1, game: 1 },
+    fee: { total: 3, arcl: 1, burn: 1, game: 1 },
     x: "https://x.com/ARCIRCLEonArc", tg: "https://t.me/ARCIRCLEonarc",
     // the phases the pages show: "soon" before the launch, "window" until the delay runs out, "live" after
     phase: function (t) { t = t == null ? Date.now() : t; return t < this.launch ? "soon" : t < this.delayEnd ? "window" : "live"; },
