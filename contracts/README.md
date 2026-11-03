@@ -14,10 +14,14 @@ ARCIRCLE's onchain work is written, audited and tested with **Arc Studio** (stud
 |---|---|---|
 | CrimsonCelestialNFT | 0x709E1B65c529567Fbe1C79dE278c2ABbA0086ff5 | 2026-10-29 — 0 critical · 0 high · 1 medium · 3 low · 4 info |
 | CrimsonMarket | 0xE0f065334A1CD845f7ebf93EcaB1f8c80A04Cd19 | 2026-10-29 — 0 critical · 0 high · 1 medium · 3 low · 5 info |
-| AgentDimension | not deployed | 2026-10-29 — 0 critical · 1 high · 3 medium · 5 low · 5 info (fixes and a re-audit in Arc Studio come before any deploy) |
+| AgentDimension | not deployed | 2026-10-29 — 0 critical · 1 high · 3 medium · 5 low · 5 info (AD-1 … AD-8 and AD-13 addressed 2026-11-03) |
+| AgentDimension (fixes) | not deployed | 2026-11-03 re-audit — **pending** (Arc Studio not run yet) |
+| CrimsonBids | not deployed | 2026-11-03 — **pending** (Arc Studio not run yet) |
 
 Session `crimson-audit` (app 4f2ec0cc-8e7e-44f0-92b6-1e4b26e01961). The report and the game's mitigations:
 [audits/arc-studio-2026-10-29.md](audits/arc-studio-2026-10-29.md).
+The 2026-11-03 fixes and CrimsonBids wait for their Arc Studio audit before any deploy:
+[audits/arc-studio-2026-11-03.md](audits/arc-studio-2026-11-03.md).
 
 ## How it works
 

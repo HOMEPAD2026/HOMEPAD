@@ -6,6 +6,7 @@ const U = (n) => ethers.parseUnits(String(n), 6);
 const E = (n) => ethers.parseEther(String(n));
 const HOOK_ADDR = "0x0000000000000000000000000000000000012044";
 function sqrtFor(p, tokenIs0) { const raw = tokenIs0 ? (p * 1e6) / 1e18 : 1 / ((p * 1e6) / 1e18); return BigInt(Math.floor(Math.sqrt(raw) * 2 ** 48)) * 2n ** 48n; }
+const DL = 2n ** 40n; // a deadline far ahead
 const inc = async (s) => { await network.provider.send("evm_increaseTime", [s]); await network.provider.send("evm_mine"); };
 
 describe("AgentDimension", function () {
@@ -45,6 +46,7 @@ describe("AgentDimension", function () {
     memeKey = await pool(T.meme, ethers.ZeroAddress, 0.0001);
     pepeKey = await pool(T.pepe, HOOK_ADDR, 0.0001);
     fac = await (await ethers.getContractFactory("AgentDimensionFactory")).deploy(await pm.getAddress(), T.usdc, T.arc, owner.address, op.address, feeTo.address, FEE);
+    await fac.setHookAllowed(HOOK_ADDR, true);
     await fac.listPool(memeKey); await fac.listPool(pepeKey);
   });
 
@@ -73,7 +75,7 @@ describe("AgentDimension", function () {
     await expect(v.connect(alice).allowToken(T.arc)).to.be.revertedWithCustomError(fac, "NotListed");
     await v.connect(alice).allowToken(T.meme);
     expect(await v.tokens()).to.deep.equal([T.meme]);
-    await expect(v.connect(op).trade(T.pepe, true, U(1), 1)).to.be.revertedWithCustomError(v, "NotAllowed");
+    await expect(v.connect(op).trade(T.pepe, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "NotAllowed");
   });
 
   it("a buy: USDC in (≤ 100), the token stays in the vault, the fee goes to feeTo in $ARCIRCLE", async function () {
@@ -81,7 +83,7 @@ describe("AgentDimension", function () {
     const q = await quote(v, T.meme, true, U(100));
     expect(q).to.be.gt(0n);
     const f0 = await arc.balanceOf(feeTo.address);
-    await expect(v.connect(op).trade(T.meme, true, U(100), (q * 99n) / 100n)).to.emit(v, "Traded");
+    await expect(v.connect(op).trade(T.meme, true, U(100), (q * 99n) / 100n, DL)).to.emit(v, "Traded");
     expect(await meme.balanceOf(a)).to.equal(q);
     expect(await usdc.balanceOf(a)).to.equal(U(400));
     expect((await arc.balanceOf(feeTo.address)) - f0).to.equal(FEE);
@@ -90,16 +92,18 @@ describe("AgentDimension", function () {
     expect(await v.totalFees()).to.equal(FEE);
     expect(await v.trades()).to.equal(1n);
     await inc(301);
-    await expect(v.connect(op).trade(T.meme, true, U(100.000001), 1)).to.be.revertedWithCustomError(v, "OverMaxPerTx");
+    await expect(v.connect(op).trade(T.meme, true, U(100.000001), 1, DL)).to.be.revertedWithCustomError(v, "OverMaxPerTx");
   });
 
   it("a sell: the token in, USDC back to the vault; a sell worth more than the cap is refused", async function () {
     const v = await ready(), a = await v.getAddress();
     await meme.connect(alice).transfer(a, E(3_000_000)); // ~300 USDC of MEME
-    await expect(v.connect(op).trade(T.meme, false, E(3_000_000), 1)).to.be.revertedWithCustomError(v, "OverMaxPerTx");
+    await expect(v.connect(op).trade(T.meme, false, E(500_000), 1, DL)).to.be.revertedWithCustomError(v, "OverMaxSell"); // no sell limit set yet
+    await v.connect(alice).setSellLimits(T.meme, E(5_000_000), 1n); await inc(3601); await v.applySellLimits(T.meme); // a floor of ~0 here
+    await expect(v.connect(op).trade(T.meme, false, E(3_000_000), 1, DL)).to.be.revertedWithCustomError(v, "OverMaxPerTx");
     const q = await quote(v, T.meme, false, E(500_000));
     const u0 = await usdc.balanceOf(a);
-    await v.connect(op).trade(T.meme, false, E(500_000), q);
+    await v.connect(op).trade(T.meme, false, E(500_000), q, DL);
     expect((await usdc.balanceOf(a)) - u0).to.equal(q);
     expect(await v.totalVolume()).to.equal(q);
   });
@@ -107,52 +111,52 @@ describe("AgentDimension", function () {
   it("trades through a tax-hook pool too", async function () {
     const v = await ready(); await v.connect(alice).allowToken(T.pepe);
     const q = await quote(v, T.pepe, true, U(20));
-    await v.connect(op).trade(T.pepe, true, U(20), q);
+    await v.connect(op).trade(T.pepe, true, U(20), q, DL);
     expect(await pepe.balanceOf(await v.getAddress())).to.equal(q);
   });
 
   it("no $ARCIRCLE for the fee: no trade; a fee of 0 needs none", async function () {
     const v = await open(alice), a = await v.getAddress();
     await usdc.connect(alice).transfer(a, U(50)); await v.connect(alice).allowToken(T.meme);
-    await expect(v.connect(op).trade(T.meme, true, U(5), 1)).to.be.revertedWithCustomError(v, "NoFeeBalance");
+    await expect(v.connect(op).trade(T.meme, true, U(5), 1, DL)).to.be.revertedWithCustomError(v, "NoFeeBalance");
     await fac.setTradeFee(0);
-    await v.connect(op).trade(T.meme, true, U(5), 1);
+    await v.connect(op).trade(T.meme, true, U(5), 1, DL);
   });
 
   it("only the agent's key trades; slippage, the owner turning it off, pauses", async function () {
     const v = await ready();
-    await expect(v.connect(alice).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "NotOperator");
-    await expect(v.connect(bob).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "NotOperator");
+    await expect(v.connect(alice).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "NotOperator");
+    await expect(v.connect(bob).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "NotOperator");
     const q = await quote(v, T.meme, true, U(1));
-    await expect(v.connect(op).trade(T.meme, true, U(1), q + 1n)).to.be.revertedWithCustomError(v, "Slippage");
-    await expect(v.connect(op).trade(T.meme, true, U(1), 0)).to.be.revertedWithCustomError(v, "ZeroMinOut");
+    await expect(v.connect(op).trade(T.meme, true, U(1), q + 1n, DL)).to.be.revertedWithCustomError(v, "Slippage");
+    await expect(v.connect(op).trade(T.meme, true, U(1), 0, DL)).to.be.revertedWithCustomError(v, "ZeroMinOut");
     await v.connect(alice).setAgentOn(false);
-    await expect(v.connect(op).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "NotOperator");
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "NotOperator");
     await v.connect(alice).setAgentOn(true);
     await v.connect(alice).setPaused(true);
-    await expect(v.connect(op).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "IsPaused");
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "IsPaused");
     await v.connect(alice).setPaused(false);
     await fac.setPaused(true);
-    await expect(v.connect(op).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "IsPaused");
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "IsPaused");
     await fac.setPaused(false);
     await v.connect(alice).disallowToken(T.meme);
-    await expect(v.connect(op).trade(T.meme, true, U(1), 1)).to.be.revertedWithCustomError(v, "NotAllowed");
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "NotAllowed");
     await v.connect(alice).allowToken(T.meme);
-    await v.connect(op).trade(T.meme, true, U(1), 1);
+    await v.connect(op).trade(T.meme, true, U(1), 1, DL);
     expect(await v.tokens()).to.deep.equal([T.meme]); // allowed again: listed once
   });
 
   it("cooldown and the daily cap (buys and sells together)", async function () {
     const v = await ready(alice, U(50), U(120), 300);
-    await v.connect(op).trade(T.meme, true, U(50), 1);
-    await expect(v.connect(op).trade(T.meme, true, U(10), 1)).to.be.revertedWithCustomError(v, "Cooldown");
-    await inc(301); await v.connect(op).trade(T.meme, true, U(50), 1);
+    await v.connect(op).trade(T.meme, true, U(50), 1, DL);
+    await expect(v.connect(op).trade(T.meme, true, U(10), 1, DL)).to.be.revertedWithCustomError(v, "Cooldown");
+    await inc(301); await v.connect(op).trade(T.meme, true, U(50), 1, DL);
     await inc(301);
     expect(await v.spendableToday()).to.equal(U(20));
-    await expect(v.connect(op).trade(T.meme, true, U(30), 1)).to.be.revertedWithCustomError(v, "OverDailyCap");
-    await v.connect(op).trade(T.meme, true, U(20), 1);
+    await expect(v.connect(op).trade(T.meme, true, U(30), 1, DL)).to.be.revertedWithCustomError(v, "OverDailyCap");
+    await v.connect(op).trade(T.meme, true, U(20), 1, DL);
     await inc(86400);
-    await v.connect(op).trade(T.meme, true, U(50), 1); // a new UTC day
+    await v.connect(op).trade(T.meme, true, U(50), 1, DL); // a new UTC day
   });
 
   it("limits: tighter now, looser after an hour", async function () {
@@ -169,7 +173,7 @@ describe("AgentDimension", function () {
 
   it("money out only to the owner — never to the agent, the team or anyone else", async function () {
     const v = await ready(), a = await v.getAddress();
-    await v.connect(op).trade(T.meme, true, U(10), 1);
+    await v.connect(op).trade(T.meme, true, U(10), 1, DL);
     await expect(v.connect(op).withdraw(T.usdc, 1)).to.be.revertedWithCustomError(v, "NotOwner");
     await expect(v.connect(owner).withdraw(T.usdc, 1)).to.be.revertedWithCustomError(v, "NotOwner");
     await fac.setPaused(true);
@@ -193,5 +197,153 @@ describe("AgentDimension", function () {
     await fac.setTradeFee(E(5));
     expect(await fac.tradeFee()).to.equal(E(5));
     await expect(fac.connect(alice).setFeeTo(alice.address)).to.be.revertedWithCustomError(fac, "NotOwner");
+  });
+
+  // ---------------------------------------------------------------- the 2026-10-29 Arc Studio findings
+  it("AD-1: a sell is bounded by the owner's maxSellPerTx and price floor; tighter at once, looser after an hour", async function () {
+    const v = await ready(), a = await v.getAddress();
+    await meme.connect(alice).transfer(a, E(3_000_000));
+    // nothing set: the agent can't sell at all
+    await expect(v.connect(op).trade(T.meme, false, E(100_000), 1, DL)).to.be.revertedWithCustomError(v, "OverMaxSell");
+    // first set is a loosening (0 → something): queued, not live
+    await expect(v.connect(alice).setSellLimits(T.meme, E(600_000), 80n)).to.emit(v, "SellLimitsQueued");
+    expect(await v.maxSellPerTx(T.meme)).to.equal(0n);
+    await expect(v.connect(bob).applySellLimits(T.meme)).to.be.revertedWithCustomError(v, "NotReady");
+    await expect(v.connect(bob).setSellLimits(T.meme, 1, 1)).to.be.revertedWithCustomError(v, "NotOwner");
+    await inc(3601); await v.connect(bob).applySellLimits(T.meme);
+    expect(await v.maxSellPerTx(T.meme)).to.equal(E(600_000));
+    expect(await v.minPriceX18(T.meme)).to.equal(80n); // 0.00008 USDC a MEME (the pool is at ~0.0001)
+    await expect(v.connect(op).trade(T.meme, false, E(600_001), 1, DL)).to.be.revertedWithCustomError(v, "OverMaxSell");
+    await v.connect(op).trade(T.meme, false, E(500_000), 1, DL); // ~50 USDC ≥ the 40 USDC floor, even with minOut 1
+    await inc(301);
+    // a higher floor applies at once; the dump below it is refused even though minOut is 1
+    await expect(v.connect(alice).setSellLimits(T.meme, E(600_000), 150n)).to.emit(v, "SellLimits").withArgs(T.meme, E(600_000), 150n);
+    await expect(v.connect(op).trade(T.meme, false, E(500_000), 1, DL)).to.be.revertedWithCustomError(v, "BelowFloor");
+    // mixed: a smaller amount now, the lower floor queued
+    await v.connect(alice).setSellLimits(T.meme, E(200_000), 50n);
+    expect(await v.maxSellPerTx(T.meme)).to.equal(E(200_000));
+    expect(await v.minPriceX18(T.meme)).to.equal(150n);
+    expect((await v.sellPending(T.meme)).floor).to.equal(50n);
+    await v.connect(alice).cancelSellPending(T.meme);
+    await expect(v.applySellLimits(T.meme)).to.be.revertedWithCustomError(v, "NoPending");
+    // a floor of 0 stops sells
+    await v.connect(alice).setSellLimits(T.meme, E(200_000), 0n); await inc(3601); await v.applySellLimits(T.meme);
+    await expect(v.connect(op).trade(T.meme, false, E(100_000), 1, DL)).to.be.revertedWithCustomError(v, "BelowFloor");
+  });
+
+  it("AD-2: the trade fee is capped (MAX_TRADE_FEE) and each vault only pays up to its owner's maxFee", async function () {
+    const Fac = await ethers.getContractFactory("AgentDimensionFactory");
+    const MAX = await fac.MAX_TRADE_FEE();
+    expect(MAX).to.equal(E(1000));
+    await expect(Fac.deploy(await pm.getAddress(), T.usdc, T.arc, owner.address, op.address, feeTo.address, MAX + 1n)).to.be.revertedWithCustomError(fac, "BadFee");
+    await expect(fac.setTradeFee(MAX + 1n)).to.be.revertedWithCustomError(fac, "BadFee");
+    const v = await ready();
+    expect(await v.maxFee()).to.equal(FEE); // starts at the fee when the vault was opened
+    await fac.setTradeFee(E(50)); await inc(86401); await fac.applyFee();
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, DL)).to.be.revertedWithCustomError(v, "FeeTooHigh");
+    await expect(v.connect(alice).setMaxFee(MAX + 1n)).to.be.revertedWithCustomError(v, "BadLimits");
+    await expect(v.connect(op).setMaxFee(E(50))).to.be.revertedWithCustomError(v, "NotOwner");
+    await v.connect(alice).setMaxFee(E(50));
+    const f0 = await arc.balanceOf(feeTo.address);
+    await v.connect(op).trade(T.meme, true, U(1), 1, DL);
+    expect((await arc.balanceOf(feeTo.address)) - f0).to.equal(E(50));
+  });
+
+  it("AD-3: hooks are allowed by exact address only (no bit-pattern match)", async function () {
+    const fac2 = await (await ethers.getContractFactory("AgentDimensionFactory")).deploy(await pm.getAddress(), T.usdc, T.arc, owner.address, op.address, feeTo.address, FEE);
+    await expect(fac2.listPool(pepeKey)).to.be.revertedWithCustomError(fac2, "HookNotAllowed"); // 0x…12044 has the old 0x2044 bits
+    await fac2.setHookAllowed(HOOK_ADDR, true); await fac2.listPool(pepeKey);
+    await fac2.setAllowNoHook(false);
+    await expect(fac2.listPool(memeKey)).to.be.revertedWithCustomError(fac2, "HookNotAllowed");
+  });
+
+  it("AD-4: a trade after its deadline is refused", async function () {
+    const v = await ready();
+    const now = BigInt((await ethers.provider.getBlock("latest")).timestamp);
+    await expect(v.connect(op).trade(T.meme, true, U(1), 1, now)).to.be.revertedWithCustomError(v, "Expired");
+    await v.connect(op).trade(T.meme, true, U(1), 1, now + 60n);
+  });
+
+  it("AD-5: two-step ownership on the vault (vaultOf follows) and on the factory", async function () {
+    const v = await ready(), a = await v.getAddress();
+    await expect(v.connect(bob).transferOwnership(bob.address)).to.be.revertedWithCustomError(v, "NotOwner");
+    await v.connect(alice).transferOwnership(bob.address);
+    expect(await v.owner()).to.equal(alice.address);
+    await expect(v.connect(op).acceptOwnership()).to.be.revertedWithCustomError(v, "NotOwner");
+    await v.connect(bob).acceptOwnership();
+    expect(await v.owner()).to.equal(bob.address);
+    expect(await fac.vaultOf(bob.address)).to.equal(a);
+    expect(await fac.vaultOf(alice.address)).to.equal(ethers.ZeroAddress);
+    await expect(fac.connect(bob).ownerMoved(bob.address, alice.address)).to.be.revertedWithCustomError(fac, "NotVault");
+    // money still goes only to the (new) owner
+    const u0 = await usdc.balanceOf(bob.address);
+    await v.connect(bob).withdraw(T.usdc, U(1));
+    expect((await usdc.balanceOf(bob.address)) - u0).to.equal(U(1));
+    await expect(v.connect(alice).withdraw(T.usdc, 1)).to.be.revertedWithCustomError(v, "NotOwner");
+    // the factory
+    await fac.transferOwnership(alice.address);
+    expect(await fac.owner()).to.equal(owner.address);
+    await expect(fac.connect(bob).acceptOwnership()).to.be.revertedWithCustomError(fac, "NotOwner");
+    await fac.connect(alice).acceptOwnership();
+    expect(await fac.owner()).to.equal(alice.address);
+    await expect(fac.setPaused(true)).to.be.revertedWithCustomError(fac, "NotOwner");
+  });
+
+  it("AD-6: a queued operator / fee can be cancelled, and goes stale if not applied within GRACE", async function () {
+    await fac.queueOperator(bob.address);
+    await expect(fac.connect(alice).cancelOperator()).to.be.revertedWithCustomError(fac, "NotOwner");
+    await fac.cancelOperator();
+    await inc(86401);
+    await expect(fac.applyOperator()).to.be.revertedWithCustomError(fac, "ZeroAddress");
+    await fac.queueOperator(bob.address);
+    await inc(86400 + 7 * 86400 + 10);
+    await expect(fac.applyOperator()).to.be.revertedWithCustomError(fac, "Stale");
+    expect(await fac.operator()).to.equal(op.address);
+    await fac.setTradeFee(E(20)); await fac.cancelFee();
+    await inc(86401);
+    await expect(fac.applyFee()).to.be.revertedWithCustomError(fac, "NotReady");
+    expect(await fac.tradeFee()).to.equal(FEE);
+  });
+
+  it("AD-7: trade's bookkeeping is done before the external calls and the count stays right", async function () {
+    const v = await ready(alice, U(50), U(120), 300);
+    await v.connect(op).trade(T.meme, true, U(50), 1, DL);
+    const t = BigInt((await ethers.provider.getBlock("latest")).timestamp);
+    expect(await v.lastTradeAt()).to.equal(t);
+    expect(await v.trades()).to.equal(1n);
+    expect(await v.volumeToday()).to.equal(U(50));
+    expect(await v.totalFees()).to.equal(FEE);
+    // a failed trade (over the daily cap) leaves nothing behind
+    await inc(301); await v.connect(op).trade(T.meme, true, U(50), 1, DL); await inc(301);
+    await expect(v.connect(op).trade(T.meme, true, U(30), 1, DL)).to.be.revertedWithCustomError(v, "OverDailyCap");
+    expect(await v.trades()).to.equal(2n);
+    expect(await v.volumeToday()).to.equal(U(100));
+  });
+
+  it("AD-8: a mixed limit change applies its tighter parts now and queues only the looser ones", async function () {
+    const v = await open(alice, U(50), U(200), 300);
+    // maxPerTx down (tighter), dailyCap up (looser), cooldown up (tighter)
+    await expect(v.connect(alice).setLimits(U(20), U(400), 600)).to.emit(v, "LimitsQueued");
+    expect(await v.maxPerTx()).to.equal(U(20));
+    expect(await v.dailyCap()).to.equal(U(200));
+    expect(await v.cooldown()).to.equal(600n);
+    await inc(3601); await v.applyLimits();
+    expect(await v.dailyCap()).to.equal(U(400));
+    expect(await v.maxPerTx()).to.equal(U(20));
+    // a later all-tighter call drops anything queued
+    await v.connect(alice).setLimits(U(50), U(400), 600);
+    await v.connect(alice).setLimits(U(10), U(100), 900);
+    await expect(v.applyLimits()).to.be.revertedWithCustomError(v, "NoPending");
+    expect(await v.maxPerTx()).to.equal(U(10));
+  });
+
+  it("AD-13: disallowing a token that was never allowed is refused", async function () {
+    const v = await open(alice);
+    await expect(v.connect(alice).disallowToken(T.pepe)).to.be.revertedWithCustomError(v, "NotAllowed");
+  });
+
+  it("the factory with the vault inside stays under the 24,576-byte limit", async function () {
+    const code = await ethers.provider.getCode(await fac.getAddress());
+    expect((code.length - 2) / 2).to.be.lessThan(24576);
   });
 });

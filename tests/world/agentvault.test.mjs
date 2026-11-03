@@ -78,15 +78,16 @@ r = await tick(); check(r.status === 200 && r.body.runs[0].dry && chain.sent.len
 v = await view(); check(/key isn't set/.test(v.log[0].why) && v.log[0].kind === "dca", "the dry run is in the log");
 process.env.AGENT_DIM_KEY = "0x" + "1".repeat(64);
 r = await tick(); const tx = chain.sent[0];
-check(r.body.live && tx && tx.to === VLT && tx.data.startsWith("trade(address,bool,uint256,uint256)"), "with the key: one trade, sent to the vault's trade()");
-const args = tx.data.slice("trade(address,bool,uint256,uint256)".length);
+check(r.body.live && tx && tx.to === VLT && tx.data.startsWith("trade(address,bool,uint256,uint256,uint256)"), "with the key: one trade, sent to the vault's trade()");
+const args = tx.data.slice("trade(address,bool,uint256,uint256,uint256)".length);
 check(BigInt("0x" + args.slice(128, 192)) === 25_000000n && BigInt("0x" + args.slice(64, 128)) === 1n, "a 25 USDC buy");
 check(BigInt("0x" + args.slice(192, 256)) === (outOf(true, 25_000000n) * 98n) / 100n, "with 2% slippage at most");
+check(Number(BigInt("0x" + args.slice(256, 320))) > 0, "with a deadline (the vault refuses it after)");
 r = await tick(); check(chain.sent.length === 1, "the DCA waits its 24 hours");
 chain.price = 0.9; chain.hold = 1000n * 10n ** 18n;
 r = await tick(); const sell = chain.sent[1];
-check(sell && BigInt("0x" + sell.data.slice(35 + 64, 35 + 128)) === 0n, "take profit fires above its price: a sell");
-{ const amt = Number(BigInt("0x" + sell.data.slice(35 + 128, 35 + 192))) / 1e18; check(amt * 0.9 <= 100 && amt > 100, `the sell is worth ≤ 100 USDC (${amt.toFixed(2)} TOK)`); }
+check(sell && BigInt("0x" + sell.data.slice(43 + 64, 43 + 128)) === 0n, "take profit fires above its price: a sell");
+{ const amt = Number(BigInt("0x" + sell.data.slice(43 + 128, 43 + 192))) / 1e18; check(amt * 0.9 <= 100 && amt > 100, `the sell is worth ≤ 100 USDC (${amt.toFixed(2)} TOK)`); }
 r = await tick(); check(chain.sent.length === 2, "take profit fired once");
 chain.paused = true; T += 25 * 3600e3; r = await tick(); check(chain.sent.length === 2 && /paused/.test(r.body.runs[0].skip), "a vault paused by its owner: nothing");
 chain.paused = false; chain.agentOn = false; r = await tick(); check(chain.sent.length === 2 && /agent is off/.test(r.body.runs[0].skip), "the agent turned off on the vault: nothing");

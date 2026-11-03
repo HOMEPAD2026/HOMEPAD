@@ -16,7 +16,7 @@
 // Firestore: worldAgentVault/<wallet> { vault, rules: [{ id, kind, token, usd?, everyH?, price?, pct?, done?, lastAt? }], on, log }
 //            worldStats/agentVaults { list: { <wallet>: <vault> } }
 export const VAULT = {
-  MAX_USD: 100, MIN_USD: 1, RULES: 6, LOG: 30, SLIP: 2, PER_RUN: 12,
+  MAX_USD: 100, MIN_USD: 1, RULES: 6, LOG: 30, SLIP: 2, PER_RUN: 12, DEADLINE_S: 300, // a trade tx is good for 5 minutes (the vault's deadline)
   KINDS: ["dca", "buyBelow", "takeProfit", "stopLoss"],
   factory: () => String((globalThis.process && process.env && process.env.AGENT_DIM_FACTORY) || "").trim().toLowerCase(),
   key: () => String((globalThis.process && process.env && process.env.AGENT_DIM_KEY) || "").trim(),
@@ -149,7 +149,7 @@ export function makeAgentVault(deps) {
       const minOut = (out * BigInt(100 - VAULT.SLIP)) / 100n;
       const what = { rule: r.id, kind: r.kind, token: r.token, buy: want.buy, in: amt.toString(), out: out.toString(), price };
       if (!key) { say(d, { ...what, dry: true, why: "ready — the agent's key isn't set on this server" }); return { w, dry: true, ...what }; }
-      const tx = await io.send({ to: v, data: sel("trade(address,bool,uint256,uint256)") + pad(r.token) + u(want.buy ? 1 : 0) + u(amt) + u(minOut), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const tx = await io.send({ to: v, data: sel("trade(address,bool,uint256,uint256,uint256)") + pad(r.token) + u(want.buy ? 1 : 0) + u(amt) + u(minOut) + u(Math.floor(now() / 1000) + VAULT.DEADLINE_S), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       if (tx && tx.ok) { if (r.kind === "dca") r.lastAt = now(); else r.done = now(); say(d, { ...what, tx: tx.hash }); return { w, ...what, tx: tx.hash }; }
       say(d, { ...what, err: String((tx && tx.err) || "reverted").slice(0, 120) }); return { w, err: true };
     }

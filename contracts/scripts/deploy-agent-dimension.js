@@ -1,5 +1,7 @@
 // Deploys AgentDimensionFactory — AGENT DIMENSION's per-player trading vaults (ARCIRCLE WORLD · AD3).
 //
+// Not before the Arc Studio re-audit of the 2026-11-03 fixes (contracts/audits/arc-studio-2026-11-03.md: pending).
+//
 //   ONLY=AgentDimension node scripts/compile.js          (offline compile, just this contract + the mocks)
 //   npx hardhat run scripts/deploy-agent-dimension.js --network arcMainnet --no-compile
 //
@@ -50,10 +52,10 @@ async function main() {
   await (await fac.setHookAllowed(ARCPAD_HOOK, true)).wait();
   const pools = process.env.AGENT_DIM_POOLS ? JSON.parse(process.env.AGENT_DIM_POOLS) : [];
   for (const k of pools) { await (await fac.listPool(k)).wait(); console.log("  listed:", k.currency0, "/", k.currency1); }
-  await (await fac.setOwner(owner)).wait();
+  await (await fac.transferOwnership(owner)).wait(); // two-step: AGENT_DIM_OWNER calls acceptOwnership() from its own wallet
   console.log("\nAgentDimensionFactory:", addr);
   console.log("  block:    ", rc.blockNumber);
-  console.log("  owner:    ", await fac.owner());
+  console.log("  owner:    ", await fac.owner(), "→ pending", await fac.pendingOwner(), "(call acceptOwnership() from that wallet)");
   console.log("  operator: ", await fac.operator());
   console.log("  fee:      ", ethers.formatEther(await fac.tradeFee()), "$ARCIRCLE a trade →", await fac.feeTo());
   console.log("  listed tokens:", (await fac.listedTokens()).join(", ") || "(none yet — the owner lists pools with listPool)");
