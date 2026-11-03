@@ -12,7 +12,7 @@
 //   POST { action: "world-agent-chat",   …signature, t }                   → { reply, left, offline? }
 //   POST { action: "world-agent-job",    …signature, job }                 → { agent, bal }  (ARCL paid now)
 //   POST { action: "world-agent-claim",  …signature, id }                  → { loot, ore, xp, lv, agent } (an errand that's done)
-//   GET  ?world=agent-top                                       → { week, top: [{ id, name, kind, lv, n }] }  (AD2: the week's busiest agents)
+//   GET  ?world=agent-top                                       → { week, top: [{ id, name, kind, lv, n }], total }  (AD2: the week's busiest agents; MK2: total)
 //   POST { action: "world-agent-queue",  …signature, op: "add"|"del"|"clear", job?, i? } → { agent }   (AD-City 2: the job board)
 //   GET  ?world=agent-city                                      → { work: [{ id, name, kind, job, start, end, no }], today }  (who's working now, for Nexus City)
 //   (AD-City 2, the owner's call 2026-10-23: agents work on their own. Up to QUEUE errands wait on the job board; when a
@@ -89,8 +89,8 @@ export function makeAgentDim(deps) {
   const week = (t) => Math.floor((t + 9 * 3600e3 - 4 * 864e5) / (7 * 864e5)); // Monday-based KST weeks
   async function top() {
     const wk = week(now()), d = (await one(`worldStats/agentWeek_${wk}`)) || {};
-    const list = Object.values(d.top || {}).sort((p, q) => q.n - p.n || p.at - q.at).slice(0, 10);
-    return json(200, { ok: true, week: wk, top: list }, "public, max-age=60");
+    const list = Object.values(d.top || {}).sort((p, q) => q.n - p.n || p.at - q.at).slice(0, 10), total = ((await one("worldStats/agentCount")) || {}).n || 0;
+    return json(200, { ok: true, week: wk, top: list, total }, "public, max-age=60"); // (MK2: total = agents ever created, for /agents)
   }
   async function bumpTop(w, a) {
     const wk = week(now()), k = `worldStats/agentWeek_${wk}`, d = (await one(k)) || {}, t = d.top || {};

@@ -85,6 +85,7 @@ const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? (v ? WORDS[LANG][s
 /// stays harmless). The KART GRAND OPENING card (world-kart-event.js popup, kevPopup below) takes its place in its event's window.
 const AD_PROMO_END = 0;
 let adpDone = false, adpGo = false;
+try { if (new URLSearchParams(location.search).get("go") === "agent") adpGo = true; } catch { /* no URL */ } // (MK2: /agents → /play?go=agent walks you to the AD Tower once the town is ready)
 const adpReady = () => { try { const l = document.getElementById("wp-loading"), mk = document.getElementById("wp-make"); return (!l || l.classList.contains("done")) /* (it is removed once it fades) */ && !arriving && mode === "hub" && !introOn && !(mk && !mk.hidden) && !!(typeof P !== "undefined" && P && P.name) /* (not over the character maker: a first visit saw it before making a hero — the funnel lost half there, 2026-10-25; it shows once Go is pressed) */; } catch { return false; /* (still loading) */ } };
 function adPromo(force) {
   if ((adpDone && !force) || Date.now() > AD_PROMO_END || document.querySelector(".wp-adp")) return;
