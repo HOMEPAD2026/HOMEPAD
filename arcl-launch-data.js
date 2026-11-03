@@ -2,16 +2,16 @@
 // official links. Read by /arcl (arcl.html → arcl.js: the countdown) and /game (game.html → gw.js: the footer's ARCL card and
 // its news). A plain script: it sets window.ARC_ARCL (tests read it with node's vm).
 //
-//   LAUNCH   Tue 3 Nov 2026, 6:00 PM US Eastern (EST, UTC−5) = 23:00 UTC — the owner: "18:00 US time" (asked at 10:20 PM ET)
+//   LAUNCH   Tue 3 Nov 2026, 8:00 PM Korea (KST) = 11:00 UTC = 6:00 AM US Eastern — the owner, 13:08 KST: "8:00 예정, 6시간 52분 뒤"
 //   DELAY    it may start up to 30 minutes late: the page shows "launch window" until LAUNCH + DELAY, then "see X / Telegram"
 //   FEE      2% a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development and in-game use
 //   CA       the token's contract address: empty until the owner posts it (then set it here, and the pages show it)
 (function (g) {
   "use strict";
-  var LAUNCH = "2026-11-03T23:00:00Z", DELAY_MIN = 30;
+  var LAUNCH = "2026-11-03T11:00:00Z", DELAY_MIN = 30;
   g.ARC_ARCL = {
     launch: Date.parse(LAUNCH), launchIso: LAUNCH, delayMin: DELAY_MIN, delayEnd: Date.parse(LAUNCH) + DELAY_MIN * 60e3,
-    zone: "America/New_York", // (the owner's "US time" — the time the page names first)
+    zone: "Asia/Seoul", // (the owner's own clock; the page names each language's zone first: en ET, ko KST, zh 北京, tr TSİ)
     chain: "Robinhood Chain", explorer: "https://robinhoodchain.blockscout.com",
     ca: "", // (the official contract, set at launch; until then the page says it's posted on X and Telegram only)
     fee: { total: 2, burn: 1, game: 1 },

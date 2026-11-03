@@ -9,7 +9,7 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
-  var A = window.ARC_ARCL || { launch: Date.parse("2026-11-03T23:00:00Z"), delayEnd: Date.parse("2026-11-03T23:30:00Z"), delayMin: 30, ca: "", x: "https://x.com/ARCIRCLEonArc", tg: "https://t.me/ARCIRCLEonarc", explorer: "https://robinhoodchain.blockscout.com" };
+  var A = window.ARC_ARCL || { launch: Date.parse("2026-11-03T11:00:00Z"), delayEnd: Date.parse("2026-11-03T11:30:00Z"), delayMin: 30, ca: "", x: "https://x.com/ARCIRCLEonArc", tg: "https://t.me/ARCIRCLEonarc", explorer: "https://robinhoodchain.blockscout.com" };
   var ANNOUNCED = Date.parse("2026-11-03T03:20:00Z"); // (the owner's call — the progress bar runs from here to the launch)
   var IC = function (n) { return "/images/arcl/ic/" + n + "-256.webp"; };
 
@@ -51,14 +51,14 @@
     "road.k": "The road", "road.h": "From game points to a game coin",
     "t1.k": "October 2026", "t1.h": "ARCL across 9 games", "t1.p": "Earned and spent everywhere in ARCIRCLE WORLD; the ledger records every movement.",
     "t2.k": "November 2", "t2.h": "The Exchange relaunches", "t2.p": "ARCL ⇄ $ARCIRCLE settled by the treasury on Arc, on a public record.",
-    "t3.k": "November 3 · 6:00 PM ET", "t3.h": "ARCL launches on Robinhood Chain", "t3.p": "The game coin goes on-chain — 2% fee: 1% $ARCIRCLE buyback & burn, 1% for the game.",
+    "t3.k": "November 3 · 11:00 UTC (8 PM KST)", "t3.h": "ARCL launches on Robinhood Chain", "t3.p": "The game coin goes on-chain — 2% fee: 1% $ARCIRCLE buyback & burn, 1% for the game.",
     "t4.k": "Next", "t4.h": "In-game ARCL meets the coin", "t4.p": "Linking the two, more games and more uses — every step announced on X and Telegram.",
     "safe.h": "Official links only", "safe.p": "The ARCL contract address is posted only on @ARCIRCLEonArc on X and in the official Telegram — and on this page once it's live. Nobody from ARCIRCLE will ever DM you first, ask for your seed phrase, or ask you to send coins.",
     "ca.pend": "Contract address: posted at launch on X and Telegram", "ca.copy": "Copy", "ca.copied": "Copied!", "ca.view": "View on the explorer",
     "faq.k": "Questions", "faq.h": "Good to know",
     "q1": "What is ARCL?", "a1": "The coin of ARCIRCLE WORLD. You earn it by playing — races, runs, raids, puzzles, mining, hunting — and spend it on gear, forging, styles, islands, poker chips and more. On Nov 3 it launches as its own coin on Robinhood Chain.",
     "q2": "Is ARCL the same as $ARCIRCLE?", "a2": "No. $ARCIRCLE is the ecosystem token on Arc (premium items, LAND, AI agents, half of every payment burned). ARCL is the game coin, focused only on the game — and its 2% fee buys back and burns $ARCIRCLE.",
-    "q3": "When and where does it launch?", "a3": "Tuesday, Nov 3, 2026 at 6:00 PM US Eastern (23:00 UTC · Nov 4, 8:00 AM in Seoul) on Robinhood Chain. It may start up to 30 minutes late — follow X and Telegram for the live status.",
+    "q3": "When and where does it launch?", "a3": "Tuesday, Nov 3, 2026 at 8:00 PM Korea time (11:00 UTC · 6:00 AM US Eastern) on Robinhood Chain. It may start up to 30 minutes late — follow X and Telegram for the live status.",
     "q4": "What is the fee?", "a4": "2% a trade: 1% buys back and burns $ARCIRCLE, 1% funds the game's development and the ARCL used inside the game.",
     "q5": "What happens to the ARCL I already have in the game?", "a5": "It stays in your account and keeps working in every game and in the Exchange. How in-game ARCL connects to the coin will be announced on X and Telegram — no action is needed from you today.",
     "q6": "Where do I find the contract address?", "a6": "Only on @ARCIRCLEonArc on X, the official Telegram, and this page once it's live. Never use an address someone sends you in a DM.",
@@ -150,14 +150,14 @@
     "road.k": "로드맵", "road.h": "게임 포인트에서 게임 코인으로",
     "t1.k": "2026년 10월", "t1.h": "9개 게임의 ARCL", "t1.p": "ARCIRCLE WORLD 어디서나 벌고 쓰고, 장부가 모든 이동을 기록.",
     "t2.k": "11월 2일", "t2.h": "교환소 재오픈", "t2.p": "ARCL ⇄ $ARCIRCLE, Arc의 트레저리가 정산하고 공개 기록에.",
-    "t3.k": "11월 3일 · 미 동부 오후 6시", "t3.h": "로빈후드 체인 ARCL 런칭", "t3.p": "게임 코인이 온체인으로 — 수수료 2%: 1% $ARCIRCLE 바이백 & 소각, 1% 게임.",
+    "t3.k": "11월 3일 · 한국 시간 오후 8시", "t3.h": "로빈후드 체인 ARCL 런칭", "t3.p": "게임 코인이 온체인으로 — 수수료 2%: 1% $ARCIRCLE 바이백 & 소각, 1% 게임.",
     "t4.k": "다음", "t4.h": "게임 속 ARCL과 코인의 만남", "t4.p": "둘의 연결, 더 많은 게임과 사용처 — 매 단계 X와 텔레그램으로 공지.",
     "safe.h": "공식 링크만", "safe.p": "ARCL 컨트랙트 주소는 X의 @ARCIRCLEonArc와 공식 텔레그램에만 — 그리고 라이브가 되면 이 페이지에 — 올라와요. ARCIRCLE 팀은 먼저 DM하거나, 시드 문구를 묻거나, 코인을 보내라고 하지 않아요.",
     "ca.pend": "컨트랙트 주소: 런칭 때 X와 텔레그램에 공지", "ca.copy": "복사", "ca.copied": "복사됨!", "ca.view": "익스플로러에서 보기",
     "faq.k": "질문", "faq.h": "알아두면 좋아요",
     "q1": "ARCL이 뭔가요?", "a1": "ARCIRCLE WORLD의 코인이에요. 레이스·런·레이드·퍼즐·채굴·사냥으로 벌고, 장비·대장간·스타일·섬·포커 칩 등에 써요. 11월 3일 로빈후드 체인에서 자기 코인으로 런칭해요.",
     "q2": "ARCL과 $ARCIRCLE은 같은가요?", "a2": "아니요. $ARCIRCLE은 Arc의 생태계 토큰(프리미엄 아이템, LAND, AI 에이전트, 결제마다 절반 소각)이고, ARCL은 오직 게임에 집중한 게임 코인이에요 — 그리고 ARCL의 2% 수수료가 $ARCIRCLE을 바이백 & 소각해요.",
-    "q3": "언제, 어디서 런칭하나요?", "a3": "2026년 11월 3일(화) 미국 동부 오후 6시(UTC 23:00 · 한국 11월 4일 오전 8시), 로빈후드 체인. 최대 30분 늦어질 수 있어요 — 실시간 상황은 X와 텔레그램.",
+    "q3": "언제, 어디서 런칭하나요?", "a3": "2026년 11월 3일(화) 한국 시간 오후 8시(UTC 11:00 · 미국 동부 오전 6시), 로빈후드 체인. 최대 30분 늦어질 수 있어요 — 실시간 상황은 X와 텔레그램.",
     "q4": "수수료는요?", "a4": "거래마다 2%: 1%는 $ARCIRCLE 바이백 & 소각, 1%는 게임 개발과 게임 안의 ARCL 활용.",
     "q5": "게임에 이미 있는 ARCL은 어떻게 되나요?", "a5": "계정에 그대로 있고 모든 게임과 교환소에서 계속 쓸 수 있어요. 게임 속 ARCL이 코인과 어떻게 이어지는지는 X와 텔레그램으로 공지해요 — 오늘 따로 할 일은 없어요.",
     "q6": "컨트랙트 주소는 어디서 보나요?", "a6": "X의 @ARCIRCLEonArc, 공식 텔레그램, 그리고 라이브 후 이 페이지에서만. DM으로 받은 주소는 절대 쓰지 마세요.",
@@ -236,14 +236,14 @@
     "road.k": "路线图", "road.h": "从游戏积分到游戏币",
     "t1.k": "2026 年 10 月", "t1.h": "9 款游戏中的 ARCL", "t1.p": "在 ARCIRCLE WORLD 各处赚取和花费；账本记录每一笔流动。",
     "t2.k": "11 月 2 日", "t2.h": "兑换所重新开放", "t2.p": "ARCL ⇄ $ARCIRCLE 由 Arc 上的金库结算，记录公开。",
-    "t3.k": "11 月 3 日 · 美东 18:00", "t3.h": "ARCL 登陆 Robinhood Chain", "t3.p": "游戏币上链 —— 手续费 2%：1% $ARCIRCLE 回购销毁，1% 用于游戏。",
+    "t3.k": "11 月 3 日 · 北京时间 19:00", "t3.h": "ARCL 登陆 Robinhood Chain", "t3.p": "游戏币上链 —— 手续费 2%：1% $ARCIRCLE 回购销毁，1% 用于游戏。",
     "t4.k": "下一步", "t4.h": "游戏内 ARCL 与币相连", "t4.p": "连接两者、更多游戏与用途 —— 每一步都在 X 和 Telegram 公布。",
     "safe.h": "只认官方链接", "safe.p": "ARCL 合约地址只会发布在 X 的 @ARCIRCLEonArc 和官方 Telegram —— 上线后也会显示在本页。ARCIRCLE 团队绝不会主动私信你、索要助记词或让你转币。",
     "ca.pend": "合约地址：上线时在 X 和 Telegram 公布", "ca.copy": "复制", "ca.copied": "已复制！", "ca.view": "在浏览器查看",
     "faq.k": "问题", "faq.h": "须知",
     "q1": "ARCL 是什么？", "a1": "ARCIRCLE WORLD 的币。你通过游玩赚取 —— 赛车、对局、团战、谜题、挖矿、狩猎 —— 并花在装备、锻造、外观、岛屿、扑克筹码等上。11 月 3 日它将作为独立的币登陆 Robinhood Chain。",
     "q2": "ARCL 和 $ARCIRCLE 一样吗？", "a2": "不一样。$ARCIRCLE 是 Arc 上的生态代币（高级道具、LAND、AI 代理，每笔支付销毁一半）。ARCL 是只专注于游戏的游戏币 —— 它 2% 的手续费会回购并销毁 $ARCIRCLE。",
-    "q3": "何时何地上线？", "a3": "2026 年 11 月 3 日（周二）美国东部时间 18:00（UTC 23:00 · 北京时间 11 月 4 日 07:00），Robinhood Chain。可能最多推迟 30 分钟 —— 实时状态请关注 X 和 Telegram。",
+    "q3": "何时何地上线？", "a3": "2026 年 11 月 3 日（周二）北京时间 19:00（UTC 11:00 · 韩国 20:00），Robinhood Chain。可能最多推迟 30 分钟 —— 实时状态请关注 X 和 Telegram。",
     "q4": "手续费是多少？", "a4": "每笔交易 2%：1% 回购并销毁 $ARCIRCLE，1% 用于游戏开发和游戏内 ARCL 的使用。",
     "q5": "我在游戏里已有的 ARCL 怎么办？", "a5": "它留在你的账户里，在所有游戏和兑换所继续可用。游戏内 ARCL 如何与币连接会在 X 和 Telegram 公布 —— 今天你不需要做任何操作。",
     "q6": "去哪里找合约地址？", "a6": "只在 X 的 @ARCIRCLEonArc、官方 Telegram，以及上线后的本页。千万不要使用私信里别人发给你的地址。",
@@ -322,14 +322,14 @@
     "road.k": "Yol haritası", "road.h": "Oyun puanından oyun coinine",
     "t1.k": "Ekim 2026", "t1.h": "9 oyunda ARCL", "t1.p": "ARCIRCLE WORLD'ün her yerinde kazanılıp harcanıyor; defter her hareketi kaydediyor.",
     "t2.k": "2 Kasım", "t2.h": "Takas yeniden açıldı", "t2.p": "ARCL ⇄ $ARCIRCLE, Arc'taki hazine tarafından, herkese açık kayıtla.",
-    "t3.k": "3 Kasım · 18:00 ET", "t3.h": "ARCL Robinhood Chain'de çıkıyor", "t3.p": "Oyun coini zincire çıkıyor — %2 ücret: %1 $ARCIRCLE geri alım & yakım, %1 oyun.",
+    "t3.k": "3 Kasım · TSİ 14:00", "t3.h": "ARCL Robinhood Chain'de çıkıyor", "t3.p": "Oyun coini zincire çıkıyor — %2 ücret: %1 $ARCIRCLE geri alım & yakım, %1 oyun.",
     "t4.k": "Sırada", "t4.h": "Oyun içi ARCL coinle buluşuyor", "t4.p": "İkisinin bağlantısı, daha çok oyun ve kullanım — her adım X ve Telegram'da.",
     "safe.h": "Yalnızca resmi bağlantılar", "safe.p": "ARCL kontrat adresi yalnızca X'te @ARCIRCLEonArc ve resmi Telegram'da — canlı olunca da bu sayfada — paylaşılır. ARCIRCLE'dan kimse sana önce DM atmaz, seed ifadeni istemez ya da coin göndermeni istemez.",
     "ca.pend": "Kontrat adresi: lansmanda X ve Telegram'da paylaşılacak", "ca.copy": "Kopyala", "ca.copied": "Kopyalandı!", "ca.view": "Gezginde gör",
     "faq.k": "Sorular", "faq.h": "Bilmekte fayda var",
     "q1": "ARCL nedir?", "a1": "ARCIRCLE WORLD'ün coini. Oynayarak kazanırsın — yarışlar, oyunlar, baskınlar, bulmacalar, madencilik, av — ve ekipman, demirci, stiller, adalar, poker fişleri ve daha fazlasına harcarsın. 3 Kasım'da Robinhood Chain'de kendi coini olarak çıkıyor.",
     "q2": "ARCL ile $ARCIRCLE aynı mı?", "a2": "Hayır. $ARCIRCLE Arc'taki ekosistem tokeni (premium eşyalar, LAND, yapay zekâ ajanları, her ödemenin yarısı yakılır). ARCL yalnızca oyuna odaklı oyun coini — ve %2 ücreti $ARCIRCLE geri alır ve yakar.",
-    "q3": "Ne zaman, nerede çıkıyor?", "a3": "3 Kasım 2026 Salı, ABD Doğu saatiyle 18:00 (UTC 23:00 · TSİ 4 Kasım 02:00), Robinhood Chain'de. En fazla 30 dakika gecikebilir — canlı durum için X ve Telegram.",
+    "q3": "Ne zaman, nerede çıkıyor?", "a3": "3 Kasım 2026 Salı, TSİ 14:00 (UTC 11:00 · Kore 20:00), Robinhood Chain'de. En fazla 30 dakika gecikebilir — canlı durum için X ve Telegram.",
     "q4": "Ücret ne kadar?", "a4": "İşlem başına %2: %1 $ARCIRCLE geri alım ve yakım, %1 oyunun geliştirilmesi ve oyun içinde kullanılan ARCL için.",
     "q5": "Oyunda zaten olan ARCL'me ne olacak?", "a5": "Hesabında kalır; her oyunda ve Takas'ta çalışmaya devam eder. Oyun içi ARCL'nin coinle nasıl bağlanacağı X ve Telegram'da duyurulacak — bugün bir şey yapmana gerek yok.",
     "q6": "Kontrat adresini nerede bulurum?", "a6": "Yalnızca X'te @ARCIRCLEonArc, resmi Telegram ve canlı olunca bu sayfa. DM'den gelen adresi asla kullanma.",
@@ -405,12 +405,14 @@
   }
   // the launch in the reader's language, US Eastern first, then their own time and five more zones
   function fmtZ(zone, o) { try { return new Intl.DateTimeFormat(LOC[lang] || "en-US", Object.assign({ timeZone: zone }, o)).format(new Date(A.launch)); } catch (e) { return ""; } }
+  // each language names its own zone first (en ET, ko KST, zh 北京时间, tr TSİ), then the reader's own time and the rest
+  var MAINZ = { en: ["America/New_York", "ET"], ko: ["Asia/Seoul", "KST"], zh: ["Asia/Shanghai", "北京时间"], tr: ["Europe/Istanbul", "TSİ"] };
   function paintZones() {
-    var main = fmtZ("America/New_York", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) + " · " + fmtZ("America/New_York", { hour: "numeric", minute: "2-digit" }) + " ET";
-    $("#al-when-main").textContent = main;
+    var mz = MAINZ[lang] || MAINZ.en;
+    $("#al-when-main").textContent = fmtZ(mz[0], { weekday: "short", month: "short", day: "numeric", year: "numeric" }) + " · " + fmtZ(mz[0], { hour: "numeric", minute: "2-digit" }) + " " + mz[1];
     var you = ""; try { you = new Intl.DateTimeFormat(LOC[lang] || "en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(A.launch)); } catch (e) { /* old browser */ }
     $("#al-when-you").textContent = you ? t("cd.you", { t: you }) : "";
-    var Z = [["PT", "America/Los_Angeles"], ["UTC", "UTC"], ["KST", "Asia/Seoul"], ["北京", "Asia/Shanghai"], ["TSİ", "Europe/Istanbul"], ["SGT", "Asia/Singapore"]];
+    var Z = [["ET", "America/New_York"], ["PT", "America/Los_Angeles"], ["UTC", "UTC"], ["KST", "Asia/Seoul"], ["北京", "Asia/Shanghai"], ["TSİ", "Europe/Istanbul"], ["SGT", "Asia/Singapore"]].filter(function (z) { return z[1] !== mz[0]; });
     $("#al-zones").innerHTML = Z.map(function (z) { return "<li><b>" + esc(z[0]) + "</b>" + esc(fmtZ(z[1], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })) + "</li>"; }).join("");
   }
   function paintLive() {
