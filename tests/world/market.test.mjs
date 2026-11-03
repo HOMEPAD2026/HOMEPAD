@@ -39,8 +39,9 @@ db.set(`worldArclBal/${lw(buyer)}`, { bal: 100000, earned: 100000 });
   const tre = ethers.Wallet.createRandom(); S.TREASURY = lw(tre); // (EX: the treasury wallet settles; a test wallet stands in for it)
   let r = await call(tre, "world-swap-admin", { op: "rate", rate: 1 }); check(r.status === 200, "the treasury posts a rate (1 $ARCIRCLE = 1 ARCL here)");
   receipts.set(tx, { status: "0x1", logs: [{ address: ARCIRCLE, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", pad(buyer2.address), pad(S.TREASURY)], data: "0x" + (120000n * 10n ** 18n).toString(16) }] });
+  S.IN_OPEN = true; // ($ARCIRCLE → ARCL is closed since 2026-11-03; opened here only to make PURCHASED ARCL for the market's rules)
   r = await call(buyer2, "world-swap-ask", { dir: "arc2arcl", amount: 120000, tx }); check(r.status === 200, "an Exchange request: $ARCIRCLE → ARCL");
-  r = await call(tre, "world-swap-admin", { op: "done", id: r.body.request.id }); check(r.status === 200 && bal(buyer2) === 120000 && bkt(buyer2).purchased === 120000, "settled: 120,000 ARCL in the PURCHASED bucket"); }
+  r = await call(tre, "world-swap-admin", { op: "done", id: r.body.request.id }); check(r.status === 200 && bal(buyer2) === 120000 && bkt(buyer2).purchased === 120000, "settled: 120,000 ARCL in the PURCHASED bucket"); S.IN_OPEN = false; }
 let L = await read("arcl-tx&wallet=" + lw(buyer2)); check(L.list.some((x) => x.k === "swap-buy" && x.n === 120000 && x.b && x.b.purchased === 120000), "the ledger has the purchase");
 
 // the market: list, browse, the rules of buying

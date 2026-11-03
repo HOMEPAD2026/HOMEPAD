@@ -38,9 +38,8 @@
     "r1.h": "Checked by the server", "r1.p": "Races, runs and boss fights are checked on the server's clock. Nothing is paid for a result it can't verify.",
     "r2.h": "Daily limits", "r2.p": "Each activity has its own limit, and play rewards claimed in town share 30,000 ARCL a day. The limits grow as the game grows.",
     "r3.h": "Weekend 2×", "r3.p": "Saturdays and Sundays (Seoul time) double hunting, street, boss and check-in rewards.",
-    "ex.k": "Exchange", "ex.h": "Move between ARCL and $ARCIRCLE", "ex.p": "The exchange in the game is live today, settled by the ARCIRCLE treasury on Arc. Here's every way value moves in and out of the game.",
+    "ex.k": "Exchange", "ex.h": "Exchange ARCL for $ARCIRCLE", "ex.p": "The exchange in the game is live today, settled by the ARCIRCLE treasury on Arc. Here's every way value moves in and out of the game.",
     "x1.h": "ARCL → $ARCIRCLE", "x1.p": "Ask in the game's Exchange window. The treasury posts the rate (it opened at 10 ARCL = 1 $ARCIRCLE) and pays each request from its own wallet on Arc; the server reads the receipt back. Up to 300,000 $ARCIRCLE a wallet a day, every settlement on the public record.",
-    "x2.h": "$ARCIRCLE → ARCL", "x2.p": "Send $ARCIRCLE to the treasury from your own wallet in the same window; it's credited as ARCL at the rate locked into your request.",
     "x3.h": "Buy $ARCIRCLE with USDC", "x3.p": "Short on $ARCIRCLE at checkout? The game swaps the rest from USDC on Arc (Uniswap v4) — you confirm each step in your wallet.",
     "x4.h": "Creator Exchange", "x4.p": "Creators earn ARCL from the Creator Market (80 / 20). The share buyers paid with purchased ARCL becomes exchangeable after 14 days, paid by a GM's own wallet.",
     "x5.h": "ARCL on Robinhood Chain", "x5.p": "From the launch, ARCL trades as its own coin on Robinhood Chain, with the 2% fee: 1% $ARCIRCLE buyback & burn, 1% for the game.",
@@ -50,7 +49,7 @@
     "use.k": "In-game use", "use.h": "Spend it where it counts", "use.p": "ARCL buys what makes you stronger, faster and better-looking in ARCIRCLE WORLD. A few of the things it pays for today:",
     "road.k": "The road", "road.h": "From game points to a game coin",
     "t1.k": "October 2026", "t1.h": "ARCL across 9 games", "t1.p": "Earned and spent everywhere in ARCIRCLE WORLD; the ledger records every movement.",
-    "t2.k": "November 2", "t2.h": "The Exchange relaunches", "t2.p": "ARCL ⇄ $ARCIRCLE settled by the treasury on Arc, on a public record.",
+    "t2.k": "November 2", "t2.h": "The Exchange relaunches", "t2.p": "ARCL → $ARCIRCLE settled by the treasury on Arc, on a public record.",
     "t3.k": "November 3 · 11:00 UTC (8 PM KST)", "t3.h": "ARCL launches on Robinhood Chain", "t3.p": "The game coin goes on-chain — 2% fee: 1% $ARCIRCLE buyback & burn, 1% for the game.",
     "t4.k": "Next", "t4.h": "In-game ARCL meets the coin", "t4.p": "Linking the two, more games and more uses — every step announced on X and Telegram.",
     "safe.h": "Official links only", "safe.p": "The ARCL contract address is posted only on @ARCIRCLEonArc on X and in the official Telegram — and on this page once it's live. Nobody from ARCIRCLE will ever DM you first, ask for your seed phrase, or ask you to send coins.",
@@ -137,9 +136,8 @@
     "r1.h": "서버가 확인", "r1.p": "레이스·런·보스전은 서버 시계로 확인해요. 확인할 수 없는 결과에는 지급하지 않아요.",
     "r2.h": "하루 한도", "r2.p": "활동마다 한도가 따로 있고, 마을에서 받는 플레이 보상은 하루 30,000 ARCL을 함께 써요. 한도는 게임이 커질수록 올라가요.",
     "r3.h": "주말 2배", "r3.p": "토·일요일(서울 시간)엔 사냥·거리·보스·출석 보상이 두 배.",
-    "ex.k": "교환", "ex.h": "ARCL과 $ARCIRCLE 사이를 오가다", "ex.p": "게임 안의 교환소는 지금 운영 중이고, Arc의 ARCIRCLE 트레저리가 정산해요. 게임 안팎으로 가치가 오가는 모든 길:",
+    "ex.k": "교환", "ex.h": "ARCL을 $ARCIRCLE로 교환", "ex.p": "게임 안의 교환소는 지금 운영 중이고, Arc의 ARCIRCLE 트레저리가 정산해요. 게임 안팎으로 가치가 오가는 모든 길:",
     "x1.h": "ARCL → $ARCIRCLE", "x1.p": "게임의 교환 창에서 신청해요. 트레저리가 환율을 공지하고(시작 환율 10 ARCL = 1 $ARCIRCLE) 자기 지갑에서 Arc로 직접 보내요. 서버가 영수증을 확인하고요. 지갑당 하루 최대 300,000 $ARCIRCLE, 모든 정산은 공개 기록에 남아요.",
-    "x2.h": "$ARCIRCLE → ARCL", "x2.p": "같은 창에서 내 지갑으로 트레저리에 $ARCIRCLE을 보내면, 신청 때 고정된 환율로 ARCL이 들어와요.",
     "x3.h": "USDC로 $ARCIRCLE 구매", "x3.p": "결제할 때 $ARCIRCLE이 모자라면? 게임이 Arc의 USDC로 나머지를 스왑해 줘요(Uniswap v4) — 단계마다 내 지갑에서 확인.",
     "x4.h": "크리에이터 교환", "x4.p": "크리에이터는 크리에이터 마켓에서 ARCL을 벌어요(80 / 20). 구매자가 구매한 ARCL로 낸 몫은 14일 뒤 교환할 수 있고, GM 본인 지갑에서 지급돼요.",
     "x5.h": "로빈후드 체인의 ARCL", "x5.p": "런칭부터 ARCL은 로빈후드 체인에서 자기 코인으로 거래돼요. 수수료 2%: 1% $ARCIRCLE 바이백 & 소각, 1% 게임.",
@@ -149,7 +147,7 @@
     "use.k": "게임 내 활용", "use.h": "쓸 데가 확실한 코인", "use.p": "ARCL로 ARCIRCLE WORLD에서 더 강하고, 더 빠르고, 더 멋져져요. 지금 ARCL로 살 수 있는 것들:",
     "road.k": "로드맵", "road.h": "게임 포인트에서 게임 코인으로",
     "t1.k": "2026년 10월", "t1.h": "9개 게임의 ARCL", "t1.p": "ARCIRCLE WORLD 어디서나 벌고 쓰고, 장부가 모든 이동을 기록.",
-    "t2.k": "11월 2일", "t2.h": "교환소 재오픈", "t2.p": "ARCL ⇄ $ARCIRCLE, Arc의 트레저리가 정산하고 공개 기록에.",
+    "t2.k": "11월 2일", "t2.h": "교환소 재오픈", "t2.p": "ARCL → $ARCIRCLE, Arc의 트레저리가 정산하고 공개 기록에.",
     "t3.k": "11월 3일 · 한국 시간 오후 8시", "t3.h": "로빈후드 체인 ARCL 런칭", "t3.p": "게임 코인이 온체인으로 — 수수료 2%: 1% $ARCIRCLE 바이백 & 소각, 1% 게임.",
     "t4.k": "다음", "t4.h": "게임 속 ARCL과 코인의 만남", "t4.p": "둘의 연결, 더 많은 게임과 사용처 — 매 단계 X와 텔레그램으로 공지.",
     "safe.h": "공식 링크만", "safe.p": "ARCL 컨트랙트 주소는 X의 @ARCIRCLEonArc와 공식 텔레그램에만 — 그리고 라이브가 되면 이 페이지에 — 올라와요. ARCIRCLE 팀은 먼저 DM하거나, 시드 문구를 묻거나, 코인을 보내라고 하지 않아요.",
@@ -223,9 +221,8 @@
     "r1.h": "由服务器核验", "r1.p": "比赛、对局和首领战都按服务器时钟核验。无法核验的结果不发奖励。",
     "r2.h": "每日上限", "r2.p": "每项活动有自己的上限，城镇中领取的游玩奖励共享每天 30,000 ARCL。上限会随着游戏成长而提高。",
     "r3.h": "周末 2 倍", "r3.p": "周六和周日（首尔时间）狩猎、街头、首领和签到奖励翻倍。",
-    "ex.k": "兑换", "ex.h": "在 ARCL 与 $ARCIRCLE 之间流转", "ex.p": "游戏内的兑换所今天已经开放，由 Arc 上的 ARCIRCLE 金库结算。价值进出游戏的所有方式：",
+    "ex.k": "兑换", "ex.h": "把 ARCL 兑换成 $ARCIRCLE", "ex.p": "游戏内的兑换所今天已经开放，由 Arc 上的 ARCIRCLE 金库结算。价值进出游戏的所有方式：",
     "x1.h": "ARCL → $ARCIRCLE", "x1.p": "在游戏的兑换窗口申请。金库公布汇率（开放时为 10 ARCL = 1 $ARCIRCLE），并从自己的钱包在 Arc 上逐笔支付；服务器核对收据。每个钱包每天最多 300,000 $ARCIRCLE，每笔结算都在公开记录中。",
-    "x2.h": "$ARCIRCLE → ARCL", "x2.p": "在同一窗口从你自己的钱包把 $ARCIRCLE 发给金库，按申请时锁定的汇率入账 ARCL。",
     "x3.h": "用 USDC 购买 $ARCIRCLE", "x3.p": "结账时 $ARCIRCLE 不够？游戏会用 Arc 上的 USDC 兑换差额（Uniswap v4）—— 每一步都在你的钱包里确认。",
     "x4.h": "创作者兑换", "x4.p": "创作者在创作者市场赚取 ARCL（80 / 20）。买家用购买的 ARCL 支付的部分在 14 天后可兑换，由 GM 本人的钱包支付。",
     "x5.h": "Robinhood Chain 上的 ARCL", "x5.p": "自上线起，ARCL 作为独立的币在 Robinhood Chain 交易，手续费 2%：1% $ARCIRCLE 回购销毁，1% 用于游戏。",
@@ -235,7 +232,7 @@
     "use.k": "游戏内用途", "use.h": "花在刀刃上", "use.p": "ARCL 让你在 ARCIRCLE WORLD 更强、更快、更好看。今天它能买到的部分东西：",
     "road.k": "路线图", "road.h": "从游戏积分到游戏币",
     "t1.k": "2026 年 10 月", "t1.h": "9 款游戏中的 ARCL", "t1.p": "在 ARCIRCLE WORLD 各处赚取和花费；账本记录每一笔流动。",
-    "t2.k": "11 月 2 日", "t2.h": "兑换所重新开放", "t2.p": "ARCL ⇄ $ARCIRCLE 由 Arc 上的金库结算，记录公开。",
+    "t2.k": "11 月 2 日", "t2.h": "兑换所重新开放", "t2.p": "ARCL → $ARCIRCLE 由 Arc 上的金库结算，记录公开。",
     "t3.k": "11 月 3 日 · 北京时间 19:00", "t3.h": "ARCL 登陆 Robinhood Chain", "t3.p": "游戏币上链 —— 手续费 2%：1% $ARCIRCLE 回购销毁，1% 用于游戏。",
     "t4.k": "下一步", "t4.h": "游戏内 ARCL 与币相连", "t4.p": "连接两者、更多游戏与用途 —— 每一步都在 X 和 Telegram 公布。",
     "safe.h": "只认官方链接", "safe.p": "ARCL 合约地址只会发布在 X 的 @ARCIRCLEonArc 和官方 Telegram —— 上线后也会显示在本页。ARCIRCLE 团队绝不会主动私信你、索要助记词或让你转币。",
@@ -309,9 +306,8 @@
     "r1.h": "Sunucu doğrular", "r1.p": "Yarışlar, oyunlar ve boss savaşları sunucunun saatiyle doğrulanır. Doğrulanamayan sonuca ödeme yok.",
     "r2.h": "Günlük sınırlar", "r2.p": "Her etkinliğin kendi sınırı var; kasabada alınan oyun ödülleri günde 30.000 ARCL'yi paylaşır. Oyun büyüdükçe sınırlar artar.",
     "r3.h": "Hafta sonu 2×", "r3.p": "Cumartesi ve pazar (Seul saati) av, sokak, boss ve giriş ödülleri iki katı.",
-    "ex.k": "Takas", "ex.h": "ARCL ile $ARCIRCLE arasında geç", "ex.p": "Oyundaki takas bugün açık ve Arc'taki ARCIRCLE hazinesi tarafından sonuçlandırılıyor. Değerin oyuna girip çıktığı her yol:",
+    "ex.k": "Takas", "ex.h": "ARCL'yi $ARCIRCLE'a çevir", "ex.p": "Oyundaki takas bugün açık ve Arc'taki ARCIRCLE hazinesi tarafından sonuçlandırılıyor. Değerin oyuna girip çıktığı her yol:",
     "x1.h": "ARCL → $ARCIRCLE", "x1.p": "Oyunun Takas penceresinde iste. Hazine kuru açıklar (açılış kuru 10 ARCL = 1 $ARCIRCLE) ve her isteği Arc'ta kendi cüzdanından öder; sunucu makbuzu kontrol eder. Cüzdan başına günde en fazla 300.000 $ARCIRCLE, her ödeme herkese açık kayıtta.",
-    "x2.h": "$ARCIRCLE → ARCL", "x2.p": "Aynı pencerede kendi cüzdanından hazineye $ARCIRCLE gönder; isteğinde kilitlenen kurla ARCL olarak eklenir.",
     "x3.h": "USDC ile $ARCIRCLE al", "x3.p": "Ödemede $ARCIRCLE yetmiyor mu? Oyun kalanını Arc'ta USDC'den takas eder (Uniswap v4) — her adımı cüzdanında onaylarsın.",
     "x4.h": "Yaratıcı Takası", "x4.p": "Yaratıcılar Yaratıcı Pazarı'ndan ARCL kazanır (80 / 20). Alıcıların satın alınmış ARCL ile ödediği pay 14 gün sonra takas edilebilir, bir GM'in kendi cüzdanından ödenir.",
     "x5.h": "Robinhood Chain'de ARCL", "x5.p": "Lansmandan itibaren ARCL, Robinhood Chain'de kendi coini olarak işlem görür; %2 ücret: %1 $ARCIRCLE geri alım & yakım, %1 oyun için.",
@@ -321,7 +317,7 @@
     "use.k": "Oyun içi kullanım", "use.h": "Değdiği yerde harca", "use.p": "ARCL, ARCIRCLE WORLD'de seni daha güçlü, daha hızlı ve daha havalı yapar. Bugün ödediği şeylerden bazıları:",
     "road.k": "Yol haritası", "road.h": "Oyun puanından oyun coinine",
     "t1.k": "Ekim 2026", "t1.h": "9 oyunda ARCL", "t1.p": "ARCIRCLE WORLD'ün her yerinde kazanılıp harcanıyor; defter her hareketi kaydediyor.",
-    "t2.k": "2 Kasım", "t2.h": "Takas yeniden açıldı", "t2.p": "ARCL ⇄ $ARCIRCLE, Arc'taki hazine tarafından, herkese açık kayıtla.",
+    "t2.k": "2 Kasım", "t2.h": "Takas yeniden açıldı", "t2.p": "ARCL → $ARCIRCLE, Arc'taki hazine tarafından, herkese açık kayıtla.",
     "t3.k": "3 Kasım · TSİ 14:00", "t3.h": "ARCL Robinhood Chain'de çıkıyor", "t3.p": "Oyun coini zincire çıkıyor — %2 ücret: %1 $ARCIRCLE geri alım & yakım, %1 oyun.",
     "t4.k": "Sırada", "t4.h": "Oyun içi ARCL coinle buluşuyor", "t4.p": "İkisinin bağlantısı, daha çok oyun ve kullanım — her adım X ve Telegram'da.",
     "safe.h": "Yalnızca resmi bağlantılar", "safe.p": "ARCL kontrat adresi yalnızca X'te @ARCIRCLEonArc ve resmi Telegram'da — canlı olunca da bu sayfada — paylaşılır. ARCIRCLE'dan kimse sana önce DM atmaz, seed ifadeni istemez ya da coin göndermeni istemez.",
@@ -388,7 +384,7 @@
     $("#al-earn-tabs").innerHTML = ["games", "world", "daily", "social"].map(function (k) { return '<button type="button" class="al-tab" role="tab" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' + esc(t("tab." + k)) + "</button>"; }).join("");
     paintEarn();
     $("#al-earn-rules").innerHTML = [1, 2, 3].map(function (i) { return '<div class="al-rule"><b>' + esc(t("r" + i + ".h")) + "</b>" + esc(t("r" + i + ".p")) + "</div>"; }).join("");
-    var X = [["x1", "exchange", "live", 1], ["x2", "wallet", "live"], ["x3", "shop", "live"], ["x4", "market", "live"], ["x5", "chain", "launch"], ["x6", "clock", "soon"]];
+    var X = [["x1", "exchange", "live", 1], ["x3", "shop", "live"], ["x4", "market", "live"], ["x5", "chain", "launch"], ["x6", "clock", "soon"]];
     $("#al-ex").innerHTML = X.map(function (x) { return '<article class="al-step al-rv' + (x[3] ? " big" : "") + '"><img src="' + IC(x[1]) + '" alt=""><span class="tag' + (x[2] === "soon" ? " soon" : "") + '">' + esc(t("tag." + x[2])) + "</span><h3>" + esc(t(x[0] + ".h")) + "</h3><p>" + esc(t(x[0] + ".p")) + "</p></article>"; }).join("");
     $("#al-use").innerHTML = USE.map(function (u) { return card("u." + u[0], u[1], false); }).join("");
     var phase = A.phase ? A.phase() : "soon";
