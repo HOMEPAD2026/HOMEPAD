@@ -74,7 +74,7 @@ export const SHOPS = [
   { id: "arcl-shop", name: "ARCL Shop", url: "", color: 0x4fd6ff, shape: "arcl", theta: 34, phi: 198, district: "ARCL",
     line: "Island upgrades, brick packs and style. Pay with ARCL or $ARCIRCLE." },
   { id: "arcl-ex", name: "ARCL Exchange", url: "", color: 0x4fd6ff, shape: "arcl", theta: 34, phi: 90, district: "ARCL",
-    line: "Your ARCL, how to earn it, and the exchange to $ARCIRCLE (not open yet)." },
+    line: "Your ARCL, how to earn it, and the exchange to $ARCIRCLE." },
   // the Forge (world-rpg.js): gear and supplies for ARCL, and enhancing with scrap
   { id: "forge", name: "Forge", url: "", color: 0xff9a4a, shape: "anvil", theta: 35, phi: 142, district: "ARCL",
     line: "Weapons, armour and accessories for ARCL. Bring scrap to enhance your gear." },

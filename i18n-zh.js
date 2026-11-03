@@ -9418,6 +9418,8 @@
     "Earn ARCL by playing and spend it in the ARCL Shop.": "玩游戏赚 ARCL，在 ARCL 商店使用。",
     "Emote wheel: sit, point, faint…": "表情轮盘：坐下、指向、晕倒…",
     "Emotes: wave, sit, point…": "表情：挥手、坐下、指向…",
+    "Exchange in the game's Exchange (the dock's Exchange button) — ARCL → $ARCIRCLE": "在游戏的兑换（底部工具栏的 Exchange 按钮）中兑换 —— ARCL → $ARCIRCLE",
+    "Your ARCL, how to earn it, and the exchange to $ARCIRCLE.": "你的 ARCL、获取方法，以及兑换为 $ARCIRCLE。",
     "Exchange isn't open yet": "兑换尚未开放",
     "Exchange rate": "兑换比例",
     "Glowing panels, neon signs, holo screens and a light pillar.": "发光面板、霓虹招牌、全息屏和光柱。",

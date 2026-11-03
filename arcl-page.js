@@ -1,5 +1,5 @@
 // arcl-page.js — /arcl: a wallet's ARCL (ARCIRCLE World's in-game points), how to earn it, and the exchange to
-// $ARCIRCLE, which isn't open yet (api/_world-shop.mjs EXCHANGE). Same screen as the game's ARCL Exchange.
+// $ARCIRCLE (done in the game's Exchange, world-swap.js). Same screen as the game's ARCL Exchange.
 import { exchangeHTML } from "./world-shop.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
