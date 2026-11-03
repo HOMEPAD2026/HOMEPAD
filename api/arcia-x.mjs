@@ -36,7 +36,7 @@ import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.m
 import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_POST, OFFICIAL_EVERY, SHOP_POST, aboutShop, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
-const DAY_CAP = 36, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
+const DAY_CAP = 50, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
 // the hourly game post (hourlyPost): one an hour about ARCIRCLE WORLD; a link only every HOURLY_LINK_EVERY hours (X bills a
 // post with a link far more than one without)
 const HOURLY_ON = true, HOURLY_LINK_EVERY = 3;
@@ -300,12 +300,47 @@ async function deskWatchdog(origin) {
   return "desk tick started";
 }
 
+// ---------- the ARCL launch countdown (2026-11-03, the owner: "런칭까지 20분마다 홍보", with the launch post's link) ----------
+// From now until the launch (+ its 30-minute window) ARCIA posts every LAUNCH_EVERY minutes (slot id arcl:<slot>), each one
+// carrying LAUNCH_POST — the official launch post. Run from the every-minute ?replies=1 path, so it doesn't wait for an
+// hourly run; the hourly game post rests while it's on. No automated @mentions of other accounts (X's automation rules).
+export const ARCL_LAUNCH = Date.parse("2026-11-03T11:00:00Z"), ARCL_WINDOW = 30 * 60e3, LAUNCH_EVERY = 20;
+export const LAUNCH_POST = "https://x.com/ARCIRCLEonArc/status/2117482384950235380";
+export const launchOn = (ms = Date.now()) => ms >= Date.parse("2026-11-03T05:00:00Z") && ms < ARCL_LAUNCH + ARCL_WINDOW;
+export function launchLeft(ms) { const m = Math.max(0, Math.round((ARCL_LAUNCH - ms) / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; }
+const LAUNCH_FALLBACK = [
+  (l) => `⏳ ${l} until ARCL launches on Robinhood Chain!\nNov 3 · 6:00 AM ET · 8:00 PM KST · 7:00 PM Beijing · 2:00 PM Türkiye\n\nThe coin you earn by playing ARCIRCLE WORLD goes on-chain 💚`,
+  (l) => `ARCL launch countdown: ${l} 🚀\nRobinhood Chain · Nov 3, 11:00 UTC (6 AM ET · 8 PM KST)\n2% fee a trade: 1% buys back & burns $ARCIRCLE, 1% builds the game.`,
+  (l) => `${l} to go 💚 ARCL — ARCIRCLE WORLD's own game coin — launches on Robinhood Chain at 6:00 AM ET / 8:00 PM KST.\nThe contract is posted only by @ARCIRCLEonArc. Stay safe!`,
+];
+async function launchPost(origin, st) {
+  const ms = Date.now();
+  if (!launchOn(ms)) return null;
+  const slot = Math.floor(ms / (LAUNCH_EVERY * 60e3)), id = "arcl:" + slot;
+  if (st.sent[id]) return null;
+  const d = dayOf(now());
+  if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
+  const live = ms >= ARCL_LAUNCH, left = launchLeft(ms);
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD. ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 2% fee a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}"). Under 220 characters, at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  let text = "";
+  try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 200 })) || ""; } catch { text = ""; }
+  text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok || !text.includes(left.split(" ")[0]) && !live) text = LAUNCH_FALLBACK[slot % LAUNCH_FALLBACK.length](left);
+  text = `${text}\n\n🚀 ${LAUNCH_POST}`;
+  if (xLen(text) > 278) text = `${LAUNCH_FALLBACK[slot % LAUNCH_FALLBACK.length](left)}\n\n🚀 ${LAUNCH_POST}`;
+  try {
+    const x = await xPost(text);
+    st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text }); st.dirty = true;
+    return { id, posted: x, text };
+  } catch (e) { const msg = String(e.message || e); if (/duplicate/i.test(msg)) { st.sent[id] = { t: now(), x: "dup" }; st.dirty = true; } return { id, error: msg.slice(0, 200) }; }
+}
+
 // ---------- the hourly game post (2026-11-01, the owner: ARCIA posts on X every hour) ----------
 // One post a UTC hour (id hour:<YYYY-MM-DDTHH>), its topic turning with the hour; ARCIA writes it from live game numbers
 // (Claude, the same mind as her replies). Never promises earnings; no hashtags; a link only every HOURLY_LINK_EVERY hours.
 export function hourId(t) { return "hour:" + new Date(t * 1000).toISOString().slice(0, 13); }
 async function hourlyPost(origin, st) {
-  if (!HOURLY_ON) return [];
+  if (!HOURLY_ON || launchOn()) return [];
   const t = now(), id = hourId(t);
   if (st.sent[id]) return [];
   const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || topic.k === "kart" || topic.k === "shop" || h % HOURLY_LINK_EVERY === 0 || h % OFFICIAL_EVERY === 1;
@@ -628,10 +663,11 @@ export async function GET(req) {
         return json(200, { redo, posted: id, reply: d.text });
       } catch (e) { return json(502, { redo, error: String(e.message || e).slice(0, 200) }); }
     }
+    const launch = postsOn() ? await launchPost(origin, st).catch((e) => ({ error: String(e.message || e).slice(0, 200) })) : null;
     const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     const watch = await watchRun(st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
-    return json(200, { replies, ...(watch ? { watch } : {}), ...(watchdog ? { watchdog } : {}) });
+    return json(200, { replies, ...(launch ? { launch } : {}), ...(watch ? { watch } : {}), ...(watchdog ? { watchdog } : {}) });
   }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;
