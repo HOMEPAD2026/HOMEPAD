@@ -43,7 +43,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
       <span>${d ? esc(T("Today {n} / {cap}", { n: fmt(d.today), cap: fmt(d.cap) })) : esc(T("Sign in with your wallet to keep ARCL"))}</span></div></section>
     <section class="wa-ex-rate"><small>${esc(T("Exchange rate"))}</small><b>${ex.rate ? esc(String(ex.rate)) : esc(T("Not set yet"))}</b>
       <div class="wa-ex-lock"><label><span>${esc(T("ARCL to exchange"))}</span><input disabled placeholder="0"></label><span class="wa-ex-arrow">→</span><label><span>$ARCIRCLE</span><input disabled placeholder="—"></label></div>
-      <button type="button" class="wa-ex-btn" disabled><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>${esc(T("Exchange isn't open yet"))}</button></section>
+      <button type="button" class="wa-ex-btn" disabled><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>${esc(T("Exchange in the game's Exchange (the dock's Exchange button) — ARCL → $ARCIRCLE"))}</button></section>
   </div>
   <p class="wa-ex-note">${esc(T("ARCL is in-game points. It can't be exchanged for $ARCIRCLE yet. An exchange is being prepared; the rate and the start date will be announced once they're decided."))}</p>
   <ol class="wa-ex-steps"><li class="done"><b>${esc(T("Now"))}</b>${esc(T("Earn ARCL by playing and spend it in the ARCL Shop."))}</li><li><b>${esc(T("Next"))}</b>${esc(T("The exchange rate and rules are announced."))}</li><li><b>${esc(T("Then"))}</b>${esc(T("The exchange opens here."))}</li></ol>
@@ -253,7 +253,7 @@ export function createShop(ctx) {
 
   async function openExchange() {
     view = "ex"; sheet.hidden = false; ctx.freeze(true);
-    sheet.innerHTML = `<div class="wa-card wa-ex">${head(T("ARCL Exchange"), T("Your ARCL, how to earn it, and the exchange to $ARCIRCLE (not open yet)."))}<div class="wa-body" id="wa-body"><p class="wa-empty">${esc(T("Loading…"))}</p></div></div>`;
+    sheet.innerHTML = `<div class="wa-card wa-ex">${head(T("ARCL Exchange"), T("Your ARCL, how to earn it, and the exchange to $ARCIRCLE."))}<div class="wa-body" id="wa-body"><p class="wa-empty">${esc(T("Loading…"))}</p></div></div>`;
     await refresh();
     try { const r = await fetch("/api/social?world=arcl-top"); top = r.ok ? await r.json() : null; } catch { top = null; }
     if (view !== "ex" || sheet.hidden) return;

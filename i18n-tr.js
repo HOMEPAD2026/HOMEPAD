@@ -9519,6 +9519,8 @@
     "Earn ARCL by playing and spend it in the ARCL Shop.": "Oynayarak ARCL kazan ve ARCL Dükkan'da harca.",
     "Emote wheel: sit, point, faint…": "İfade çarkı: otur, işaret et, bayıl…",
     "Emotes: wave, sit, point…": "İfadeler: el salla, otur, işaret et…",
+    "Exchange in the game's Exchange (the dock's Exchange button) — ARCL → $ARCIRCLE": "Oyunun Takas'ında (alt çubuktaki Exchange düğmesi) takas et — ARCL → $ARCIRCLE",
+    "Your ARCL, how to earn it, and the exchange to $ARCIRCLE.": "ARCL'n, nasıl kazanılır ve $ARCIRCLE'a takas.",
     "Exchange isn't open yet": "Değişim henüz açılmadı",
     "Exchange rate": "Değişim oranı",
     "Glowing panels, neon signs, holo screens and a light pillar.": "Parlayan paneller, neon tabelalar, holo ekranlar ve bir ışık sütunu.",

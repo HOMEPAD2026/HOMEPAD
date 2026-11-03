@@ -9248,6 +9248,8 @@
     "Earn ARCL by playing and spend it in the ARCL Shop.": "플레이로 ARCL을 모으고 ARCL 상점에서 써요.",
     "Emote wheel: sit, point, faint…": "감정표현 휠: 앉기, 가리키기, 기절…",
     "Emotes: wave, sit, point…": "감정표현: 인사, 앉기, 가리키기…",
+    "Exchange in the game's Exchange (the dock's Exchange button) — ARCL → $ARCIRCLE": "게임의 교환(하단 독의 Exchange 버튼)에서 교환 — ARCL → $ARCIRCLE",
+    "Your ARCL, how to earn it, and the exchange to $ARCIRCLE.": "내 ARCL, 모으는 법, $ARCIRCLE 교환.",
     "Exchange isn't open yet": "아직 교환이 열리지 않았어요",
     "Exchange rate": "교환 비율",
     "Glowing panels, neon signs, holo screens and a light pillar.": "빛나는 패널, 네온사인, 홀로 스크린, 빛기둥.",
