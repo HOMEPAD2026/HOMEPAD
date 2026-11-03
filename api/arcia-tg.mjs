@@ -176,7 +176,10 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 // ---------------- cards ----------------
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
 // since 5 Oct 2026 exactly two official coins — the old $ARCIA on Arc and ♾️ Infinite are retired
-const cardCA = () => `♾️ <b>$ARCIRCLE</b> (Arc):\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b> (Robinhood Chain):\n<code>${h(CHECKSUM.arciaRh)}</code>`;
+// the owner's form (2026-11-03): $ARCL first — its CA is posted after the launch (ARCL_CA stays "" until then) —, then $ARCIRCLE
+const ARCL_CA = "";
+const cardCA = () => `💚 <b>$ARCL</b>(Main):\n${ARCL_CA ? `<code>${h(ARCL_CA)}</code>` : "coming soon on robinhood"}\n\n💙 <b>$ARCIRCLE</b>(Main):\n<code>${h(CHECKSUM.arcircle)}</code>`;
+const caKb = () => kb([[{ text: "💚 $ARCL", url: `${SITE}/arcl` }, { text: "💙 $ARCIRCLE", url: `${SITE}/game` }]]);
 const RETIRED_LABEL = {
   "0x9da6d5ce413e94264ea411372459413334a83be5": ["the old $ARCIA on Arc", "예전 $ARCIA on Arc", "旧的 Arc 上的 $ARCIA"],
   "0x2a15940316335bfb711db7cba98d637396e80c08": ["♾️ Infinite on Arc (the test coin)", "♾️ Infinite on Arc (테스트 코인)", "Arc 上的 ♾️ Infinite（测试币）"],
@@ -187,8 +190,8 @@ async function retiredNote(m, old, lang) {
   lang = langOf(String(m.text || m.caption || ""), lang); // answer in the language they wrote in
   const lb = RETIRED_LABEL[old.addr] || [old.label], name = lb[Math.min(L3(lang), lb.length - 1)];
   await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true },
-    text: `ℹ️ <code>${h(short(old.addr))}</code> ${T3(lang, `is ${h(name)}, retired on 5 Oct 2026 — it's not an official ARCIRCLE coin any more.`, `는 ${h(name)}이에요. 2026년 10월 5일부로 종료되어 더 이상 ARCIRCLE 공식 코인이 아니에요.`, `是${h(name)}，已于 2026 年 10 月 5 日停用，不再是 ARCIRCLE 官方币。`)}\n\n<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n${cardCA()}`,
-    ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }]]) });
+    text: `ℹ️ <code>${h(short(old.addr))}</code> ${T3(lang, `is ${h(name)}, retired on 5 Oct 2026 — it's not an official ARCIRCLE coin any more.`, `는 ${h(name)}이에요. 2026년 10월 5일부로 종료되어 더 이상 ARCIRCLE 공식 코인이 아니에요.`, `是${h(name)}，已于 2026 年 10 月 5 日停用，不再是 ARCIRCLE 官方币。`)}\n\n<b>${T3(lang, "The official coins:", "공식 코인:", "官方币：")}</b>\n${cardCA()}`,
+    ...caKb() });
   return true;
 }
 const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arciaRh: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" };
@@ -800,7 +803,7 @@ async function onMessage(m, channel) {
       case "help": return help(c, m, lang);
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
-      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }]]));
+      case "ca": return say(m, cardCA(), caKb());
       case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg) || ((String(arg || "").trim().match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/) || [])[0] || ""); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
@@ -1138,8 +1141,7 @@ async function faqReply(m, kind, lang) {
   const rp = { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true } };
   const safe = T3(lang, "🛡 Only trust addresses from arcircle.app or this bot. The team never DMs you first.", "🛡 arcircle.app이나 이 봇이 알려준 주소만 믿으세요. 팀은 먼저 DM하지 않아요.", "🛡 只相信 arcircle.app 或本机器人给出的地址。团队绝不会先私信你。");
   if (kind === "price") return sendCard(m.chat.id, await cardPrice(lang), { replyTo: m.message_id });
-  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n\n${cardCA()}\n\n📌 ${T3(lang, "Official info", "공식 안내", "官方信息")}: ${OFFICIAL_POST}\n\n${safe}`, ...rp,
-    ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "arcircle.app", url: SITE }]]) });
+  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `${cardCA()}\n\n📌 ${T3(lang, "Official info", "공식 안내", "官方信息")}: ${OFFICIAL_POST}\n\n${safe}`, ...rp, ...caKb() });
   if (kind === "site") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [
     `🌐 <b>${T3(lang, "ARCIRCLE — official links", "ARCIRCLE 공식 링크", "ARCIRCLE 官方链接")}</b>`,
     `${T3(lang, "Website", "웹사이트", "官网")}: ${SITE.replace("https://www.", "")}`,
