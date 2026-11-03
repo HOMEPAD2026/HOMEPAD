@@ -4687,7 +4687,7 @@ $("wp-dk-char").addEventListener("click", () => { closeAll(); if (rpg) { rpg.pan
 $("wp-dk-bag").addEventListener("click", () => { closeAll(); if (rpg) { rpg.pane("bag"); rpg.show("inv"); setTimeout(() => { const b = document.querySelector("#wr-inv .wr-bag, #wr-inv .wr-cells"); if (b) b.scrollIntoView({ block: "nearest" }); }, 60); } });
 // the Pets button wears a NEW badge until it's opened once
 try { if (localStorage.getItem("arc.world.petSeen")) $("wp-dk-pet-new").hidden = true; } catch { /* private mode */ }
-// the Exchange ($ARCL ⇄ $ARCIRCLE by request, world-swap.js): loaded the first time it's opened
+// the Exchange ($ARCL → $ARCIRCLE by request, world-swap.js): loaded the first time it's opened
 let swapUi = null;
 try { if (localStorage.getItem("arc.world.swapSeen2")) $("wp-dk-swap-new").hidden = true; } catch { /* private mode */ } // (EX: the relaunch shows LIVE once more)
 $("wp-dk-swap").addEventListener("click", async () => {

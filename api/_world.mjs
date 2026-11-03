@@ -389,7 +389,7 @@ export function make(deps) {
   const hwr = makeHwRealm({ ...deps, json, now, signer, award: shop.award, level: async (w) => levelOfSave(await saveOf(w)) }); // the Halloween Realm (api/_world-hwrealm.mjs)
   const mythic = makeMythic({ ...deps, json, now, signer, isGM, save: (w) => saveOf(w), debit: shop.debit, award: shop.award }); // MYTHIC gear held here: the Crimson Celestial set (api/_world-mythic.mjs)
   const rq = makeRaidQueens({ ...deps, json, now, signer, isGM, isoWeek: shop.isoWeek, award: shop.award, save: (w) => saveOf(w), mythic }); // RAID QUEENS: runs, the day's three, the SECRET's tickets (api/_world-raidq.mjs)
-  const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL ⇄ $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
+  const surv = makeSurvivors({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek }); // SURVIVORS ARENA: paid by the run's end (api/_world-survivors.mjs) // the Exchange: ARCL → $ARCIRCLE by request, settled by the team (api/_world-swap.mjs)
   const kartEv = makeKartEvent({ ...deps, json, now, signer, isGM, nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16) }); // the KART GRAND OPENING EVENT (api/_world-kartevent.mjs)
   const kart = makeKart({ ...deps, json, now, signer, credit: shop.credit, isoWeek: shop.isoWeek, event: kartEv }); // ARCIRCLE KART: races checked and paid by their end (api/_world-kart.mjs)
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });

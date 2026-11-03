@@ -8,7 +8,7 @@
 //   ARCL → $ARCIRCLE: the ARCL is held from the player's balance when they ask (it can't be spent twice) and the rate is
 //                     locked into the request; the treasury sends $ARCIRCLE on Arc (its wallet signs a plain transfer) and
 //                     the server checks the receipt — a Transfer of $ARCIRCLE from the treasury to that player — once.
-//   $ARCIRCLE → ARCL: the player sends $ARCIRCLE to the treasury first (from the window) and the server checks the
+//   $ARCIRCLE → ARCL: CLOSED since 2026-11-03 (SWAP.IN_OPEN false, the owner). When open: the player sends $ARCIRCLE to the treasury first (from the window) and the server checks the
 //                     transfer (from them, to the treasury, at least the amount, once); the treasury then credits the
 //                     ARCL at the locked rate (or turns it down and sends the tokens back on Arc).
 //
@@ -37,6 +37,10 @@ export const SWAP = {
   MIN: { arcl: 1000, arc: 100 }, MAX: { arcl: 50_000_000, arc: 100_000_000 },
   RATE: { min: 0.0001, max: 1_000_000 }, // $ARCL per 1 $ARCIRCLE
   DEFAULT_RATE: 10, // the opening rate until the treasury saves its own (the owner, 2026-11-02: 10 $ARCL = 1 $ARCIRCLE)
+  // $ARCIRCLE → ARCL is closed (the owner, 2026-11-03: "이건 안되게 해줘"): only ARCL → $ARCIRCLE takes new requests. A transfer
+  // a player already sent to the treasury (a page opened before the change) is still recorded — as "returning", so the
+  // treasury sends it back from the Treasury tab (op return); requests waiting from before it can still be credited.
+  IN_OPEN: false,
   DAY_ARC: 300_000, // the most $ARCIRCLE one wallet can ask for in a Seoul day (ARCL → $ARCIRCLE; the owner, 2026-11-02) — over it a request is refused
   KEEP: 30, // a player's own list: the latest 30
   LOG: 300, // the public record keeps the latest 300 ids (the read gives 100)
@@ -111,7 +115,7 @@ export function makeSwap(deps) {
   async function view(w) {
     await relaunch().catch(() => {});
     const [cfg, lg, reserve] = await Promise.all([cfgOf(), publicLog(30), arcOf(SWAP.TREASURY)]);
-    const out = { ok: true, rate: cfg.rate, open: cfg.open, rateAt: cfg.at, rateHist: cfg.hist.slice(0, 8), treasury: SWAP.TREASURY, token: ARCIRCLE, limits: { min: SWAP.MIN, max: SWAP.MAX }, reserve, ...lg };
+    const out = { ok: true, rate: cfg.rate, open: cfg.open, rateAt: cfg.at, rateHist: cfg.hist.slice(0, 8), treasury: SWAP.TREASURY, token: ARCIRCLE, limits: { min: SWAP.MIN, max: SWAP.MAX }, inOpen: SWAP.IN_OPEN, reserve, ...lg };
     if (!w) return json(200, out);
     const [arcl, arc, mine] = await Promise.all([arclOf(w), arcOf(w), one(`worldSwapMine/${w}`)]);
     const reqs = await listOf(((mine && mine.ids) || []).slice(0, SWAP.KEEP));
@@ -140,6 +144,7 @@ export function makeSwap(deps) {
       if (!(await commit([{ create: `worldSwapLock/${w}_${Math.floor(t / 3000)}`, data: { at: t } }, { inc: `worldArclBal/${w}`, fields: { bal: -amount, held: amount } }, { inc: `worldSwapDay/${w}_${rec.day}`, fields: { arc: quote } }])).ok) return json(429, { error: "one moment" });
       if (deps.ledger) try { rec.parts = await deps.ledger.afterSpend(w, amount); await deps.ledger.record(w, "hold", "swap", -amount, { b: rec.parts, ref: id }); } catch { /* recorded best effort */ }
     } else {
+      if (!SWAP.IN_OPEN && !b.tx) return json(403, { error: "$ARCIRCLE → ARCL is closed: only ARCL → $ARCIRCLE is open", closed: true });
       const tx = lc(b.tx); if (!/^0x[0-9a-f]{64}$/.test(tx)) return json(400, { error: "send the $ARCIRCLE to the treasury first, then give its transaction hash", pay: { token: ARCIRCLE, to: SWAP.TREASURY, amount: (BigInt(amount) * WEI).toString() } });
       const rc = deps.receipt ? await deps.receipt(tx).catch(() => null) : null;
       if (!rc) return json(202, { pending: true, error: "the transaction isn't confirmed yet — try again in a moment" });
@@ -147,6 +152,7 @@ export function makeSwap(deps) {
       if (moved(rc, w, SWAP.TREASURY) < BigInt(amount) * WEI) return json(400, { error: "that transfer to the treasury is less than the amount" });
       if (!(await commit([{ create: `worldSwapTx/${tx}`, data: { w, id, at: t } }])).ok) return json(409, { error: "this transaction was already used" });
       rec.tx = tx;
+      if (!SWAP.IN_OPEN) { rec.status = "returning"; rec.reason = "$ARCIRCLE → ARCL is closed — the treasury sends your $ARCIRCLE back on Arc"; rec.doneAt = t; }
     }
     await setDoc(`worldSwap/${id}`, rec);
     await push(`worldSwapMine/${w}`, id, SWAP.KEEP); await push(`worldSwapQ/${month(t)}`, id);

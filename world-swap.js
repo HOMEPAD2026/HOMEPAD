@@ -6,7 +6,7 @@
 //   Public record  every settled exchange: who (short), how much, the rate, the transaction — and the totals
 //   Treasury       only for the treasury wallet: the rate (and pause), the reserve, the queue — Send pays a request from
 //                  the treasury's own wallet (a plain $ARCIRCLE transfer) and the server checks it on Arc
-// $ARCIRCLE → $ARCL: the player's wallet sends the tokens to the treasury from here, then the request goes in with that
+// $ARCIRCLE → $ARCL: CLOSED since 2026-11-03 (the owner; data.inOpen ← SWAP.IN_OPEN): no switch, one way only. When open, the wallet sends the tokens to the treasury from here, then the request goes in with that
 // transaction. A payment waiting for its block is kept on the device (arc.swap.pend / arc.swap.pay) and checked again on open.
 // Loaded the first time the dock's Exchange is pressed.
 const UIX = "/images/ui/exchange/"; // (Meshy art, raw/ex on claude/meshy-exchange: coins, icons, header, vault, sparkle)
@@ -26,6 +26,7 @@ const pad = (x) => String(x).replace(/^0x/, "").toLowerCase().padStart(64, "0");
 const arcFor = (arcl, rate) => (rate > 0 ? Math.floor(arcl / rate + 1e-9) : 0);
 const arclFor = (arc, rate) => (rate > 0 ? Math.floor(arc * rate + 1e-9) : 0);
 const ARROWS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v14m0 0-3-3m3 3 3-3M17 20V6m0 0-3 3m3-3 3 3"/></svg>';
+const DOWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15m0 0-5-5m5 5 5-5"/></svg>';
 const LINK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>';
 const COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
 
@@ -68,7 +69,7 @@ export function createSwap(ctx) {
       const cw = e.target.closest("[data-copyw]"); if (cw) { copy(cw.dataset.copyw, T("Wallet address copied")); return; }
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.tab) { tab = b.dataset.tab; if (tab === "tr") loadQueue(); if (tab === "log") load().then(paint); paint(); (Snd.tab || (() => {}))(); }
-      else if (b.classList.contains("wx-flip")) { dir = dir === "arcl2arc" ? "arc2arcl" : "arcl2arc"; b.classList.add("spin"); paint(); (Snd.tab || (() => {}))(); }
+      else if (b.classList.contains("wx-flip") && inOpen()) { dir = dir === "arcl2arc" ? "arc2arcl" : "arcl2arc"; b.classList.add("spin"); paint(); (Snd.tab || (() => {}))(); }
       else if (b.dataset.pct) { const i = el.querySelector(".wx-amt"); const [from] = DIRS[dir]; const h = have(from); if (i && h != null) { let L = data.limits.max[from]; if (dir === "arcl2arc" && dayLeft() != null && rate()) L = Math.min(L, Math.floor(dayLeft() * rate())); i.value = fmt(Math.min(L, Math.floor((h * Number(b.dataset.pct)) / 100))); live(); } }
       else if (b.classList.contains("wx-go")) ask();
       else if (b.dataset.trsign) { Promise.resolve(ctx.signIn && ctx.signIn()).then(load).then(() => { paint(); if (signedIn()) loadQueue(); }).catch(() => {}); }
@@ -105,7 +106,10 @@ export function createSwap(ctx) {
     const tb = (id, label, n) => `<button type="button" role="tab" data-tab="${id}" aria-selected="${tab === id}">${esc(T(label))}${n ? `<i>${n}</i>` : ""}</button>`;
     el.querySelector(".wx-tabs").innerHTML = tb("ex", "Exchange") + tb("mine", "My requests", pend) + tb("log", "Public record") + (data && data.isTreasury ? tb("tr", "Treasury", tq) : "");
   }
+  // $ARCIRCLE → ARCL is closed (the owner, 2026-11-03; the server's SWAP.IN_OPEN): one way only, no switch
+  function inOpen() { return !!(data && data.inOpen); }
   function paintEx() {
+    if (!inOpen()) dir = "arcl2arc";
     const [from, to] = DIRS[dir], h = have(from), hTo = have(to), L = data && data.limits;
     const card = (k, give) => `<div class="wx-card ${give ? "give" : "get"} ${k}"><div class="wx-row"><small>${esc(T(give ? "You give" : "You get"))}</small><small class="wx-bal">${esc(T("Balance"))} <b>${fmt(give ? h : hTo)}</b></small></div>
       <div class="wx-row big"><span class="wx-tok">${ICON[k]}<b>${NAME[k]}</b></span>${give ? `<input class="wx-amt" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="${esc(T("Amount"))}">` : `<output class="wx-quote">0</output>`}</div>
@@ -113,7 +117,7 @@ export function createSwap(ctx) {
     const steps = dir === "arcl2arc" ? [[ic("lock"), T("Request: your $ARCL is held right away, and the rate is locked in.")], [ic("bank"), T("The treasury sends you $ARCIRCLE on Arc from its wallet.")], [ic("receipt"), T("It goes on the public record with its transaction.")]]
       : [[ic("swap"), T("Your wallet sends $ARCIRCLE to the treasury (one tap).")], [ic("lock"), T("The request goes in with that transaction; the rate is locked in.")], [ic("treasury"), T("The treasury credits your $ARCL.")]];
     const tot = (data && data.totals) || { n: 0, arcl: 0, arc: 0 };
-    return `<div class="wx-swap">${card(from, true)}<button type="button" class="wx-flip" aria-label="${esc(T("Switch direction"))}">${ARROWS}</button>${card(to, false)}</div>
+    return `<div class="wx-swap">${card(from, true)}${inOpen() ? `<button type="button" class="wx-flip" aria-label="${esc(T("Switch direction"))}">${ARROWS}</button>` : `<span class="wx-flip one" aria-hidden="true">${DOWN}</span>`}${card(to, false)}</div>
       <p class="wx-warn" hidden></p>
       <button type="button" class="wx-go">${esc(T("Request exchange"))}</button>
       <ol class="wx-steps">${steps.map(([i, s], k) => `<li><i>${i}</i><span><small>${k + 1}</small>${esc(s)}</span></li>`).join("")}</ol>
@@ -165,6 +169,7 @@ export function createSwap(ctx) {
     const a = amtNow(); if (!a) return;
     const extra = { dir, amount: a };
     if (dir === "arc2arcl") {
+      if (!inOpen()) { dir = "arcl2arc"; paint(); return; }
       if (!ctx.tx) { toast(T("Wallet connect isn't available here.")); return; }
       busy = "ask"; live(); let tx = "";
       try { tx = await ctx.tx(data.token, "0xa9059cbb" + pad(data.treasury) + pad((BigInt(a) * WEI).toString(16))); S.set("arc.swap.pend", { w: wallet(), dir, amount: a, tx }); }

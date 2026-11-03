@@ -92,13 +92,16 @@ r = await call(A, "world-swap-ask", { dir: "arcl2arc", amount: 20 * left0 }); ch
 r = await call(TRE, "world-swap-admin", { op: "reject", id: r.body.request.id }); check(r.status === 200 && (await read("world=swap&wallet=" + A.address)).daily.used === used0, "turned down: its allowance comes back too");
 T += 864e5; check((await read("world=swap&wallet=" + A.address)).daily.used === 0, "a new Seoul day starts at 0");
 
-// ---- $ARCIRCLE → ARCL: sent to the treasury first
-r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500 }); check(r.status === 400 && r.body.pay && r.body.pay.to === SWAP.TREASURY, "no tx: told to send to the treasury first (with the payment's details)");
+// ---- $ARCIRCLE → ARCL: closed (the owner, 2026-11-03) — no new request; a transfer already sent is recorded to go back
+check(SWAP.IN_OPEN === false, "$ARCIRCLE → ARCL is closed");
+r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500 }); check(r.status === 403 && r.body.closed, "closed: a new $ARCIRCLE → ARCL request is refused");
+check((await read("world=swap&wallet=" + B.address)).inOpen === false, "the window is told it's one way");
 RC[h("c1")] = { status: "0x1", logs: [xfer(b, SWAP.DESK, 500)] }; r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500, tx: h("c1") }); check(r.status === 400, "a transfer to the old desk isn't a transfer to the treasury");
 RC[h("c2")] = { status: "0x1", logs: [xfer(b, SWAP.TREASURY, 500)] }; r = await call(B, "world-swap-ask", { dir: "arc2arcl", amount: 500, tx: h("c2") });
-const q4 = r.body.request; check(r.status === 200 && q4.quote === arclFor(500, 20) && q4.quote === 10000, "500 $ARCIRCLE sent to the treasury → a request for 10,000 ARCL at 20");
+const q4 = r.body.request; check(r.status === 200 && q4.status === "returning", "a transfer already sent (a page opened before the change) is recorded as returning, not credited");
 r = await call(A, "world-swap-ask", { dir: "arc2arcl", amount: 500, tx: h("c2") }); check(r.status === 400 || r.status === 409, "someone else can't reuse B's transfer");
-r = await call(TRE, "world-swap-admin", { op: "done", id: q4.id }); check(r.status === 200 && r.body.request.give === 10000 && bal(b).bal === 10000, "the treasury credits B's 10,000 ARCL");
+r = await call(TRE, "world-swap-admin", { op: "done", id: q4.id }); check(r.status !== 200 && bal(b).bal === 0, "the treasury can't credit ARCL for it");
+RC[h("c3")] = { status: "0x1", logs: [xfer(SWAP.TREASURY, b, 500)] }; r = await call(TRE, "world-swap-admin", { op: "return", id: q4.id, tx: h("c3") }); check(r.status === 200 && r.body.request.status === "returned", "the treasury sends it back: returned");
 
 // ---- the old $ARCIRCLE transfer goes back
 r = await call(TRE, "world-swap-admin", { op: "return", id: "old2", tx: h("d1") }); check(r.status === 202, "a return not confirmed yet: wait");
