@@ -308,11 +308,25 @@ export const ARCL_LAUNCH = Date.parse("2026-11-03T11:00:00Z"), ARCL_WINDOW = 30 
 export const LAUNCH_POST = "https://x.com/ARCIRCLEonArc/status/2117482384950235380";
 export const launchOn = (ms = Date.now()) => ms >= Date.parse("2026-11-03T05:00:00Z") && ms < ARCL_LAUNCH + ARCL_WINDOW;
 export function launchLeft(ms) { const m = Math.max(0, Math.round((ARCL_LAUNCH - ms) / 60e3)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`; }
-const LAUNCH_FALLBACK = [
-  (l) => `⏳ ${l} until ARCL launches on Robinhood Chain!\nNov 3 · 6:00 AM ET · 8:00 PM KST · 7:00 PM Beijing · 2:00 PM Türkiye\n\nThe coin you earn by playing ARCIRCLE WORLD goes on-chain 💚`,
-  (l) => `ARCL launch countdown: ${l} 🚀\nRobinhood Chain · Nov 3, 11:00 UTC (6 AM ET · 8 PM KST)\n2% fee a trade: 1% buys back & burns $ARCIRCLE, 1% builds the game.`,
-  (l) => `${l} to go 💚 ARCL — ARCIRCLE WORLD's own game coin — launches on Robinhood Chain at 6:00 AM ET / 8:00 PM KST.\nThe contract is posted only by @ARCIRCLEonArc. Stay safe!`,
-];
+// the posts take turns in five languages (the owner, 2026-11-03): en → ko → zh → ja → tr, one a slot
+export const LAUNCH_LANGS = ["en", "ko", "zh", "ja", "tr"];
+const LANG_NAME = { en: "English", ko: "Korean", zh: "Simplified Chinese", ja: "Japanese", tr: "Turkish" };
+const LAUNCH_FALLBACK = {
+  en: (l) => `⏳ ${l} until ARCL launches on Robinhood Chain!\nNov 3 · 6:00 AM ET · 8:00 PM KST · 7:00 PM Beijing · 2:00 PM Türkiye\n\nThe coin you earn by playing ARCIRCLE WORLD goes on-chain 💚`,
+  ko: (l) => `⏳ ARCL 로빈후드 체인 런칭까지 ${l}!\n11월 3일 한국 시간 오후 8시 (미국 동부 오전 6시)\n\nARCIRCLE WORLD에서 플레이로 모은 게임 코인이 드디어 온체인으로 💚`,
+  zh: (l) => `⏳ 距离 ARCL 登陆 Robinhood Chain 还有 ${l}!\n11 月 3 日北京时间 19:00（美东 6:00）\n\nARCIRCLE WORLD 里玩出来的游戏币即将上链 💚`,
+  ja: (l) => `⏳ ARCL の Robinhood Chain ローンチまで あと ${l}!\n11月3日 日本時間 20:00（米東部 6:00）\n\nARCIRCLE WORLD で遊んで貯めたゲームコインがついにオンチェーンへ 💚`,
+  tr: (l) => `⏳ ARCL'nin Robinhood Chain lansmanına ${l} kaldı!\n3 Kasım · TSİ 14:00 (ABD Doğu 06:00)\n\nARCIRCLE WORLD'de oynayarak kazandığın oyun coini zincire geliyor 💚`,
+};
+// the time left in each language's words
+function leftIn(lang, ms) {
+  const m = Math.max(0, Math.round((ARCL_LAUNCH - ms) / 60e3)), h = Math.floor(m / 60), r = m % 60;
+  if (lang === "ko") return h ? `${h}시간 ${r}분` : `${r}분`;
+  if (lang === "zh") return h ? `${h} 小时 ${r} 分钟` : `${r} 分钟`;
+  if (lang === "ja") return h ? `${h}時間${r}分` : `${r}分`;
+  if (lang === "tr") return h ? `${h} sa ${r} dk` : `${r} dk`;
+  return h ? `${h}h ${r}m` : `${r} min`;
+}
 async function launchPost(origin, st) {
   const ms = Date.now();
   if (!launchOn(ms)) return null;
@@ -320,18 +334,18 @@ async function launchPost(origin, st) {
   if (st.sent[id]) return null;
   const d = dayOf(now());
   if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
-  const live = ms >= ARCL_LAUNCH, left = launchLeft(ms);
-  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD. ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 2% fee a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}"). Under 220 characters, at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  const live = ms >= ARCL_LAUNCH, lang = LAUNCH_LANGS[slot % LAUNCH_LANGS.length], left = leftIn(lang, ms);
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain and @ARCIRCLEonArc as they are). ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 2% fee a trade — 1% buys back and burns $ARCIRCLE, 1% for the game's development; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}") and the launch time in that language's own zone (Korean: 오후 8시 KST; Chinese: 北京时间 19:00; Japanese: 日本時間 20:00; Turkish: TSİ 14:00; English: 6:00 AM ET). Under 200 characters (CJK: under 110 characters), at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
   let text = "";
   try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 200 })) || ""; } catch { text = ""; }
   text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
-  if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok || !text.includes(left.split(" ")[0]) && !live) text = LAUNCH_FALLBACK[slot % LAUNCH_FALLBACK.length](left);
+  if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok || !text.includes(left.split(" ")[0]) && !live) text = LAUNCH_FALLBACK[lang](left);
   text = `${text}\n\n🚀 ${LAUNCH_POST}`;
-  if (xLen(text) > 278) text = `${LAUNCH_FALLBACK[slot % LAUNCH_FALLBACK.length](left)}\n\n🚀 ${LAUNCH_POST}`;
+  if (xLen(text) > 278) text = `${LAUNCH_FALLBACK[lang](left)}\n\n🚀 ${LAUNCH_POST}`;
   try {
     const x = await xPost(text);
     st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text }); st.dirty = true;
-    return { id, posted: x, text };
+    return { id, lang, posted: x, text };
   } catch (e) { const msg = String(e.message || e); if (/duplicate/i.test(msg)) { st.sent[id] = { t: now(), x: "dup" }; st.dirty = true; } return { id, error: msg.slice(0, 200) }; }
 }
 
