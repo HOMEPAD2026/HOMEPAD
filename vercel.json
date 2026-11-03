@@ -89,6 +89,10 @@
       "destination": "/coins.html"
     },
     {
+      "source": "/agents",
+      "destination": "/agents.html"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },
