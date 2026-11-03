@@ -172,3 +172,10 @@ body.al{--lime:#ccff00;--lime2:#b6e600;--lime3:#e6ff80;--blk:#0b0d06;--ink2:#161
   .al-step{padding:20px 18px 20px 88px}.al-sec{padding:60px 0}
   .al-safe{flex-direction:column}.al-mini{display:none}
 }
+/* the nav on the lime page (the owner, 2026-11-03 phone shot: the globe and the language menu were dark on dark; PLAY FREE on phones too) */
+.al-nav .gw-globe{color:#e8f5b8;background:rgba(204,255,0,.14);box-shadow:0 0 0 1px rgba(204,255,0,.35) inset}
+.al-nav .gw-lang-menu{background:#12160a;box-shadow:0 0 0 1px rgba(204,255,0,.45),0 18px 40px rgba(0,0,0,.55)}
+.al-nav .gw-lang-menu button{color:#eef9c8}
+.al-nav .gw-lang-menu button:hover,.al-nav .gw-lang-menu button.on{background:rgba(204,255,0,.16);color:var(--lime)}
+@media (max-width:1100px){.al-nav .gw-nav-play{display:inline-flex!important;padding:9px 14px;font-size:12px;white-space:nowrap}.al-nav .gw-nav-r{gap:8px}}
+@media (max-width:380px){.al-nav .gw-logo i{display:none}.al-nav .gw-nav-play{padding:8px 11px}}
