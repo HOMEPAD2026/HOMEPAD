@@ -79,8 +79,12 @@ async function xGet(base, query = {}) {
   if (!r.ok) throw new Error(`X ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
   return j;
 }
+// X takes at most one cashtag a post (2026-11-04: every post-launch $ARCL post was refused with a 403 for carrying
+// $ARCL and $ARCIRCLE): the first one stays, the rest lose their $ and read as plain names
+export function oneCashtag(text) { let seen = false; return String(text).replace(/(^|[^\w$])\$([A-Za-z][A-Za-z0-9_]{0,19})\b/g, (m, pre, sym) => { if (!seen) { seen = true; return m; } return pre + sym; }); }
 async function xPost(text, replyTo, quote) {
   const url = "https://api.x.com/2/tweets";
+  text = oneCashtag(text);
   const payload = { text, ...(replyTo ? { reply: { in_reply_to_tweet_id: replyTo } } : {}), ...(quote ? { quote_tweet_id: quote } : {}) };
   const r = await fetch(url, { method: "POST", headers: { authorization: authHeader("POST", url), "content-type": "application/json" }, body: JSON.stringify(payload) });
   const j = await r.json().catch(() => ({}));
