@@ -42,4 +42,14 @@ ok(/festUntil > Date\.now\(\)\) n \*= 5/.test(play) && /function festOwn\(o\)/.t
 for (const f of ["models/world/fest/starblade.glb", "models/world/fest/stararmor.glb", "models/world/fest/starwhale.glb", "images/fest/key-wide-960.webp", "images/fest/icon-xp5.webp", "images/fest/icon-whale.webp", "images/fest/icon-blade.webp", "images/fest/icon-armor.webp", "images/fest/icon-potions.webp"]) {
   const p = new URL("../../" + f, import.meta.url); ok(fs.existsSync(p) && fs.statSync(p).size < 700e3, f + " is there and phone-sized");
 }
+// ARCIA promotes it (the owner, 2026-11-05): her own slot with the festival post's link, the hourly topic, replies / Telegram links
+{
+  const W = await import("../../api/_arcia-world.mjs"), X = await import("../../api/arcia-x.mjs");
+  ok(W.FEST_POST === "https://x.com/ARCIRCLEonArc/status/2118123667997729201" && W.HOUR_TOPICS.some((t) => t.k === "fest"), "ARCIA has the festival post and an hourly festival topic");
+  ok(/🎁 https:\/\/x\.com\/ARCIRCLEonArc\/status\/2118123667997729201/.test(W.withLinks("The Starter Festival is on for new members!")) && /2118123667997729201/.test(W.withLinks("스타터 페스티벌 선물 받으세요")) && !/2118123667997729201/.test(W.withLinks("KART race now")), "a reply about the festival carries its link (one link), others don't");
+  ok(X.festOn(FEST.start + 3600e3) && !X.festOn(X.FEST_PROMO_END) && X.FEST_EVERY === 60 && X.festSlot(FEST.start + 15 * 60e3) !== X.festSlot(FEST.start + 14 * 60e3), "her festival post every hour at :15, the first week");
+  const xl = (t) => { let n = 0; for (const c of String(t).replace(/https?:\/\/\S+/g, "x".repeat(23))) { const cp = c.codePointAt(0); n += (cp >= 0x1100 && cp <= 0xffef) || cp > 0xffff ? 2 : 1; } return n; };
+  ok(Object.values(X.FEST_FALLBACK).flat().every((t) => xl(t + "\n\n🎁 " + W.FEST_POST) <= 278) && Object.keys(X.FEST_FALLBACK).length === 5, "the five languages' fallbacks fit X with the link");
+  ok(/fest = topic\.k === "fest"/.test(fs.readFileSync(new URL("../../api/arcia-x.mjs", import.meta.url), "utf8")), "the hourly festival topic takes the festival post's link");
+}
 console.log(`${pass} pass ${fail} fail`); if (fail) process.exit(1);

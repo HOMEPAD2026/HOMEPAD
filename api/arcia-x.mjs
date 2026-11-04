@@ -33,10 +33,10 @@ import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
-import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_POST, OFFICIAL_EVERY, SHOP_POST, aboutShop, aboutKart, withKartVideo, withLinks } from "./_arcia-world.mjs";
+import { WORLD_NOW, worldLive, worldText, HOUR_TOPICS, KART_VIDEO, KART_VIDEO_ID, OFFICIAL_POST, OFFICIAL_EVERY, SHOP_POST, aboutShop, aboutKart, withKartVideo, withLinks, FEST_POST, FEST_FACTS, aboutFest } from "./_arcia-world.mjs";
 
 const STATE = "arciaX/v1";
-const DAY_CAP = 90, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
+const DAY_CAP = 120, COINS_PER_RUN = 2; // 24 hourly game posts + the news posts (2026-11-01, the owner: "1시간마다")
 // the hourly game post (hourlyPost): one an hour about ARCIRCLE WORLD; a link only every HOURLY_LINK_EVERY hours (X bills a
 // post with a link far more than one without)
 const HOURLY_ON = true, HOURLY_LINK_EVERY = 3;
@@ -420,6 +420,46 @@ async function votePost(origin, st, ms) {
     return { id, lang, posted: x, text: out };
   } catch (e) { const msg = String(e.message || e); postFail(st, id, msg); return { id, error: msg.slice(0, 200) }; }
 }
+// ---------- the STARTER FESTIVAL (2026-11-05, the owner: "Arcia가 이 링크랑 위 업데이트 내용 홍보하게 해줘") ----------
+// Every FEST_EVERY minutes, FEST_OFFSET minutes past the vote's / guide's slots, until FEST_PROMO_END, ARCIA tells newcomers about
+// the festival (FEST_FACTS) with the festival post's link (FEST_POST, one link a post); the five languages take turns. It runs
+// beside the vote and the $ARCL guide (its own slot, its own id fest:<slot>); after FEST_PROMO_END the hourly topic 'fest' carries it.
+export const FEST_EVERY = 60, FEST_OFFSET = 15, FEST_PROMO_END = Date.parse("2026-11-12T22:00:00Z");
+export const festOn = (ms = Date.now()) => ms >= Date.parse("2026-11-04T22:00:00Z") && ms < FEST_PROMO_END;
+export const festSlot = (ms) => Math.floor((ms - FEST_OFFSET * 60e3) / (FEST_EVERY * 60e3));
+export const FEST_FALLBACK = {
+  en: ["New to ARCIRCLE WORLD? 🎁 The Starter Festival is on: start with a new wallet and get 5× EXP for 3 days, 500 + 500 potions, the Legendary Starwhale pet and the Legendary +7 Starlight Blade & Armor (Lv 10+). Free in your browser!",
+    "Starting fresh this week? ⭐ New members get a Legendary welcome: the Starwhale floats by your side, the Starlight Blade & Armor are yours from level 10, and every EXP counts ×5 for 3 days."],
+  ko: ["ARCIRCLE WORLD가 처음이세요? 🎁 스타터 페스티벌 진행 중! 새 지갑으로 시작하면 3일간 경험치 5배, 물약 500+500, 전설 펫 스타웨일, 레벨 10부터 끼는 전설 +7 스타라이트 블레이드·아머까지! 브라우저에서 무료로 바로 시작해요.",
+    "이번 주에 새로 시작한다면 지금이 딱이에요 ⭐ 신규 회원은 전설 펫 스타웨일과 스타라이트 블레이드·아머를 받고, 3일 동안 경험치가 5배예요!"],
+  zh: ["第一次来 ARCIRCLE WORLD？🎁 新手庆典进行中：用新钱包开始，即享 3 天 5 倍经验、药水 500+500、传说宠物星鲸，以及 10 级起可穿的传说 +7 星光之刃与铠甲！浏览器免费畅玩。",
+    "这周刚开始玩？⭐ 新会员送传说级欢迎礼：星鲸陪你飞，星光之刃与铠甲 10 级即可装备，3 天内经验 ×5！"],
+  ja: ["ARCIRCLE WORLD は初めて？🎁 スターターフェス開催中！新しいウォレットで始めると、3日間EXP5倍、ポーション500+500、伝説ペットのスターホエール、Lv10から装備できる伝説+7スターライトブレード＆アーマー！ブラウザで無料。",
+    "今週から始めるなら今がチャンス ⭐ 新メンバーには伝説のスターホエールとスターライト装備、3日間のEXP5倍をプレゼント！"],
+  tr: ["ARCIRCLE WORLD'de yeni misin? 🎁 Başlangıç Festivali başladı: yeni cüzdanla başla, 3 gün 5× EXP, 500+500 iksir, Efsanevi Yıldız Balina ve 10. seviyeden giyilen Efsanevi +7 Yıldız Işığı Kılıcı & Zırhı senin! Tarayıcında ücretsiz.",
+    "Bu hafta mı başlıyorsun? ⭐ Yeni üyelere Efsanevi karşılama: Yıldız Balina yanında süzülür, Yıldız Işığı Kılıcı & Zırhı 10. seviyeden senin, 3 gün boyunca EXP ×5!"],
+};
+async function festPost(origin, st, ms = Date.now()) {
+  if (!festOn(ms)) return null;
+  const slot = festSlot(ms), id = "fest:" + slot;
+  if (st.sent[id]) return null;
+  const d = dayOf(now());
+  if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
+  const lang = LAUNCH_LANGS[slot % LAUNCH_LANGS.length];
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCIRCLE WORLD, Starwhale, Starlight Blade, Starlight Armor and @ARCIRCLEonArc as they are, or their usual ${LANG_NAME[lang]} names). It points newcomers to ARCIRCLE's Starter Festival post (the link is added after your text). The facts: ${FEST_FACTS} Pick one angle (the four gifts, the Legendary pet, the Lv 10 Legendary gear, 5× EXP for 3 days, how to start in a minute) and say it like a friend, specific and warm. Under 230 characters (CJK: under 125 characters), at most two emoji, no hashtags, no links, don't @mention anyone except @ARCIRCLEonArc. Never promise earnings, prices or rewards beyond those facts. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  let text = "";
+  try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 260 })) || ""; } catch { text = ""; }
+  text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/0x[0-9a-fA-F]{6,}/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  const fb = FEST_FALLBACK[lang][Math.floor(slot / LAUNCH_LANGS.length) % FEST_FALLBACK[lang].length];
+  if (!text || /^SKIP\b/i.test(text)) text = fb;
+  let out = `${text}\n\n🎁 ${FEST_POST}`;
+  if (wLen(out) > 278) out = `${fb}\n\n🎁 ${FEST_POST}`;
+  try {
+    const x = await xPost(out);
+    st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text: out }); st.dirty = true;
+    return { id, lang, posted: x, text: out };
+  } catch (e) { const msg = String(e.message || e); postFail(st, id, msg); return { id, error: msg.slice(0, 200) }; }
+}
 async function launchPost(origin, st) {
   const ms = Date.now();
   if (voteOn(ms)) return votePost(origin, st, ms);
@@ -452,7 +492,7 @@ async function hourlyPost(origin, st) {
   if (!HOURLY_ON || launchOn() || voteOn()) return [];
   const t = now(), id = hourId(t);
   if (st.sent[id]) return [];
-  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || topic.k === "kart" || topic.k === "shop" || h % HOURLY_LINK_EVERY === 0 || h % OFFICIAL_EVERY === 1;
+  const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || topic.k === "kart" || topic.k === "shop" || topic.k === "fest" || h % HOURLY_LINK_EVERY === 0 || h % OFFICIAL_EVERY === 1;
   const W = await worldLive(origin).catch(() => null);
   const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
   const L = await liveNumbers(origin).catch(() => null); // L is ARCIA's live numbers (liveText), not a language
@@ -462,8 +502,8 @@ async function hourlyPost(origin, st) {
   if (!text || /^SKIP\b/i.test(text) || !checkAddresses(text, "").ok) return [];
   // one link a post (the owner, 2026-11-01): the KART hour → the KART play video's link (never a quote of the video); the
   // official info post every OFFICIAL_EVERY hours on another topic; else the game's link on its hours
-  const shop = topic.k === "shop" || aboutShop(text), kart = !shop && (topic.k === "kart" || aboutKart(text)), official = !shop && !kart && h % OFFICIAL_EVERY === 1;
-  const url = shop ? `🛒 ${SHOP_POST}` : kart ? `🎬 ${KART_VIDEO}` : official ? `📌 ${OFFICIAL_POST}` : link ? `🎮 ${SITE}/game` : "";
+  const fest = topic.k === "fest" || aboutFest(text), shop = !fest && (topic.k === "shop" || aboutShop(text)), kart = !fest && !shop && (topic.k === "kart" || aboutKart(text)), official = !fest && !shop && !kart && h % OFFICIAL_EVERY === 1;
+  const url = fest ? `🎁 ${FEST_POST}` : shop ? `🛒 ${SHOP_POST}` : kart ? `🎬 ${KART_VIDEO}` : official ? `📌 ${OFFICIAL_POST}` : link ? `🎮 ${SITE}/game` : "";
   if (url && xLen(`${text}\n\n${url}`) <= 278) text = `${text}\n\n${url}`;
   if (xLen(text) > 278) return [];
   return [{ id, text }];
@@ -773,10 +813,11 @@ export async function GET(req) {
       } catch (e) { return json(502, { redo, error: String(e.message || e).slice(0, 200) }); }
     }
     const launch = postsOn() ? await launchPost(origin, st).catch((e) => ({ error: String(e.message || e).slice(0, 200) })) : null;
+    const fest = postsOn() ? await festPost(origin, st).catch((e) => ({ error: String(e.message || e).slice(0, 200) })) : null;
     const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     const watch = await watchRun(st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
-    return json(200, { replies, ...(launch ? { launch } : {}), ...(watch ? { watch } : {}), ...(watchdog ? { watchdog } : {}) });
+    return json(200, { replies, ...(launch ? { launch } : {}), ...(fest ? { fest } : {}), ...(watch ? { watch } : {}), ...(watchdog ? { watchdog } : {}) });
   }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;

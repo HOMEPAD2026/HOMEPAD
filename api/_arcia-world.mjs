@@ -46,6 +46,7 @@ export const HOUR_TOPICS = [
   { k: "start", say: "for people who've never played: how to get in — arcircle.app/game, PLAY FREE, in the browser on a phone or PC, play as a guest first, a wallet later to keep progress" },
   { k: "kart", say: "ARCIRCLE KART — the newest game, and its Grand Opening event if it's on" },
   { k: "shop", say: "the new KART SHOP (KART GARAGE): six cars with their own strengths and weaknesses — ARC LIGHTSPEED and CIRCLE ORBIT (LEGENDARY), PEGMASTER, BLOXBUSTER, KAIRO KLIK, ARGUS WATCHER (EPIC) — bought with $ARCIRCLE, half of every purchase burned" },
+  { k: "fest", say: "the STARTER FESTIVAL for new members (see Events now): 5× EXP for 3 days, 500 + 500 potions, the Legendary Starwhale pet and the Legendary +7 Starlight Blade & Armor from level 10 — start with a new wallet and the card opens by itself" },
   { k: "new", say: "for players who already know us: the newest updates (from 'Newest updates')" },
   { k: "ranks", say: "this week's leaderboards: name the #1s from LIVE and dare people to beat them" },
   { k: "events", say: "what's on today and right now (the KART event if on, KART's Daily race, Jurassic boss hour 12:00/20:00 KST, Sit & Go on even UTC hours)" },
@@ -80,5 +81,12 @@ export const SHOP_POST_ID = "2117007966016786909";
 export const SHOP_POST = `https://x.com/ARCIRCLEonArc/status/${SHOP_POST_ID}`;
 export const aboutShop = (t) => /kart shop|\bgarage\b|lightspeed|circle orbit|pegmaster|bloxbuster|kairo klik|argus watcher|(new|six|6) (cars|karts)|buy a (car|kart)|카트 상점|차고|신차|卡丁车商店|车库|mağaza|garaj/i.test(String(t || ""));
 export function withShop(t, max = 280) { const s = String(t || ""); return aboutShop(s) ? addLink(s, SHOP_POST_ID, SHOP_POST, "🛒", max) : s; }
+// the STARTER FESTIVAL's post on X (the owner, 2026-11-05): when ARCIA talks about the festival / new members' gifts, its link
+// goes along (first of the links), and api/arcia-x.mjs festPost promotes it on its own slot
+export const FEST_POST_ID = "2118123667997729201";
+export const FEST_POST = `https://x.com/ARCIRCLEonArc/status/${FEST_POST_ID}`;
+export const FEST_FACTS = "ARCIRCLE WORLD's STARTER FESTIVAL for new members, 4 Nov 22:00 UTC to 4 Dec 22:00 UTC: a wallet whose first save in the game lands in that window claims, once and within 7 days of joining, 5x EXP for 3 days, 500 health + 500 mana potions, the Legendary pet Starwhale (it floats beside you and gives more EXP) and the Legendary +7 Starlight Blade and Starlight Armor, wearable from level 10 — the blade, the armor and the whale are new 3D models made with Meshy. How: open arcircle.app/game, press PLAY FREE (phone or PC browser, nothing to install), sign in with a new wallet, and the Starter Festival card opens by itself. Accounts that were already playing before it began don't qualify.";
+export const aboutFest = (t) => /starter festival|new members?|newcomers?.{0,20}(gift|event|bonus)|starwhale|starlight (blade|armor|armour)|5\s?[x×] (exp|xp)|스타터|신규 회원|초심자|스타웨일|스타라이트|新手庆典|新会员|星鲸|星光|başlangıç festivali|yeni üye|yıldız balina/i.test(String(t || ""));
+export function withFest(t, max = 280) { const s = String(t || ""); return aboutFest(s) ? addLink(s, FEST_POST_ID, FEST_POST, "🎁", max) : s; }
 /// ONE link a post at most (the owner, 2026-11-01): KART's video first, else the official post; nothing added to a text that has a link
-export function withLinks(t, max = 280, o = {}) { const s = String(t || ""); if (/https?:\/\//.test(s)) return s; const sh = withShop(s, max); if (sh !== s) return sh; const k = withKartVideo(s, max); return k !== s ? k : withOfficial(s, max, !!o.official, o.about || ""); }
+export function withLinks(t, max = 280, o = {}) { const s = String(t || ""); if (/https?:\/\//.test(s)) return s; const fe = withFest(s, max); if (fe !== s) return fe; const sh = withShop(s, max); if (sh !== s) return sh; const k = withKartVideo(s, max); return k !== s ? k : withOfficial(s, max, !!o.official, o.about || ""); }
