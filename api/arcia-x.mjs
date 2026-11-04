@@ -352,7 +352,7 @@ const INFO_FALLBACK = {
 };
 async function infoPost(origin, st, slot, id, d, lang) {
   const topic = ARCL_TOPICS[Math.floor(slot / LAUNCH_LANGS.length) % ARCL_TOPICS.length];
-  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain, PONS and @ARCIRCLEonArc as they are), for people who are new. Topic: ${topic.say}. Under 170 characters (CJK: under 95 characters), at most two emoji, no hashtags, no links and no contract address (the contract and link are added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards; say planned things are planned. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain, PONS and @ARCIRCLEonArc as they are), for people who are new. Topic: ${topic.say}. Under 170 characters (CJK: under 95 characters), at most two emoji, no hashtags, no links and no contract address (the contract and link are added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards; say planned things are planned. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
   let text = "";
   try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 180 })) || ""; } catch { text = ""; }
   text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/0x[0-9a-fA-F]{6,}/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
@@ -365,10 +365,60 @@ async function infoPost(origin, st, slot, id, d, lang) {
     const x = await xPost(out);
     st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text: out }); st.dirty = true;
     return { id, lang, topic: topic.k, posted: x, text: out };
-  } catch (e) { const msg = String(e.message || e); if (/duplicate/i.test(msg)) { st.sent[id] = { t: now(), x: "dup" }; st.dirty = true; } return { id, error: msg.slice(0, 200) }; }
+  } catch (e) { const msg = String(e.message || e); postFail(st, id, msg); return { id, error: msg.slice(0, 200) }; }
+}
+// a post that X refused: logged (the runtime logs), kept for ?status (postError), and a duplicate marked done so it isn't retried
+function postFail(st, id, msg) {
+  console.error("arcia post", id, msg.slice(0, 300));
+  st.postError = { id, t: now(), msg: msg.slice(0, 300) }; st.dirty = true;
+  if (/duplicate/i.test(msg)) st.sent[id] = { t: now(), x: "dup" };
+}
+
+// ---------- the $ARCL DexScreener banner vote (2026-11-04, the owner: "이거 내용 잘 정리 홍보할 수 있게 해줘 30분 마다") ----------
+// Every VOTE_EVERY minutes until VOTE_END ARCIA sums up the official vote post (four banner designs, the team leaning to 4) and
+// asks people to answer 1–4 under it; one link a post (VOTE_POST), the five languages taking turns. The 20-minute $ARCL
+// guide rests while it's on, so the two never stack up.
+export const VOTE_POST = "https://x.com/ARCIRCLEonArc/status/2117807774449205377";
+export const VOTE_START = Date.parse("2026-11-04T03:00:00Z"), VOTE_END = Date.parse("2026-11-07T03:00:00Z"), VOTE_EVERY = 30;
+export const voteOn = (ms = Date.now()) => ms >= VOTE_START && ms < VOTE_END;
+export const VOTE_FACTS = "ARCIRCLE is choosing the official DexScreener banner for $ARCL and asks the community to vote 1, 2, 3 or 4 by replying under the post. 1 Launch Announcement: bold and informative, but a little crowded and focused on the launch date. 2 Neon Green Gaming World: unique and striking, but doesn't clearly show the $ARCL token. 3 Black Launch Banner: strong token branding, but feels more like a promo than a long-term banner. 4 Fantasy Gaming World + $ARCL logo: the team's favourite, showing both the gaming universe and the token (maybe with a slightly smaller logo and a cleaner layout). The idea: $ARCL is built around real gameplay and in-game use, so the banner should show the world behind the token, not just the token.";
+export const VOTE_FALLBACK = {
+  en: ["Help pick $ARCL's official DexScreener banner! 💚\n1️⃣ Launch Announcement\n2️⃣ Neon Green Gaming World\n3️⃣ Black Launch Banner\n4️⃣ Fantasy Gaming World + $ARCL logo\nReply 1–4 under the post 👇",
+    "Which banner should represent $ARCL on DexScreener? The team leans to 4️⃣ — our gaming world + the $ARCL logo — because $ARCL lives in real gameplay. What's yours: 1, 2, 3 or 4? 👀"],
+  ko: ["$ARCL 공식 DexScreener 배너를 함께 골라주세요! 💚\n1️⃣ 런칭 공지\n2️⃣ 네온 그린 게임 월드\n3️⃣ 블랙 런칭 배너\n4️⃣ 판타지 게임 월드 + $ARCL 로고\n아래 게시물에 1~4로 답해주세요 👇",
+    "DexScreener에 걸릴 $ARCL 배너, 어떤 게 좋아요? 팀은 4️⃣ 게임 월드 + $ARCL 로고에 마음이 가요 — $ARCL은 진짜 게임 플레이에서 나오니까요. 여러분은 1, 2, 3, 4 중 몇 번? 👀"],
+  zh: ["一起来选 $ARCL 的官方 DexScreener 横幅！💚\n1️⃣ 上线公告\n2️⃣ 霓虹绿游戏世界\n3️⃣ 黑色上线横幅\n4️⃣ 奇幻游戏世界 + $ARCL 标志\n在帖子下回复 1–4 👇",
+    "DexScreener 上的 $ARCL 横幅，你选哪个？团队偏爱 4️⃣ 游戏世界 + $ARCL 标志——因为 $ARCL 来自真实的游戏玩法。你投 1、2、3 还是 4？👀"],
+  ja: ["$ARCL の公式 DexScreener バナーを一緒に選んで！💚\n1️⃣ ローンチ告知\n2️⃣ ネオングリーンのゲーム世界\n3️⃣ ブラックのローンチバナー\n4️⃣ ファンタジー世界 + $ARCL ロゴ\n投稿に 1〜4 で返信してね 👇",
+    "DexScreener に載せる $ARCL バナー、どれがいい？チームは 4️⃣ ゲーム世界 + $ARCL ロゴ推し — $ARCL は本物のゲームプレイから生まれるから。あなたは 1・2・3・4 のどれ？👀"],
+  tr: ["$ARCL'nin resmi DexScreener bannerını birlikte seçelim! 💚\n1️⃣ Lansman Duyurusu\n2️⃣ Neon Yeşil Oyun Dünyası\n3️⃣ Siyah Lansman Bannerı\n4️⃣ Fantastik Oyun Dünyası + $ARCL logosu\nGönderinin altına 1–4 yaz 👇",
+    "DexScreener'da $ARCL'yi hangi banner temsil etmeli? Ekip 4️⃣'e yakın — oyun dünyamız + $ARCL logosu, çünkü $ARCL gerçek oyundan doğuyor. Seninki 1, 2, 3 mü 4 mü? 👀"],
+};
+// X's own count: a link is 23, CJK and emoji count 2
+const wLen = (t) => { let n = 0; for (const c of String(t).replace(/https?:\/\/\S+/g, "x".repeat(23))) { const cp = c.codePointAt(0); n += (cp >= 0x1100 && cp <= 0xffef) || cp > 0xffff ? 2 : 1; } return n; };
+async function votePost(origin, st, ms) {
+  const slot = Math.floor(ms / (VOTE_EVERY * 60e3)), id = "vote:" + slot;
+  if (st.sent[id]) return null;
+  const d = dayOf(now());
+  if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
+  const lang = LAUNCH_LANGS[slot % LAUNCH_LANGS.length];
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names $ARCL, ARCIRCLE, DexScreener and @ARCIRCLEonArc as they are). It points people to ARCIRCLE's vote post (the link is added after your text). The vote: ${VOTE_FACTS} Sum it up in your own words — list the four options short with 1️⃣ 2️⃣ 3️⃣ 4️⃣ or pick one angle (why 4, what each shows, why the banner matters) — and ask people to reply 1, 2, 3 or 4 under the post. Under 230 characters (CJK: under 125 characters), no hashtags, no links, don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  let text = "";
+  try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 260 })) || ""; } catch { text = ""; }
+  text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/0x[0-9a-fA-F]{6,}/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
+  const fb = VOTE_FALLBACK[lang][Math.floor(slot / LAUNCH_LANGS.length) % VOTE_FALLBACK[lang].length];
+  if (!text || /^SKIP\b/i.test(text)) text = fb;
+  let out = `${text}\n\n🗳️ ${VOTE_POST}`;
+  if (wLen(out) > 278) out = `${fb}\n\n🗳️ ${VOTE_POST}`;
+  try {
+    const x = await xPost(out);
+    st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text: out }); st.dirty = true;
+    return { id, lang, posted: x, text: out };
+  } catch (e) { const msg = String(e.message || e); postFail(st, id, msg); return { id, error: msg.slice(0, 200) }; }
 }
 async function launchPost(origin, st) {
   const ms = Date.now();
+  if (voteOn(ms)) return votePost(origin, st, ms);
   if (!launchOn(ms)) return null;
   const slot = Math.floor(ms / (LAUNCH_EVERY * 60e3)), id = "arcl:" + slot;
   if (st.sent[id]) return null;
@@ -376,7 +426,7 @@ async function launchPost(origin, st) {
   if ((st.days[d] || 0) >= DAY_CAP) return { id, skip: "daily cap" };
   const live = ms >= ARCL_LAUNCH, lang = LAUNCH_LANGS[slot % LAUNCH_LANGS.length], left = leftIn(lang, ms);
   if (live && ms >= ARCL_LAUNCH + ARCL_WINDOW) return infoPost(origin, st, slot, id, d, lang);
-  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain and @ARCIRCLEonArc as they are). ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 3% fee a trade — 1% for $ARCL, 1% buys back and burns $ARCIRCLE, 1% for the game platform; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}") and the launch time in that language's own zone (Korean: 오후 8시 KST; Chinese: 北京时间 19:00; Japanese: 日本時間 20:00; Turkish: TSİ 14:00; English: 6:00 AM ET). Under 200 characters (CJK: under 110 characters), at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the cheerful idol of ARCIRCLE WORLD — written entirely in ${LANG_NAME[lang]} (keep the names ARCL, $ARCIRCLE, ARCIRCLE WORLD, Robinhood Chain and @ARCIRCLEonArc as they are). ${live ? "ARCL's launch time on Robinhood Chain has just been reached (it may start up to 30 minutes late) — tell people to follow @ARCIRCLEonArc for the official contract." : `Countdown: ${left} until ARCL launches on Robinhood Chain — Tue Nov 3, 6:00 AM US Eastern = 8:00 PM Korea = 7:00 PM Beijing = 2:00 PM Türkiye (11:00 UTC), it may start up to 30 minutes late.`} Facts you may use: ARCL is ARCIRCLE WORLD's own game coin, earned by playing, apart from $ARCIRCLE; a 3% fee a trade — 1% for $ARCL, 1% buys back and burns $ARCIRCLE, 1% for the game platform; the contract is posted only by @ARCIRCLEonArc; arcircle.app/arcl has the countdown. Say the exact time left ("${left}") and the launch time in that language's own zone (Korean: 오후 8시 KST; Chinese: 北京时间 19:00; Japanese: 日本時間 20:00; Turkish: TSİ 14:00; English: 6:00 AM ET). Under 200 characters (CJK: under 110 characters), at most two emoji, no hashtags, no links (the link is added after your text), don't @mention anyone except @ARCIRCLEonArc. Never promise prices, gains or rewards. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nAnswer with the post text only.`;
   let text = "";
   try { const L = await liveNumbers(origin).catch(() => null); text = (await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 200 })) || ""; } catch { text = ""; }
   text = text.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@(?!ARCIRCLEonArc\b)\w+/g, "").replace(/#\w+/g, "").replace(/ {2,}/g, " ").trim();
@@ -387,7 +437,7 @@ async function launchPost(origin, st) {
     const x = await xPost(text);
     st.sent[id] = { t: now(), x: x || "" }; st.days[d] = (st.days[d] || 0) + 1; remember(st, { id: x, kind: "post", text }); st.dirty = true;
     return { id, lang, posted: x, text };
-  } catch (e) { const msg = String(e.message || e); if (/duplicate/i.test(msg)) { st.sent[id] = { t: now(), x: "dup" }; st.dirty = true; } return { id, error: msg.slice(0, 200) }; }
+  } catch (e) { const msg = String(e.message || e); postFail(st, id, msg); return { id, error: msg.slice(0, 200) }; }
 }
 
 // ---------- the hourly game post (2026-11-01, the owner: ARCIA posts on X every hour) ----------
@@ -395,12 +445,12 @@ async function launchPost(origin, st) {
 // (Claude, the same mind as her replies). Never promises earnings; no hashtags; a link only every HOURLY_LINK_EVERY hours.
 export function hourId(t) { return "hour:" + new Date(t * 1000).toISOString().slice(0, 13); }
 async function hourlyPost(origin, st) {
-  if (!HOURLY_ON || launchOn()) return [];
+  if (!HOURLY_ON || launchOn() || voteOn()) return [];
   const t = now(), id = hourId(t);
   if (st.sent[id]) return [];
   const h = Math.floor(t / 3600), topic = HOUR_TOPICS[h % HOUR_TOPICS.length], link = topic.k === "start" || topic.k === "kart" || topic.k === "shop" || h % HOURLY_LINK_EVERY === 0 || h % OFFICIAL_EVERY === 1;
   const W = await worldLive(origin).catch(() => null);
-  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + String(r.text).slice(0, 90)).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
+  const brief = `Write ONE post for your own X account (@ARCIAonArc) as ARCIA — the idol of ARCIRCLE: cheerful, playful, specific, like a real person who loves this game, never like an ad. This hour's topic: ${topic.say}. Use only what WORLD and LIVE say (names, numbers, dates); use a number only when it's interesting (never a zero, never "0 players"). Under ${link ? 230 : 260} characters, at most two emoji, no hashtags, don't @mention anyone except @ARCIRCLEonArc when the KART clip contest is the point, no links (${link ? "the link is added after your text" : "say \"free in your browser\" or similar in words"}). Never promise earnings, prices or rewards beyond what WORLD says. Not like your recent posts:\n${(st.recent || []).filter((r) => r.kind === "post").slice(0, 5).map((r) => "- " + Array.from(String(r.text)).slice(0, 90).join("")).join("\n") || "- (none)"}\n\nWORLD:\n${WORLD_NOW}\n\nLIVE:\n${worldText(W) || "(not available)"}\n\nAnswer with the post text only.`;
   const L = await liveNumbers(origin).catch(() => null); // L is ARCIA's live numbers (liveText), not a language
   const out = await askClaude({ messages: [{ role: "user", content: brief }], L, maxTokens: 220 });
   if (!out) return [];
@@ -665,7 +715,7 @@ export async function GET(req) {
     return json(200, {
       keys: hasKeys(), enabled: enabled(), posts: postsOn(), store: storeEnabled(), cronSecret: !!process.env.CRON_SECRET,
       account: hasKeys() ? await whoami().catch(() => ({ error: "unreachable" })) : null,
-      today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
+      today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP, postError: st ? st.postError || null : null,
       watch: { on: watchOn(), accounts: WATCH, today: st && st.watchDays ? st.watchDays[dayOf(now())] || 0 : 0, cap: WATCH_DAY_CAP, recent: st ? (st.recent || []).filter((r) => r.kind === "watch").slice(0, 6).map((r) => ({ to: r.to, text: r.text, url: `https://x.com/ARCIAonArc/status/${r.id}` })) : [] },
       firstRun: st ? !st.coinSince : null,
       wouldPost: p.posts.map((x) => ({ id: x.id, chars: xLen(x.text), text: x.text })),

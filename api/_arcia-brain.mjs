@@ -319,7 +319,10 @@ const reqBody = ({ messages, L, extra, maxTokens, stream, model }) => JSON.strin
     { type: "text", text: `${liveText(L)}\n${extra}${retiredNote(messages) ? `\n${retiredNote(messages)}` : ""}` },
   ],
   messages,
-});
+}, wellFormed);
+// a string cut in the middle of an emoji (a lone surrogate) made the API refuse the whole body as bad JSON (2026-11-03:
+// "unexpected end of hex escape" on every call after the launch) — every string goes in well-formed
+function wellFormed(k, v) { return typeof v === "string" ? (v.toWellFormed ? v.toWellFormed() : v.replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "\ufffd")) : v; }
 // with ANTHROPIC_WORKSPACE_ID set the header goes along; if the API says that workspace doesn't
 // exist (or wasn't needed), the same call is tried once without it. Returns the ok Response or null.
 async function callClaude(body, timeoutMs) {

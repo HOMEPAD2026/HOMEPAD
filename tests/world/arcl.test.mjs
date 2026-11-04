@@ -34,4 +34,13 @@ ok(/href="\/arcl" data-i="arcl\.more"/.test(game) && /id="gw-arcl-cd"/.test(game
 ok((gw.match(/"arcl\.cd\.soon": /g) || []).length === 4 && /function arclCd\(\)/.test(gw), "the footer countdown speaks all 4 languages");
 ok(/img: "\/images\/arcl\/news-1200\.webp"/.test(gw), "/game's news leads with the ARCL launch");
 for (const f of ["arcl.js", "arcl.html", "gw.js", "coins.js", "api/_arcia-world.mjs"]) ok(!/6:00 PM ET|6 PM ET|23:00 UTC|오후 6시|美东 18:00|18:00 ET/.test(read(f)), f + " names the corrected time only (no 6 PM ET / 23:00 UTC left)");
+// the DexScreener banner vote (2026-11-04): every 30 minutes for three days, one link, five languages, short enough for X
+{
+  const X = await import("../../api/arcia-x.mjs");
+  const w = (t) => { let n = 0; for (const c of t.replace(/https?:\/\/\S+/g, "x".repeat(23))) { const cp = c.codePointAt(0); n += (cp >= 0x1100 && cp <= 0xffef) || cp > 0xffff ? 2 : 1; } return n; };
+  ok(X.voteOn(Date.parse("2026-11-04T04:00:00Z")) && !X.voteOn(Date.parse("2026-11-07T04:00:00Z")) && X.VOTE_EVERY === 30, "the vote promo runs every 30 minutes for three days");
+  ok(Object.keys(X.VOTE_FALLBACK).join() === X.LAUNCH_LANGS.join() && Object.values(X.VOTE_FALLBACK).flat().every((t) => w(t + "\n\n🗳️ " + X.VOTE_POST) <= 278 && !/https?:/.test(t)), "every fallback fits one X post with the vote link, in all five languages");
+  const brain = read("api/_arcia-brain.mjs");
+  ok(/\}, wellFormed\);/.test(brain), "the model's request body is made of well-formed strings (a cut emoji broke every call)");
+}
 console.log(`${pass} pass ${fail} fail`); if (fail) process.exit(1);
