@@ -40,6 +40,7 @@ for (const f of ["arcl.js", "arcl.html", "gw.js", "coins.js", "api/_arcia-world.
   const w = (t) => { let n = 0; for (const c of t.replace(/https?:\/\/\S+/g, "x".repeat(23))) { const cp = c.codePointAt(0); n += (cp >= 0x1100 && cp <= 0xffef) || cp > 0xffff ? 2 : 1; } return n; };
   ok(X.voteOn(Date.parse("2026-11-04T04:00:00Z")) && !X.voteOn(Date.parse("2026-11-07T04:00:00Z")) && X.VOTE_EVERY === 30, "the vote promo runs every 30 minutes for three days");
   ok(Object.keys(X.VOTE_FALLBACK).join() === X.LAUNCH_LANGS.join() && Object.values(X.VOTE_FALLBACK).flat().every((t) => w(t + "\n\n🗳️ " + X.VOTE_POST) <= 278 && !/https?:/.test(t)), "every fallback fits one X post with the vote link, in all five languages");
+  ok(X.oneCashtag("$ARCL is live! 1% burns $ARCIRCLE. $ARCL CA: 0xcc05 — cost $5") === "$ARCL is live! 1% burns ARCIRCLE. ARCL CA: 0xcc05 — cost $5", "only the first cashtag stays (X refuses a post with two)");
   const brain = read("api/_arcia-brain.mjs");
   ok(/\}, wellFormed\);/.test(brain), "the model's request body is made of well-formed strings (a cut emoji broke every call)");
 }
