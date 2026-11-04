@@ -185,6 +185,9 @@ export const PET = {
   species: [["bunny", "chick", "pig", "cow", "hog", "beaver", "caterpillar", "crab"], ["deer", "dog", "kitten", "bee", "fish", "penguin", "koala"], ["fox", "monkey", "parrot", "panda", "drone", "cat"], ["tiger", "lion", "polar", "wisp"], ["elephant", "giraffe"]],
 };
 const PET_RARITY = Object.fromEntries(PET.species.flatMap((l, r) => l.map((id) => [id, r])));
+// pets that never come from an egg: given by an event (the Starter Festival's Starwhale, api/_world-fest.mjs)
+export const PET_GIFT = { starwhale: 4 };
+Object.assign(PET_RARITY, PET_GIFT);
 export const petRarityOf = (id) => PET_RARITY[id];
 const cryptoRnd = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
 /// one egg: { r, s, pity } from the pity count so far (rnd: () => [0,1), crypto-random unless a test passes its own)

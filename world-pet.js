@@ -12,7 +12,7 @@ import { PET_SPECIES, PET_BY, PET_RARITY, PET_AB, petPower, petLevel, petNext, R
 
 export const PET_READY = true;
 export const EGG_PRICE = 3000, PET_MAX = 30;
-const HEIGHT = { giraffe: 1.55, elephant: 1.2, lion: 0.95, tiger: 0.95, polar: 1.0, cow: 1.0, bee: 0.55, fish: 0.55, crab: 0.5, caterpillar: 0.5, chick: 0.6, bunny: 0.7, penguin: 0.75 };
+const HEIGHT = { starwhale: 0.8, giraffe: 1.55, elephant: 1.2, lion: 0.95, tiger: 0.95, polar: 1.0, cow: 1.0, bee: 0.55, fish: 0.55, crab: 0.5, caterpillar: 0.5, chick: 0.6, bunny: 0.7, penguin: 0.75 };
 const rarityVar = (r) => `var(--rar-${r})`;
 
 /// ctx: { THREE, K, planet, here(v), facing(), combat(), reduce, coarse, low, ver, legacy (createPet's), T, esc, rpg(), ach(),
@@ -56,10 +56,14 @@ export function createPets(ctx) {
     if (plate) { plate.material.map && plate.material.map.dispose(); plate.material.dispose(); plate = null; plateKey = ""; }
     if (h) { const cs = h.userData.cs; if (cs) { cs.geometry.dispose(); cs.material.dispose(); } root.remove(h); h = null; body = null; } curId = "";
   }
+  // a pet of its own model (Meshy: the Starter Festival's Starwhale, sp.glb): fetched once, floats (no clips)
+  const glbs = {};
+  const glbOf = (u) => (glbs[u] = glbs[u] || new Promise((ok) => K.gltfLoader().load(u + (ctx.ver || ""), (g) => ok(g.scene), undefined, () => { delete glbs[u]; ok(null); })));
   async function mount(id) {
     const sp = PET_BY[id], t = ++tok; unmount(); tok = t;
-    const p = await pack(); if (t !== tok || !p) return;
-    const o = K.packClone(p, sp.m); if (!o) return;
+    const p = sp.glb ? { clips: [] } : await pack(); if (t !== tok || !p) return;
+    const src = sp.glb ? await glbOf(sp.glb) : null; if (t !== tok) return;
+    const o = sp.glb ? (src ? src.clone(true) : null) : K.packClone(p, sp.m); if (!o) return;
     const b = new THREE.Box3().setFromObject(o), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
     o.position.set(-c.x, -b.min.y, -c.z); o.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
     body = new THREE.Group(); body.add(o); body.scale.setScalar((HEIGHT[id] || 0.85) / Math.max(0.01, sz.y));
@@ -89,7 +93,7 @@ export function createPets(ctx) {
   function sync() {
     const n = calc(), old = M; M = n;
     const id = n.id, sp = id ? PET_BY[id] : null, lv = id ? lvOf(id) : 1;
-    if (sp && sp.m) { legacy.set(null); if (wantId !== id) { wantId = id; mount(id); } }
+    if (sp && (sp.m || sp.glb)) { legacy.set(null); if (wantId !== id) { wantId = id; mount(id); } }
     else { if (wantId) { wantId = ""; unmount(); } legacy.set(sp ? { id, lv, name: nameOf(id) } : null); }
     curLv = lv; if (h) dress();
     if (id && id === id0 && lv > lv0 && lv0) emoteT = 1.6; // it grew: a little dance
@@ -111,7 +115,8 @@ export function createPets(ctx) {
   async function doFill(ids) {
     const todo = ids.filter((id) => !pics[id] && !tried.has(id)); if (!todo.length) return; todo.forEach((id) => tried.add(id));
     try {
-      const need = todo.filter((id) => PET_BY[id].m), sp = todo.filter((id) => !PET_BY[id].m);
+      todo.filter((id) => PET_BY[id].pic).forEach((id) => { pics[id] = PET_BY[id].pic + (ctx.ver || ""); }); // (a gift pet brings its own picture)
+      const need = todo.filter((id) => PET_BY[id].m), sp = todo.filter((id) => !PET_BY[id].m && !PET_BY[id].pic);
       if (sp.length) { try { legacyPics = legacyPics || legacy.portraits(); } catch { legacyPics = {}; } sp.forEach((id) => { pics[id] = legacyPics[id] || ""; }); }
       if (need.length) {
         const p = await pack(); if (!p) return;
@@ -224,6 +229,7 @@ export function createPets(ctx) {
     const d = h.position.distanceTo(want);
     if (d > 20) h.position.copy(want); else if (d > 0.3) h.position.lerp(want, 1 - Math.exp(-dt * (d > 4 ? 6 : 3)));
     h.position.y = me.y;
+    if (sp && sp.float && body) { body.position.y = 0.55 + Math.sin(t * 2.1) * 0.12; body.rotation.z = Math.sin(t * 1.5) * 0.07; body.rotation.x = Math.sin(t * 1.1) * 0.05; } // (floats beside you)
     const sped = last.distanceTo(h.position) / Math.max(1e-3, dt), moving = sped > 0.45;
     if (moving) heading = Math.atan2(h.position.x - last.x, h.position.z - last.z); else heading = f;
     h.rotation.y += shortest(heading - h.rotation.y) * Math.min(1, dt * 7);
@@ -236,7 +242,7 @@ export function createPets(ctx) {
       else play("idle");
     }
     // within 26 m the animation runs every frame, beyond it every third
-    if (Math.hypot(h.position.x - me.x, h.position.z - me.z) < 26) { mixer.update(dt + acc); acc = 0; } else { acc += dt; if (++fc % 3 === 0) { mixer.update(acc); acc = 0; } }
+    if (mixer) { if (Math.hypot(h.position.x - me.x, h.position.z - me.z) < 26) { mixer.update(dt + acc); acc = 0; } else { acc += dt; if (++fc % 3 === 0) { mixer.update(acc); acc = 0; } } }
     if (plate) { stillT = Math.hypot(me.x - meLast.x, me.z - meLast.z) < 0.02 ? stillT + dt : 0; plate.visible = stillT > 1.2 || emoteT > 0; meLast.copy(me); }
     // the ability: a guard zaps or mends, a sturdy pet mends a little
     const c = ctx.combat();

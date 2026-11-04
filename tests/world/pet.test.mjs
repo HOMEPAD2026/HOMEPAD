@@ -3,7 +3,7 @@
 import { ethers } from "ethers";
 import fs from "node:fs";
 const { make, loginMessage } = await import("../../api/_world.mjs");
-const { FEE_BURN, ARCIRCLE, PET, petRoll, FREE_EGG_SOURCES, CATALOG } = await import("../../api/_world-shop.mjs");
+const { FEE_BURN, ARCIRCLE, PET, PET_GIFT, petRoll, FREE_EGG_SOURCES, CATALOG } = await import("../../api/_world-shop.mjs");
 const { recoverSigner } = await import("../../api/social.mjs");
 let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
 const db = new Map();
@@ -31,7 +31,9 @@ const egg = CATALOG.find((x) => x.id === "petegg");
 check(egg && egg.tokens === 3000 && egg.arcl == null && egg.usd == null, "the egg is $ARCIRCLE only (not ARCL), 3000");
 { const src = fs.readFileSync(new URL("../../world-rpg-data.js", import.meta.url), "utf8");
   const ids = [...src.matchAll(/\{ id: "([a-z]+)", r: (\d),/g)].map((m) => [m[1], +m[2]]);
-  check(ids.length === 27 && ids.every(([id, r]) => PET.species[r].includes(id)), "the client's PET_SPECIES has the same ids and rarities"); }
+  const eggs = ids.filter(([id]) => !PET_GIFT[id]);
+  check(eggs.length === 27 && eggs.every(([id, r]) => PET.species[r].includes(id)), "the client's PET_SPECIES has the same ids and rarities");
+  check(ids.filter(([id]) => PET_GIFT[id]).every(([id, r]) => PET_GIFT[id] === r) && !all.includes("starwhale"), "a gift pet (the Starwhale) keeps its rarity and never comes from an egg"); }
 
 // odds: 200,000 rolls with no pity in play: each rarity's share within 1 point of the odds (a Rare-or-better egg
 // guaranteed every 10th lifts the share of Rare+ over a long run, checked below)

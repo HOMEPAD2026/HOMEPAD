@@ -59,6 +59,7 @@ import { makeRings } from "./_world-rings.mjs";
 import { makePoker } from "./_world-poker.mjs";
 import { makeDino } from "./_world-dino.mjs";
 import { makeLaunch } from "./_world-launch.mjs";
+import { makeFest } from "./_world-fest.mjs";
 import { makeRefer } from "./_world-refer.mjs";
 import { makeGmReward } from "./_world-gmreward.mjs";
 import { makeLand, LAND } from "./_world-land.mjs";
@@ -93,6 +94,8 @@ const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(
       ...(String(x.b).startsWith("weapon-") && Number.isInteger(x.tm) && x.tm >= 1 && x.tm <= 5 ? { tm: x.tm } : {}),
       // a one-of-a-kind piece's name (world-rpg-data.js UNIQUE: the Halloween Pumpkin King's "jack")
       ...(x.u === "jack" && String(x.b).startsWith("weapon-") ? { u: "jack" } : {}),
+      // the Starter Festival's Starlight Blade / Armor (api/_world-fest.mjs)
+      ...((x.u === "starb" && String(x.b).startsWith("weapon-")) || (x.u === "stara" && String(x.b).startsWith("armor-")) ? { u: x.u } : {}),
       // durability left on an Epic or Legendary piece (absent = full; 0 = broken); world-rpg-data.js DUR_MAX
       ...(DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] && Number.isInteger(x.du) && x.du >= 0 && x.du < DUR_MAX[Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0)))] ? { du: x.du } : {}) } : null);
 // a weapon's kind when none was chosen: settled by its id (world-gear3d.js weaponKind, the same hash)
@@ -372,6 +375,7 @@ export function make(deps) {
   const agArena = makeAgArena({ ...deps, json, now, signer, shut: (w) => !AGENT.OPEN && !isGM(w), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), random: deps.random || Math.random }); // AD-City 4: the Agent Arena (api/_world-agarena.mjs)
   const agentVault = makeAgentVault({ getDocs: deps.getDocs, setDoc: deps.setDoc, json, now, signer, io: deps.agentVaultIo, sel: deps.agentVaultSel, shut: (w) => !AGENT.OPEN && !isGM(w) }); // AD3: the agent trades from the player's own vault (api/_world-agentvault.mjs)
   // the official launch's gift and the 3× EXP potions (api/_world-launch.mjs)
+  const fest = makeFest({ ...deps, json, now, signer, own: (w) => shop.own(w), petMax: 30, rid: () => crypto.randomUUID().replace(/-/g, "") }); // the Starter Festival (api/_world-fest.mjs)
   const launch = makeLaunch({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), own: (w) => shop.own(w), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
   // invite a friend: both rewarded when the friend reaches level 5 (api/_world-refer.mjs)
   const refer = makeRefer({ ...deps, json, now, signer, level: async (w) => levelOfSave(await saveOf(w)), nameOf: async (w) => String(((await saveOf(w)) || {}).name || "").slice(0, 16), award: (w, k, n) => shop.award(w, k, n), dinoGift: (w, id, rar) => dino.gift(w, id, rar) });
@@ -474,6 +478,7 @@ export function make(deps) {
     const s = signer(b); if (s.err) return s.err;
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old) await launch.preMark(s.wallet, old).catch(() => {}); // (this account was playing before the launch: its gift needs no level)
+    else await fest.markNew(s.wallet).catch(() => {}); // a first save: a new member (the Starter Festival)
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
     // b417: a save behind the stored one (another device has played on since: a phone at level 30, a computer still
@@ -518,7 +523,7 @@ export function make(deps) {
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
     const ownB = (await shop.own(s.wallet).catch(() => ({}))) || {};
-    const boostK = ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * weekendK(now()); // the Starter's 2×, a launch potion's 3× and the weekend's 2× stack
+    const boostK = ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * fest.xpK(ownB) * weekendK(now()); // the Starter's 2×, a launch potion's 3×, the Starter Festival's 5× and the weekend's 2× stack
     // GM wallets (the team's own testing) aren't paced
     // XP the server granted itself (a won RAID QUEENS run: worldXpGrant) goes past that pace, once
     const gk = `worldXpGrant/${s.wallet}`; let extra = 0;
@@ -657,6 +662,7 @@ export function make(deps) {
       if (w === "poker-rooms" || w === "poker-top" || w === "poker-fest" || w === "poker-rule") return poker.read(w, url);
       if (w === "dino" || w === "dino-nests" || w === "dino-ladder") return dino.read(w, url);
       if (w === "launch") return launch.read(w, url);
+      if (w === "fest") { const a = url.searchParams.get("wallet"); return fest.view(isAddr(a) ? lc(a) : ""); }
       if (w === "refer") return refer.read(w, url);
       if (w === "gm-rewards") return gmReward.read(w, url);
       if (w === "land" || w === "land-refunds") return land.read(w, url);
@@ -704,7 +710,7 @@ export function make(deps) {
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
       if (b.action === "world-lot-tier") return lotTier(b);
-      const r = (await mythic.handle(b)) || (await hwr.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await store.handle(b)) || (await studio.handle(b)) || (await studioX.handle(b)) || (await hub.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await kart.handle(b)) || (await kartEv.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
+      const r = (await mythic.handle(b)) || (await hwr.handle(b)) || (await codex.handle(b)) || (await shop.handle(b)) || (await social.handle(b)) || (await chat.handle(b)) || (await support.handle(b)) || (await crew.handle(b)) || (await village.handle(b)) || (await rank.handle(b)) || (await defense.handle(b)) || (await jump.handle(b)) || (await mine.handle(b)) || (await welcome.handle(b)) || (await fest.handle(b)) || (await jur.handle(b)) || (await agentDim.handle(b)) || (await store.handle(b)) || (await studio.handle(b)) || (await studioX.handle(b)) || (await hub.handle(b)) || (await agArena.handle(b)) || (await agentVault.handle(b)) || (await swap.handle(b)) || (await surv.handle(b)) || (await kart.handle(b)) || (await kartEv.handle(b)) || (await pk.handle(b)) || (await rq.handle(b)) || (await rings.handle(b)) || (await poker.handle(b)) || (await dino.handle(b)) || (await launch.handle(b)) || (await refer.handle(b)) || (await gmReward.handle(b)) || (await land.handle(b)) || (await market.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };
