@@ -163,6 +163,7 @@ let lvMemo = [-1, 1];
 const level = () => { if (lvMemo[0] !== P.xp) lvMemo = [P.xp, RPG.levelOfXp(P.xp)]; return lvMemo[1]; };
 let xpBoostUntil = 0; // the Starter Package's 2× EXP (worldOwn.xpBoostUntil, b414)
 let xp3Until = 0; // a launch potion's 3× EXP (worldOwn.xp3Until, b453: api/_world-launch.mjs)
+let festUntil = 0; // the Starter Festival's 5× EXP for a new member's first 3 days (worldOwn.festUntil: api/_world-fest.mjs)
 let petXpPct = 0, petLuck = 0; // the pet's Scholar (+% XP) and Lucky (gear drop) numbers, set by world-pet.js through onMods
 let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
 // the village blessing (world-village.js): +2% XP and +1% max HP for each village level after the first
@@ -174,6 +175,7 @@ function gain(n, why) {
   if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
   if (n > 0 && xpBoostUntil > Date.now()) n *= 2; // the Starter Package's 2× EXP
   if (n > 0 && xp3Until > Date.now()) n *= 3; // a launch potion's 3× (the server raises the allowance with it)
+  if (n > 0 && festUntil > Date.now()) n *= 5; // the Starter Festival's 5× (the server raises the allowance with it too)
   if (n > 0 && weekend2x()) n *= 2; // the weekend's 2× (Saturday and Sunday, Seoul time; the server doubles the allowance too)
   if (n > 0 && petXpPct) n = Math.round(n * (1 + petXpPct / 100)); // a Scholar pet (the server's XP allowance still caps what is saved)
   const before = level(); P.xp += n; save(); paintHud();
@@ -378,7 +380,7 @@ function cbtCard(items, rank) {
 }
 // a save that doesn't reach the server (offline, a server hiccup, too soon after the last) is tried again on its own,
 // sooner at first and then less often, and right away when the connection comes back; a small note shows meanwhile
-let saveFails = 0, saveRetryT = 0;
+let saveFails = 0, saveRetryT = 0, festSaved = false;
 function paintSaveNote() { const el = $("wp-savenote"); if (!el) return; el.hidden = saveFails < 2; el.textContent = T("Not saved to your wallet yet: trying again"); }
 addEventListener("online", () => { if (saveFails) { clearTimeout(saveRetryT); cloudSave(); } });
 async function cloudSave() {
@@ -389,7 +391,7 @@ async function cloudSave() {
     if (r.ok && resetting) { try { localStorage.removeItem("arc.world.reset"); } catch { /* private */ } }
     if (r.status === 409 && r.j.behind && r.j.save) { takeServer(r.j.save, T("Your newer progress from another device is loaded.")); return; }
     if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); }
-    else if (r.status === 429) retry = 9000; else if (!r.ok && r.status >= 500 && r.status !== 503) retry = Math.min(120e3, 10e3 * 2 ** saveFails); else if (r.ok) { saveFails = 0; paintSaveNote(); if (r.j && r.j.refer) try { referUI.paid(r.j.refer); } catch { /* shown next visit */ } } }
+    else if (r.status === 429) retry = 9000; else if (!r.ok && r.status >= 500 && r.status !== 503) retry = Math.min(120e3, 10e3 * 2 ** saveFails); else if (r.ok) { saveFails = 0; paintSaveNote(); if (!festSaved) { festSaved = true; setTimeout(() => { try { festUI.look(); } catch { /* the festival card looks again in 5 min */ } }, 800); } /* a new member is marked by their first save: the Starter Festival card can show now */ if (r.j && r.j.refer) try { referUI.paid(r.j.refer); } catch { /* shown next visit */ } } }
   catch { retry = Math.min(120e3, 10e3 * 2 ** saveFails); }
   if (retry) { saveFails++; paintSaveNote(); clearTimeout(saveRetryT); saveRetryT = setTimeout(cloudSave, retry); }
 }
@@ -1845,6 +1847,7 @@ function applyOwn(o) {
 // in the bag, the 100 potions on the pile. The 2× EXP runs on the server's clock (xpBoostUntil).
 function starterOwn(o) {
   xpBoostUntil = Number(o && o.xpBoostUntil) || 0; paintBoost();
+  festUntil = Number(o && o.festUntil) || 0; festOwn(o);
   const gifts = o && o.starter && Array.isArray(o.starter.gifts) ? o.starter.gifts : [];
   let ready = false; try { ready = !!rpg; } catch { /* still loading */ }
   if (!gifts.length || !ready) return;
@@ -1859,6 +1862,21 @@ function starterOwn(o) {
 function paintBoost() { const b = document.querySelector("#wp-starter-btn .wp-st-boost"); if (b) b.hidden = !(xpBoostUntil > Date.now()); }
 setInterval(paintBoost, 60e3);
 const leftOf = (t) => { const m = Math.max(0, Math.round((t - Date.now()) / 60e3)); return m >= 60 ? T("{h} h {m} min left", { h: Math.floor(m / 60), m: m % 60 }) : T("{m} min left", { m }); };
+// the Starter Festival's gifts (api/_world-fest.mjs): the Starlight Blade + Armor into the bag, the potions on the piles —
+// each gift once (rpg.x.fg keeps the ones taken), so a claim that didn't reach the save on a flaky phone comes in next time
+function festOwn(o) {
+  const gifts = o && o.fest && Array.isArray(o.fest.gifts) ? o.fest.gifts : [];
+  let ready = false; try { ready = !!rpg; } catch { /* still loading */ }
+  if (!gifts.length || !ready) return;
+  const r = rpg.data(); r.x = r.x || {}; const got = new Set(Array.isArray(r.x.fg) ? r.x.fg : []);
+  const fresh = gifts.filter((g) => g && g.gid && !got.has(g.gid)); if (!fresh.length) return;
+  const have = new Set([...Object.values(r.eq || {}), ...(r.bag || []), ...(r.store || [])].filter(Boolean).map((x) => x.id));
+  for (const g of fresh) {
+    for (const it of g.items || []) if (it && it.id && !have.has(it.id)) rpg.addItem({ ...it }, true);
+    r.hp = Math.min(999, (r.hp || 0) + Math.max(0, Math.floor(g.hp || 0))); r.sp = Math.min(999, (r.sp || 0) + Math.max(0, Math.floor(g.sp || 0))); got.add(g.gid);
+  }
+  r.x.fg = [...got].slice(-6); save(); rpg.refresh(); paintHud();
+}
 function starterCard(items, pots) {
   const el = document.createElement("div"); el.className = "wp-cbt"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "wp-stc-h"); el.setAttribute("data-no-i18n", "");
   const leg = RPG.RARITY[4];
@@ -5571,6 +5589,59 @@ const launchUI = (() => {
   setTimeout(look, 7000); setInterval(look, 300e3); setInterval(() => { paint(); tryShow(); }, 15e3);
   return { look, open: openCard, state: () => ({ v, xp3Until }) };
 })();
+// THE STARTER FESTIVAL (api/_world-fest.mjs, the owner 2026-11-04): a new member's welcome — 5× EXP for 3 days, 500 health +
+// 500 mana potions, the Legendary pet Starwhale and the Legendary Starlight Blade + Armor (+7, worn from Lv 10), all made with
+// Meshy (images/fest, models/world/fest). The card shows itself once a visit to a new member who hasn't taken it; a chip by the
+// launch one shows the 5× while it runs.
+const festUI = (() => {
+  let v = null, el = null, shown = false, busyF = false;
+  const fmtN = (n) => Number(n).toLocaleString(LANG === "zh" ? "zh-CN" : LANG === "ko" ? "ko-KR" : "en-US");
+  async function look() {
+    const s = sess(); try { const r = await fetch("/api/social?world=fest" + (s ? "&wallet=" + encodeURIComponent(String(s.wallet).toLowerCase()) : ""), { cache: "no-store" }); if (r.ok) v = await r.json(); } catch { /* the next look */ }
+    if (v && v.until) festUntil = Math.max(festUntil, Number(v.until) || 0); paint(); tryShow();
+  }
+  const canTake = () => !!(v && v.open && sess() && v.eligible && !v.claimed);
+  function tryShow() { if (!canTake() || shown) return; autoShow("fest", 11, () => { if (shown || !canTake()) return false; shown = true; openCard(); }); }
+  function paint() {
+    if (!el) { const st = $("wp-starter-btn"); if (!st) return; el = document.createElement("button"); el.type = "button"; el.className = "wp-btn wp-starter-btn wp-fest-btn"; el.setAttribute("aria-haspopup", "dialog"); el.title = TW("Starter Festival"); st.parentNode.insertBefore(el, st); el.addEventListener("click", () => { closeAll(); openCard(); }); }
+    const on = festUntil > Date.now(), gift = canTake();
+    el.hidden = !(gift || on); if (el.hidden) return;
+    el.innerHTML = `<img class="wp-launch-bi" src="/images/fest/icon-xp5.webp${VER}" alt="">${gift || !on ? `<span class="wp-st-l">${gift ? "🎁" : "5×"}</span>` : ""}${on ? `<b class="wp-st-boost">5× ${esc(leftShort(festUntil))}</b>` : ""}`;
+    el.classList.toggle("dot", gift);
+  }
+  const leftShort = (t) => { const m = Math.max(0, Math.round((t - Date.now()) / 60e3)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return d ? `${d}d ${h}h` : h ? `${h}h` : `${m % 60}m`; };
+  function openCard() {
+    const s = sess(), g = (v && v.gift) || { days: 3, xpK: 5, hp: 500, sp: 500, plus: 7, wearLv: 10 }, on = festUntil > Date.now();
+    const box = document.createElement("div"); box.className = "wp-st wp-launch wp-launch2 wp-fest"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("data-no-i18n", "");
+    const status = !v ? TW("Couldn't load the Starter Festival — try again") : !v.open ? TW("The Starter Festival is over") : !s ? TW("Sign in with your wallet to take it") : v.claimed ? (on ? TW("5× EXP on: {t}", { t: leftOf(festUntil) }) : TW("Taken — thank you for playing!")) : v.late ? TW("The gift waits {n} days after joining", { n: 7 }) : !v.isNew ? TW("For new members who joined during the festival") : "";
+    const I = (n) => `/images/fest/${n}.webp${VER}`;
+    box.innerHTML = `<div class="wp-st-card"><button type="button" class="wp-st-x" aria-label="${esc(TW("Close"))}">×</button>
+      <div class="wl2-hero wf-hero"><img src="${I("key-wide-960")}" srcset="${I("key-wide-960")} 960w, ${I("key-wide")} 1600w" sizes="560px" alt="" width="960" height="540"><h2>${esc(TW("Starter Festival"))}</h2></div>
+      <p class="wl2-sub">${esc(TW("A big welcome for new members: four gifts for your first {n} days.", { n: g.days }))}</p>
+      <ol class="wl2-gifts wf-gifts">
+        <li class="g1"><header><i>1</i><b>${esc(TW("{k}× EXP", { k: g.xpK }))}</b></header><div class="wl2-art"><img src="${I("icon-xp5")}" alt="" width="160" height="160"><em>×${g.xpK}</em></div><small>${esc(TW("Every EXP you earn ×{k}, for {n} days.", { k: g.xpK, n: g.days }))}</small></li>
+        <li class="g2"><header><i>2</i><b>${esc(TW("Potions"))}</b></header><div class="wl2-art"><img src="${I("icon-potions")}" alt="" width="160" height="160"><em>${fmtN(g.hp)}</em></div><small>${esc(TW("{a} health + {b} mana potions.", { a: fmtN(g.hp), b: fmtN(g.sp) }))}</small></li>
+        <li class="g3"><header><i>3</i><b>${esc(TW("Starwhale"))}</b></header><div class="wl2-art"><img src="${I("icon-whale")}" alt="" width="160" height="160"><em>${esc(TW("Legendary"))}</em></div><small>${esc(TW("A Legendary pet that floats by your side — more EXP."))}</small></li>
+        <li class="g4"><header><i>4</i><b>${esc(TW("Starlight Blade & Armor"))}</b></header><div class="wl2-art wf-two"><img src="${I("icon-blade")}" alt="" width="160" height="160"><img src="${I("icon-armor")}" alt="" width="160" height="160"><em>+${g.plus}</em></div><small>${esc(TW("Legendary +{p} — wear them from level {n}.", { p: g.plus, n: g.wearLv }))}</small></li>
+      </ol>
+      ${status ? `<p class="wl2-status">${esc(status)}</p>` : ""}
+      ${canTake() ? `<button type="button" class="wl2-claim" data-take><span aria-hidden="true">🎁</span>${esc(TW("Claim all gifts"))}</button>` : ""}
+      <p class="wl2-note"><i aria-hidden="true">!</i>${esc(TW("Once per new account. Take it within {n} days of joining.", { n: 7 }))}</p></div>`;
+    document.body.appendChild(box); frozen = true; keys.clear();
+    const close = () => { box.remove(); document.removeEventListener("keydown", onKey, true); frozen = false; };
+    const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+    document.addEventListener("keydown", onKey, true); box.querySelector(".wp-st-x").addEventListener("click", close); box.addEventListener("click", (e) => { if (e.target === box) close(); });
+    const take = box.querySelector("[data-take]");
+    if (take) take.addEventListener("click", async () => { if (busyF) return; busyF = true; take.disabled = true; const s2 = sess(); let r = null; try { r = s2 ? await post({ action: "world-fest-claim", ...s2 }) : null; } catch { r = null; } busyF = false;
+      if (!r || !r.ok) { take.disabled = false; toast(TW("Couldn't take the gift: {e}", { e: String((r && r.j && r.j.error) || TW("network")).slice(0, 80) })); return; }
+      festUntil = Number(r.j.until) || festUntil; close();
+      await giftOpen(TW("Starter Festival gifts taken!"), [{ img: I("icon-xp5"), t: TW("{k}× EXP for {n} days", { k: g.xpK, n: g.days }) }, { img: I("icon-potions"), t: TW("{a} health + {b} mana potions.", { a: fmtN(r.j.hp || g.hp), b: fmtN(r.j.sp || g.sp) }) }, { img: I("icon-whale"), t: TW("Starwhale") }, { img: I("icon-blade"), t: TW("Starlight Blade & Armor") }]);
+      toast(`⭐ <b>${esc(TW("Starter Festival gifts taken!"))}</b> ${esc(TW("5× EXP on: {t}", { t: leftOf(festUntil) }))}`);
+      try { await arclShop.refresh(); } catch { /* the next refresh takes the gifts */ } if (Snd.level) Snd.level(); await look(); });
+  }
+  setTimeout(look, 6500); setInterval(look, 300e3); setInterval(() => { paint(); tryShow(); }, 15e3);
+  return { look, open: openCard, state: () => ({ v, festUntil }) };
+})();
 // invite a friend (api/_world-refer.mjs): your link carries your code; a friend who opens it and signs in while new is
 // tied to you, and when they reach level 5 you both get 1,000 ARCL and a dinosaur egg (the save that gets them there pays)
 // b-gm: a GM rewards a player in $ARCIRCLE, from the GM's own wallet (Rankings → Players → 🎁 Send reward). The wallet
@@ -5957,7 +6028,11 @@ function mythicModel(slot) {
   if (!MYTH_SIZE[slot]) return null; const m = MY ? mythicWorn().find((p) => MY.pieceOf(p.def).slot === slot) : null;
   // HX2: no Crimson piece there — the Inferno Jack set's blade / crown worn in the slot is on the hero (models/world/hwrealm/gear)
   let P0 = m ? MY.pieceOf(m.def) : null, url = P0 ? `/models/world/mythic/${P0.glb}.glb${VER}` : "", glow = 0xff3d6e;
-  if (!m) { const h = HWM ? hwWorn().find((p) => HWM.pieceOf(p.k).slot === slot) : null; if (!h) return null; const hp = HWM.pieceOf(h.k); P0 = { glb: "hw-" + hp.id }; url = `/models/world/hwrealm/gear/${hp.id}.glb${VER}`; glow = 0xff8a1f; }
+  if (!m) { const h = HWM ? hwWorn().find((p) => HWM.pieceOf(p.k).slot === slot) : null;
+    if (h) { const hp = HWM.pieceOf(h.k); P0 = { glb: "hw-" + hp.id }; url = `/models/world/hwrealm/gear/${hp.id}.glb${VER}`; glow = 0xff8a1f; }
+    else { // the Starter Festival's Starlight Blade in the hand (Meshy: models/world/fest/starblade.glb)
+      let it = null; try { it = rpg && rpg.data().eq[slot]; } catch { it = null; }
+      if (!(slot === "weapon" && it && it.u === "starb")) return null; P0 = { glb: "fest-starblade" }; url = `/models/world/fest/starblade.glb${VER}`; glow = 0x2fe6ff; } }
   const g = mythGlb[P0.glb];
   if (g && g !== "loading") { const c = g.clone(true); c.userData = { ...g.userData }; return c; }
   if (!g) { mythGlb[P0.glb] = "loading"; K.gltfLoader().load(url, (gl) => {

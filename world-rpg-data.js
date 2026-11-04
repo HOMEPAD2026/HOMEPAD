@@ -61,7 +61,7 @@ export function itemStats(it) {
   return {};
 }
 // one-of-a-kind pieces (it.u): their own name in place of the base's (the Halloween Pumpkin King's blade, api/_world-halloween.mjs)
-export const UNIQUE = { jack: "Jack's Inferno Blade" };
+export const UNIQUE = { jack: "Jack's Inferno Blade", starb: "Starlight Blade", stara: "Starlight Armor" }; // (starb / stara: the Starter Festival's gift, api/_world-fest.mjs)
 export const itemName = (it) => { const p = parseBase(it.b); return p ? (UNIQUE[it.u] || BASES[p.slot][p.tier]) + (it.p ? ` +${it.p}` : "") : "?"; };
 export const STAT_NAME = { atk: "Attack", def: "Defense", hp: "Max HP", sp: "Max SP", crit: "Critical", spd: "Speed" };
 
@@ -266,6 +266,8 @@ export const PET_SPECIES = [
   { id: "tiger", r: 3, ab: "guard", mode: "zap", name: "Tiger", m: "animal-tiger" }, { id: "lion", r: 3, ab: "speed", name: "Lion", m: "animal-lion" },
   { id: "polar", r: 3, ab: "luck", name: "Polar Bear", m: "animal-polar" }, { id: "wisp", r: 3, ab: "guard", mode: "heal", name: "Arc Wisp", need: "zones" },
   { id: "elephant", r: 4, ab: "vigour", name: "Elephant", m: "animal-elephant" }, { id: "giraffe", r: 4, ab: "collector", name: "Giraffe", m: "animal-giraffe" },
+  // never in an egg: the Starter Festival's gift (api/_world-fest.mjs, api/_world-shop.mjs PET_GIFT) — Meshy's model, floating
+  { id: "starwhale", r: 4, ab: "scholar", name: "Starwhale", glb: "/models/world/fest/starwhale.glb", pic: "/images/fest/icon-whale.webp", float: 1, gift: "fest" },
 ];
 export const PET_BY = Object.fromEntries(PET_SPECIES.map((p) => [p.id, p]));
 export const PET_RARITY = ["Common", "Uncommon", "Rare", "Epic", "Legendary"];
