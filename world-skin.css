@@ -6816,3 +6816,8 @@ html.wp-pcphone .sv-boss{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
 .sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 126px)}
 html.wp-pcphone .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
 html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 138px)}
+html.wp-pcphone .sv-boss{top:calc(max(8px,env(safe-area-inset-top)) + 100px)}
+html.wp-pcphone .sv-slots,html.wp-pcphone .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 102px)}
+html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-slots,html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 152px)}
+/* while the cards are up the boss bar and the combo step aside (on a phone the LEVEL UP title sat on the boss bar) */
+.sv:has(> .sv-cards:not([hidden])) :is(.sv-boss,.sv-streak,.sv-hhp){visibility:hidden}
