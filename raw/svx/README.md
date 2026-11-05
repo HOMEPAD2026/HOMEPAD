@@ -67,8 +67,13 @@ Notes:
 | raw/svx/mock/cards.webp | 01a1ab83-7e15-7232-9f86-9e5c79406110 |
 | raw/svx/mock/lobby.png | 01a1ab75-c203-7729-a60b-31d5cc3830a8 |
 | raw/svx/mock/run.webp | 01a1ab83-7df9-7580-8e04-9b051faa6a4e |
+| raw/svx/props/banner.glb | preview 01a1ab83-7e63-709c-8aa0-e55de8a6d474 · refine 01a1abbd-e35b-7636-8371-e70ac6e5c89e |
 | raw/svx/props/brazier.glb | preview 01a1ab83-7d84-77c2-a22a-508d52a16391 · refine 01a1abbb-b40d-7675-a8d9-148888988f4a |
+| raw/svx/props/chest.glb | preview 01a1ab83-7e13-7565-a529-08c840505c5b · refine 01a1abbd-6ed1-76b9-b35a-27f59aaedf1a |
+| raw/svx/props/crystal.glb | preview 01a1ab83-7cf2-75a2-8748-0299272407d9 · refine 01a1abbc-a8ae-776a-8a1a-3bcda896dacb |
+| raw/svx/props/pillar-desert.glb | preview 01a1ab83-7dcb-7063-8a42-7046431a0fac · refine 01a1abc6-42dc-7222-875e-5bcdb04933dd |
 | raw/svx/props/pillar-ice.glb | preview 01a1ab83-7d7e-712a-8791-6a456012b880 · refine 01a1abb8-7bca-717c-a6aa-9cf36c03a300 |
+| raw/svx/props/pillar-lava.glb | preview 01a1ab83-7de3-73f0-b0c9-d719c7ade927 · refine 01a1abcc-0498-70f0-9d05-a2dec3eed202 |
 | raw/svx/props/pillar-neon.glb | preview 01a1ab83-7d52-7579-b6fc-bfb1aff3b517 · refine 01a1abb9-4e3d-7695-b2ff-0cc39b935452 |
 | raw/svx/ui/badge-new.png | 01a1ab9e-3ef5-733e-a198-fc8b10d0b077 |
 | raw/svx/ui/boss-bar.png | 01a1aba7-94e0-74cf-aaaf-fcc7a5c18fb5 |
