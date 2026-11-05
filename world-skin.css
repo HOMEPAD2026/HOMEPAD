@@ -6790,3 +6790,25 @@ html.wp-pcphone .wks-grid{grid-template-columns:1fr}
 .wba-acts{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:14px}
 .wba-go{display:block;text-align:center;text-decoration:none;border:0;border-radius:14px;padding:14px 16px;font:800 16px/1 Sora,sans-serif;color:#06203a;background:linear-gradient(90deg,#7ff6ff,#5affb8);box-shadow:0 8px 20px rgba(31,224,255,.3);cursor:pointer}
 .wba-go[disabled]{opacity:.7;cursor:default}.wba-need{color:#ffb3bd;text-align:center;font-size:12.5px}
+/* SVR (2026-11-05, the owner: "서바이벌 아레나 디자인 그래픽 레이아웃 고도화" — after Vampire Survivors / Survivor.io / Soulstone):
+   the XP bar moves under the top bar (where the eye already is), the whole loadout shows (6 + 6 slots, the empty ones as dim
+   frames), a small health bar rides under the hero */
+.sv-xp{left:50%;right:auto;bottom:auto;transform:translateX(-50%);top:calc(max(8px,env(safe-area-inset-top)) + 60px);width:min(620px,calc(100% - 20px));height:12px;border-radius:7px;background:rgba(0,8,30,.75);box-shadow:0 0 0 1.5px rgba(120,210,255,.6),0 0 14px rgba(56,184,255,.35);overflow:visible}
+.sv-xp i{height:12px;border-radius:7px;background:linear-gradient(180deg,#d6fbff,#5ad8ff 45%,#2f7bff);box-shadow:0 0 10px rgba(90,216,255,.9),inset 0 2px 0 rgba(255,255,255,.5)}
+.sv-xp b{right:auto;bottom:auto;left:-6px;top:50%;transform:translate(-100%,-50%);padding:3px 8px;border-radius:9px;font-size:13px;line-height:1;background:linear-gradient(180deg,#2c5fd8,#14307a);box-shadow:0 0 0 1.5px rgba(160,225,255,.85),0 2px 6px rgba(0,0,0,.4);white-space:nowrap}
+@media (max-width:700px){.sv-xp b{left:6px;transform:translateY(-50%);top:calc(100% + 12px);font-size:12px}}
+html.wp-pcphone .sv-xp b{left:6px;transform:translateY(-50%);top:calc(100% + 14px);font-size:15px}
+.sv-boss{top:calc(max(8px,env(safe-area-inset-top)) + 82px)}
+.sv-slots{top:calc(max(8px,env(safe-area-inset-top)) + 84px)}
+html.wp-pcphone .sv-slots,html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-slots{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
+.sv-boss:not([hidden]) ~ .sv-slots{top:calc(max(8px,env(safe-area-inset-top)) + 126px)}
+html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-slots{top:calc(max(8px,env(safe-area-inset-top)) + 138px)}
+html.wp-pcphone .sv-boss{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
+.sv-slots span.e{background:rgba(8,18,50,.45);box-shadow:inset 0 0 0 1.5px rgba(120,180,255,.22)}
+.sv-slots span.max{box-shadow:inset 0 0 0 1.5px #ffd23a,0 0 8px rgba(255,210,58,.45)}
+.sv-hhp{position:absolute;left:0;top:0;width:52px;height:7px;margin-left:-26px;border-radius:4px;background:rgba(30,0,10,.7);box-shadow:0 0 0 1.5px rgba(0,0,0,.55);overflow:hidden;pointer-events:none;will-change:transform}
+.sv-hhp i{position:absolute;inset:0;transform-origin:0 50%;background:linear-gradient(180deg,#9dff9a,#2fd26a);transition:transform .12s}
+.sv-hhp.low i{background:linear-gradient(180deg,#ff9aa8,#ff3d5a)}
+.sv.menu .sv-hhp{display:none}
+.sv-art{display:block;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,8,30,.55));pointer-events:none;user-select:none}
+.sv-card-ic .sv-art{width:64px;height:64px;margin:-6px}

@@ -154,7 +154,10 @@ Object.assign(ICON, {
   eclipse: `<circle cx="13" cy="13" r="10" fill="#ffd23a"/><circle cx="16" cy="11" r="9" fill="#2a0a4a"/>`,
 });
 
-const icon = (k, n = 26) => `<svg viewBox="0 0 26 26" width="${n}" height="${n}" aria-hidden="true">${ICON[k] || ""}</svg>`;
+// SVR: the cards' and slots' Meshy icons (images/surv/ic/<id>.webp, keyed from green; ART lists the ones that are in) — the
+// small SVGs stay as the fallback for anything without one
+const ART = new Set([]); let ARTV = "";
+const icon = (k, n = 26) => (ART.has(k) ? `<img class="sv-art" src="/images/surv/ic/${k}.webp${ARTV}" width="${n}" height="${n}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 26 26" width="${n}" height="${n}" aria-hidden="true">${ICON[k] || ""}</svg>`);
 // which cards are rare: a weapon blue, a stat green, a special purple, an evolution gold
 const RARITY = (c) => (c.k === "evo" ? "evo" : c.k === "w" ? "w" : PASSIVES[c.id] && PASSIVES[c.id].fx ? "fx" : "p");
 // the sky over the run: day, then dusk at 6:00, night at 9:00, a red sky for the Titan at 12:00
@@ -168,6 +171,7 @@ const SKY = [
 const STEP = 1 / 60; // the game's own clock: fixed steps, so a slow phone runs the same 12 minutes (more steps a frame)
 
 export function createSurvivors(ctx) {
+  ARTV = ctx.ver ? "?v=" + ctx.ver : "";
   const { THREE, st, esc, Snd } = ctx, L = LW[ctx.lang] || {}, T = (s, v) => { let r = L[s] != null ? L[s] : ctx.T(s, v); if (v && L[s] != null) for (const k in v) r = r.split("{" + k + "}").join(v[k]); return r; };
   // a short buzz on a phone at the moments that matter (the town's buzz: its Settings switch, only while you're playing)
   const buzzAt = {}, buzz = (p, k = "", gap = 0) => { const n = performance.now(); if (gap && n - (buzzAt[k] || 0) < gap) return; buzzAt[k] = n; try { if (ctx.buzz) ctx.buzz(p); } catch { /* no buzz */ } };
@@ -1051,7 +1055,7 @@ export function createSurvivors(ctx) {
       <div class="sv-boss" hidden><b></b><div><i></i></div></div>
       <div class="sv-slots"></div>
       <div class="sv-streak" hidden><b></b><small>${esc(T("Chain Kill"))}</small></div>
-      <i class="sv-arrow boss" hidden></i><i class="sv-arrow chest" hidden></i>
+      <div class="sv-hhp" hidden aria-hidden="true"><i></i></div><i class="sv-arrow boss" hidden></i><i class="sv-arrow chest" hidden></i>
       <div class="sv-xp"><i></i><b>Lv 1</b></div>
       <div class="sv-joy" aria-hidden="true"><i></i></div>
       <button type="button" class="sv-skill" aria-label="${esc(T("Skill"))}"><span class="sv-skill-ic"></span><b></b><i class="sv-dash-cd"></i></button>
@@ -1063,7 +1067,7 @@ export function createSurvivors(ctx) {
       <div class="sv-sheet" hidden></div>`;
     document.body.appendChild(root);
     const q = (s) => root.querySelector(s);
-    ui = { root, hp: q(".sv-hp i"), hpN: q(".sv-hp b"), time: q(".sv-time b"), kills: q(".sv-kills b"), boss: q(".sv-boss"), bossN: q(".sv-boss b"), bossI: q(".sv-boss i"), slots: q(".sv-slots"), xp: q(".sv-xp i"), lv: q(".sv-xp b"),
+    ui = { root, hhp: q(".sv-hhp"), hhpI: q(".sv-hhp i"), hp: q(".sv-hp i"), hpN: q(".sv-hp b"), time: q(".sv-time b"), kills: q(".sv-kills b"), boss: q(".sv-boss"), bossN: q(".sv-boss b"), bossI: q(".sv-boss i"), slots: q(".sv-slots"), xp: q(".sv-xp i"), lv: q(".sv-xp b"),
       joy: q(".sv-joy"), knob: q(".sv-joy i"), dash: q(".sv-dash"), dashCd: q(".sv-dash-cd"), banner: q(".sv-banner"), cards: q(".sv-cards"), sheet: q(".sv-sheet"), hurt: q(".sv-hurt"), top: q(".sv-top"),
       aBoss: q(".sv-arrow.boss"), aChest: q(".sv-arrow.chest"), streak: q(".sv-streak"), streakN: q(".sv-streak b"), hint: q(".sv-hint") };
     q(".sv-pause").addEventListener("click", () => pause());
@@ -1105,12 +1109,14 @@ export function createSurvivors(ctx) {
     const one = (el, x, z, show) => { if (!show) { el.hidden = true; return; } vA.set(x, 1, z).project(S.cam); const inside = Math.abs(vA.x) < 0.92 && Math.abs(vA.y) < 0.9 && vA.z < 1; if (inside) { el.hidden = true; return; }
       let ax = vA.x, ay = vA.y; if (vA.z > 1) { ax = -ax; ay = -ay; } const m = Math.max(Math.abs(ax) / 0.86, Math.abs(ay) / 0.78) || 1; ax /= m; ay /= m;
       el.hidden = false; el.style.transform = `translate(${((ax * 0.5 + 0.5) * W0).toFixed(0)}px,${((-ay * 0.5 + 0.5) * H0).toFixed(0)}px) rotate(${Math.atan2(-ay, ax).toFixed(2)}rad)`; };
+    if (ui.hhp) { const show = mode === "play" && R && !R.over; ui.hhp.hidden = !show; if (show) { vA.set(R.x, 0, R.z).project(S.cam); ui.hhp.style.transform = `translate(${((vA.x * 0.5 + 0.5) * W0).toFixed(0)}px,${((-vA.y * 0.5 + 0.5) * H0 + 14).toFixed(0)}px)`; ui.hhpI.style.transform = `scaleX(${Math.max(0, R.hp / R.hpMax).toFixed(3)})`; ui.hhp.classList.toggle("low", R.hp / R.hpMax < 0.3); } }
     one(ui.aBoss, R && R.boss ? R.boss.x : 0, R && R.boss ? R.boss.z : 0, mode === "play" && R && !!R.boss);
     one(ui.aChest, R && R.chest ? R.chest.x : 0, R && R.chest ? R.chest.z : 0, mode === "play" && R && !!R.chest);
   }
   function paintBoss() { if (!ui) return; ui.boss.hidden = !(R && R.boss); if (R && R.boss) { ui.bossN.textContent = T(MON[R.boss.id].boss); ui.bossI.style.transform = "scaleX(1)"; } }
   function paintSlots() { if (!ui || !R) return; const evoOf = (id) => EVOS.find((e) => e.from === id && R.evo[e.id]);
-    ui.slots.innerHTML = `<div>${Object.keys(R.w).map((id) => { const e = evoOf(id); return `<span class="w${e ? " evo" : ""}">${icon(e ? e.id : id, 18)}<b>${e ? "★" : R.w[id]}</b></span>`; }).join("")}</div><div>${Object.keys(R.p).map((id) => `<span class="p${PASSIVES[id].fx ? " fx" : ""}">${icon(id, 16)}<b>${R.p[id]}</b></span>`).join("")}</div>`; }
+    const ws = Object.keys(R.w), ps = Object.keys(R.p), emp = (k, n) => Array.from({ length: Math.max(0, SLOTS - n) }, () => `<span class="${k} e"></span>`).join("");
+    ui.slots.innerHTML = `<div>${ws.map((id) => { const e = evoOf(id); return `<span class="w${e ? " evo" : ""}${R.w[id] >= MAX_LV ? " max" : ""}">${icon(e ? e.id : id, 18)}<b>${e ? "★" : R.w[id]}</b></span>`; }).join("")}${emp("w", ws.length)}</div><div>${ps.map((id) => `<span class="p${PASSIVES[id].fx ? " fx" : ""}${R.p[id] >= maxLv(id) ? " max" : ""}">${icon(id, 16)}<b>${R.p[id]}</b></span>`).join("")}${emp("p", ps.length)}</div>`; }
   // b-svx: a cut-in: a picture and a name swept across the screen (a skill, an evolution)
   function cutIn(pic, name, over, col) { if (!ui || ctx.reduce) return; const el = document.createElement("div"); el.className = "sv-cut"; el.style.setProperty("--c", col || "#38d8ff"); el.innerHTML = `<span class="pic">${pic}</span><span class="tx"><small>${esc(over)}</small><b>${esc(name)}</b></span>`; ui.root.appendChild(el); setTimeout(() => el.remove(), 1100); }
   function banner(big, small) { if (!ui) return; ui.banner.hidden = false; ui.banner.querySelector("b").textContent = big; ui.banner.querySelector("small").textContent = small || ""; ui.banner.classList.remove("go"); void ui.banner.offsetWidth; ui.banner.classList.add("go"); clearTimeout(banner.t); banner.t = setTimeout(() => { if (ui) ui.banner.hidden = true; }, 2600); }
