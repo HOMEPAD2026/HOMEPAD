@@ -6823,3 +6823,39 @@ html.wp-pcphone .sv-slots,html.wp-pcphone .sv-streak{top:calc(max(8px,env(safe-a
 html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-slots,html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 152px)}
 /* while the cards are up the boss bar and the combo step aside (on a phone the LEVEL UP title sat on the boss bar) */
 .sv:has(> .sv-cards:not([hidden])) :is(.sv-boss,.sv-streak,.sv-hhp){visibility:hidden}
+/* SVR2 (2026-11-05): Meshy's art from raw/svx (images/surv/ui, keyed from green; the glows given an alpha from their brightness): the level-up
+   cards in rarity frames (9-slice; weapon = crystal, passive = glass, special = purple gems, evolution = gold), the slots
+   in glass / gold frames, the card tools and Start as glossy buttons, the lobby's key art behind the title, a burst behind
+   LEVEL UP!, a beam over a chest's cards, a red ring behind "Boss incoming!" */
+html:not(.svz) .sv .sv-card.r-w,html:not(.svz) .sv .sv-card.r-p,html:not(.svz) .sv .sv-card.r-fx,html:not(.svz) .sv .sv-card.r-evo{border:13px solid transparent;border-image:var(--svf) var(--svs) / 13px stretch;background-clip:padding-box!important;padding:4px 6px!important;border-radius:20px;box-shadow:0 10px 24px rgba(0,4,20,.5),0 0 22px var(--svg)!important}
+.sv .sv-card.r-w{--svf:url(/images/surv/ui/card-rare.webp);--svs:44;--svg:rgba(60,190,255,.35)}
+.sv .sv-card.r-p{--svf:url(/images/surv/ui/card-common.webp);--svs:44;--svg:rgba(120,220,255,.25)}
+.sv .sv-card.r-fx{--svf:url(/images/surv/ui/card-epic.webp);--svs:74;--svg:rgba(170,110,255,.45)}
+.sv .sv-card.r-evo{--svf:url(/images/surv/ui/card-evo.webp);--svs:54;--svg:rgba(255,210,58,.55)}
+html:not(.svz) .sv .sv-card.r-fx{border-width:16px;border-image-width:16px}
+html:not(.svz) .sv .sv-card:is(.r-w,.r-p,.r-fx,.r-evo):hover,html:not(.svz) .sv .sv-card:is(.r-w,.r-p,.r-fx,.r-evo):focus-visible{box-shadow:0 10px 24px rgba(0,4,20,.5),0 0 30px var(--svg),0 0 0 2px rgba(200,240,255,.6)!important}
+.sv .sv-card em{margin-top:-12px}
+.sv .sv-card-ic .sv-art{width:50px;height:50px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))}
+@media (min-width:900px) and (orientation:landscape){html:not(.wp-pcphone):not(.svz) .sv .sv-cards-in:not(.chest) .sv-card:is(.r-w,.r-p,.r-fx,.r-evo){padding:20px 10px 12px!important;border-width:18px;border-image-width:18px}
+  html:not(.wp-pcphone) .sv .sv-cards-in:not(.chest) .sv-card-ic .sv-art{width:72px;height:72px}}
+.sv-slots span .sv-art{width:84%;height:84%}
+html:not(.svz) .sv .sv-slots span{border:4px solid transparent;border-image:url(/images/surv/ui/slot.webp) 15 / 4px stretch;background-clip:padding-box}
+html:not(.svz) .sv .sv-slots span.max{border-image-source:url(/images/surv/ui/slot-gold.webp);border-image-slice:18;box-shadow:0 0 10px rgba(255,210,58,.45)}
+html:not(.svz) .sv .sv-slots span.evo{border-image-source:url(/images/surv/ui/slot-gold.webp);border-image-slice:18}
+html:not(.svz) .sv .sv-slots span.e{opacity:.5}
+html:not(.svz) .sv .sv-ctools button{border:1px solid transparent;border-image:var(--svb) 60 90 fill / 20px 30px stretch;background:none!important;box-shadow:0 6px 14px rgba(0,4,20,.35)!important;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.sv .sv-ctools button[data-t="reroll"]{--svb:url(/images/surv/ui/btn-blue.webp)}
+.sv .sv-ctools button[data-t="banish"]{--svb:url(/images/surv/ui/btn-red.webp)}
+.sv .sv-ctools button[data-t="skip"]{--svb:url(/images/surv/ui/btn-purple.webp)}
+html:not(.svz) .sv .sv-ctools button[data-t="banish"][aria-pressed="true"]{box-shadow:0 0 0 3px #fff,0 0 20px rgba(255,60,100,.8)!important}
+html:not(.svz) .sv .sv-btns button.go{border:1px solid transparent;border-image:url(/images/surv/ui/btn-green.webp) 60 90 fill / 24px 34px stretch;background:none!important;box-shadow:0 8px 18px rgba(0,30,10,.4),0 0 18px rgba(57,255,136,.35)!important}
+.sv-lobby:not(.small){position:relative;isolation:isolate;overflow:hidden}
+.sv-lobby:not(.small)::before{content:"";position:absolute;left:0;right:0;top:0;height:200px;z-index:-1;background:url(/images/surv/ui/key-wide.webp) center 30%/cover no-repeat;opacity:.5;-webkit-mask-image:linear-gradient(#000 35%,transparent);mask-image:linear-gradient(#000 35%,transparent);pointer-events:none}
+.sv-cards-in{position:relative;isolation:isolate}
+.sv-cards-in::before{content:"";position:absolute;left:50%;top:-70px;width:340px;height:340px;margin-left:-170px;z-index:-1;background:url(/images/surv/ui/fx-levelup.webp) center/contain no-repeat;opacity:.75;pointer-events:none;animation:sv-burst 9s linear infinite}
+.sv-cards-in.chest::before{top:-120px;width:120px;margin-left:-60px;height:420px;background-image:url(/images/surv/ui/fx-beam.webp);animation:none;opacity:.8}
+@keyframes sv-burst{to{transform:rotate(360deg)}}
+.sv-banner.boss::before{content:"";position:absolute;left:50%;top:50%;width:220px;height:220px;margin:-110px 0 0 -110px;z-index:-1;background:url(/images/surv/ui/fx-bosswarn.webp) center/contain no-repeat;animation:sv-burst 4s linear infinite}
+.sv-banner{isolation:isolate}
+@media (prefers-reduced-motion:reduce){.sv-cards-in::before,.sv-banner.boss::before{animation:none}}
+html.wp-less .sv-cards-in::before,html.wp-less .sv-banner.boss::before{animation:none}
