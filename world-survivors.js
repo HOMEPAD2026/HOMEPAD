@@ -156,7 +156,7 @@ Object.assign(ICON, {
 
 // SVR: the cards' and slots' Meshy icons (images/surv/ic/<id>.webp, keyed from green; ART lists the ones that are in) — the
 // small SVGs stay as the fallback for anything without one
-const ART = new Set([]); let ARTV = "";
+const ART = new Set(["armor","berserk","blade","blaster","boom","chain","cool","crit","critp","double","drone","eclipse","frost","gold","heavy","hole","ice","inferno","infinity","laser","legion","lucky","magnet","meteor","nova","orb","poison","power","range","rapid","recov","revive","shield","slayer","speed","star","streak","sword","thunder","vamp","vital","zero"]); let ARTV = "";
 const icon = (k, n = 26) => (ART.has(k) ? `<img class="sv-art" src="/images/surv/ic/${k}.webp${ARTV}" width="${n}" height="${n}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 26 26" width="${n}" height="${n}" aria-hidden="true">${ICON[k] || ""}</svg>`);
 // which cards are rare: a weapon blue, a stat green, a special purple, an evolution gold
 const RARITY = (c) => (c.k === "evo" ? "evo" : c.k === "w" ? "w" : PASSIVES[c.id] && PASSIVES[c.id].fx ? "fx" : "p");
@@ -238,6 +238,7 @@ export function createSurvivors(ctx) {
       const a2 = ((i + 0.5) / NP) * Math.PI * 2, seg = (2 * Math.PI * pr) / NP - 1.6; wallM.setMatrixAt(i, m4.compose(vv.set(Math.cos(a2) * pr, 0.65, Math.sin(a2) * pr), qq.setFromEuler(ee.set(0, -a2 + Math.PI / 2, 0)), ss.set(seg, 1, 1)));
       if (i % 4 === 0) fires.push([x * 0.985, 5 * h + 1.0, z * 0.985]); if (i % 8 === 2) banners.push([x * 0.975, 3.4 * h, z * 0.975, a, i]); }
     scene.add(pillars, caps, bases, wallM);
+    const wallSet = { pillars, caps, bases, pil, pr };
     const band = new THREE.Mesh(new THREE.TorusGeometry(ARENA_R + 0.4, 0.12, 6, 160), new THREE.MeshBasicMaterial({ color: 0x38d8ff, toneMapped: false })); band.rotation.x = Math.PI / 2; band.position.y = 0.12; scene.add(band);
     const band2 = new THREE.Mesh(new THREE.TorusGeometry(ARENA_R + 0.4, 0.55, 4, 160), new THREE.MeshBasicMaterial({ color: 0x2f86ff, transparent: true, opacity: 0.2, depthWrite: false, toneMapped: false })); band2.rotation.x = Math.PI / 2; band2.position.y = 0.1; scene.add(band2);
     const banTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#2f86ff"); gr.addColorStop(1, "#123072"); g.fillStyle = gr; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0); g.lineTo(w, h); g.lineTo(w / 2, h - 18); g.lineTo(0, h); g.fill();
@@ -272,10 +273,37 @@ export function createSurvivors(ctx) {
     const stars = new THREE.BufferGeometry(), spp = []; for (let i = 0; i < 500; i++) { const a = Math.random() * 6.283, el = 0.15 + Math.random() * 1.2, d = 150; spp.push(Math.cos(a) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(a) * Math.cos(el) * d); }
     stars.setAttribute("position", new THREE.Float32BufferAttribute(spp, 3)); const starM = new THREE.PointsMaterial({ color: 0xcfe6ff, size: 0.7, fog: false, transparent: true, opacity: 0 }); scene.add(new THREE.Points(stars, starM));
     S = { scene, cam, flames, fires, runeM, cracks, crackPos, hemi, sun, floorM, embers, ep, starM, band, band2, theme: "" };
+    S.dress = ctx.low ? null : dressOf(wallSet); runeArt(runeM);
     applyTheme(themeToday());
     makeFx();
   }
   let crystalM = null;
+  // SVR2 (2026-11-05): Meshy's arena dressing (models/world/survivors/props, 1.9–3.9 k tris, 512 px KTX2): today's theme
+  // pillar in place of every 4th drawn pillar (every 8th on a phone), braziers, crystal clusters and banners just past the
+  // wall (out of the play area) — every kind ONE InstancedMesh a part; none on low graphics; the drawn arena stays until
+  // a model is in, and a model that fails to load just leaves it
+  function propInst(name, h, mats) { const L = ctx.K && ctx.K.gltfLoader ? ctx.K.gltfLoader() : null; if (!L || !mats.length) return Promise.resolve(null);
+    return L.loadAsync(`models/world/survivors/props/${name}.glb?v=${ctx.ver || "1"}`).then((g) => { g.scene.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(g.scene), k = h / Math.max(0.01, box.max.y - box.min.y), fix = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2));
+      const grp = new THREE.Group(); grp.name = "sv-prop-" + name;
+      g.scene.traverse((o) => { if (!o.isMesh) return; const geo = o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(fix, o.matrixWorld)), im = new THREE.InstancedMesh(geo, o.material, mats.length);
+        mats.forEach((m, i) => im.setMatrixAt(i, m)); im.frustumCulled = false; grp.add(im); });
+      return grp; }).catch(() => null); }
+  function dressOf(W) { const ph = phone(), every = ph ? 8 : 4, at = (i, d, y = 0, s = 1) => { const [x, z, , a] = W.pil[i], k = d / W.pr; return new THREE.Matrix4().compose(new THREE.Vector3(x * k, y, z * k), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a - Math.PI / 2, 0)), new THREE.Vector3(s, s, s)); };
+    const NP = W.pil.length, slots = [], pm = []; for (let i = 3; i < NP; i += every) { slots.push(i); pm.push(at(i, W.pr)); }
+    const ring = (from, step, d, y) => { const out = []; for (let i = from; i < NP; i += step) out.push(at(i, d, y)); return out; };
+    let pill = null, want = "", crys = null;
+    // braziers and banners once (the same every day); the crystals take the theme's colour
+    propInst("brazier", 3.0, ring(ph ? 5 : 1, ph ? 16 : 8, W.pr + 1.6)).then((g) => { if (g && S) S.scene.add(g); });
+    propInst("banner", 5.2, ring(ph ? 13 : 5, ph ? 16 : 8, W.pr + 1.2)).then((g) => { if (g && S) S.scene.add(g); });
+    propInst("crystal", 3.4, ring(ph ? 9 : 7, ph ? 16 : 8, W.pr + 2.6)).then((g) => { if (!g || !S) return; crys = g; S.scene.add(g); tintCrys(); });
+    let tc = null; const tintCrys = () => { if (crys && tc) crys.traverse((o) => { if (o.isMesh && o.material) { if (!o.material.userData.svOwn) { o.material = o.material.clone(); o.material.userData.svOwn = 1; } o.material.color.set(tc).lerp(new THREE.Color(0xffffff), 0.45); } }); };
+    const hide = (on) => { const m4h = new THREE.Matrix4(); for (const i of slots) for (const im of [W.pillars, W.caps, W.bases]) { if (!on) continue; im.setMatrixAt(i, m4h.makeScale(0, 0, 0)); im.instanceMatrix.needsUpdate = true; } };
+    return (id, th) => { tc = th.crystal[0]; tintCrys(); const name = "pillar-" + (["neon", "desert", "ice", "lava"].includes(id) ? id : "desert"); if (want === name) return; want = name;
+      propInst(name, 7.2, pm).then((g) => { if (!g || !S || want !== name) { if (g) g.traverse((o) => o.geometry && o.geometry.dispose()); return; }
+        if (pill) { S.scene.remove(pill); pill.traverse((o) => o.geometry && o.geometry.dispose()); } pill = g; S.scene.add(g); hide(true); }); }; }
+  // the summoning circle under the hero at the start: Meshy's rune (images/surv/ui/rune.webp, drawn additively) once it's in
+  function runeArt(m) { new THREE.TextureLoader().load(`/images/surv/ui/rune.webp?v=${ctx.ver || "1"}`, (t) => { const old = m.material.map; t.colorSpace = THREE.SRGBColorSpace; m.material.map = t; m.material.color.setScalar(0.38); m.material.needsUpdate = true; if (old) old.dispose(); }, undefined, () => {}); }
   function tileTex(th) { const t = canvasTex(512, 512, (g, w) => {
       g.fillStyle = "#6f6a7e"; g.fillRect(0, 0, w, w); let sd = 7; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
       for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const off = y % 2 ? 64 : 0, px = x * 128 + off, py = y * 128, c = th.base + Math.floor(r() * 26);
@@ -286,7 +314,7 @@ export function createSurvivors(ctx) {
       g.strokeStyle = th.seam; g.lineWidth = 3; for (let y = 0; y <= 4; y++) { g.beginPath(); g.moveTo(0, y * 128 + 2); g.lineTo(w, y * 128 + 2); g.stroke(); }
       for (let y = 0; y < 4; y++) for (let x = 0; x <= 4; x++) { const px = x * 128 + (y % 2 ? 64 : 0) + 2; g.beginPath(); g.moveTo(px, y * 128); g.lineTo(px, y * 128 + 128); g.stroke(); } });
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 4;
-    if (th.img) { const S = ctx.low || phone() ? 512 : 1024; new THREE.TextureLoader().load(`/images/surv/floor-${th.img}-${S}.webp?v=${ctx.ver || "1"}`, (w) => { t.image = w.image; t.repeat.set(th.rep || 11, th.rep || 11); t.needsUpdate = true; }, undefined, () => { /* the drawn tiles stay */ }); } // (b-nx3: Meshy's floor once it's in)
+    if (th.img) { const S = ctx.low || phone() ? 512 : 1024; new THREE.TextureLoader().load(`/images/surv/floor-${th.img}-${S}.webp?v=${ctx.ver || "1"}`, (w) => { t.image = w.image; t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping; t.repeat.set(th.rep || 11, th.rep || 11); t.needsUpdate = true; }, undefined, () => { /* the drawn tiles stay */ }); } // (b-nx3: Meshy's floor once it's in)
     return t; }
   function crackTexOf(th) { return canvasTex(256, 256, (g, w) => { let sd = 5; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647); g.lineCap = "round";
       for (let b = 0; b < 7; b++) { let x = w / 2, y = w / 2; const a0 = r() * 6.283; g.beginPath(); g.moveTo(x, y); for (let q = 0; q < 8; q++) { const a = a0 + (r() - 0.5) * 1.2; x += Math.cos(a) * 14; y += Math.sin(a) * 14; g.lineTo(x, y); }
@@ -296,6 +324,7 @@ export function createSurvivors(ctx) {
     if (!S || S.theme === id) return; const th = THEMES[id] || THEMES.desert, first = !S.theme; S.theme = id;
     if (!first) { const old = S.floorM.map; S.floorM.map = tileTex(th); S.floorM.needsUpdate = true; if (old) old.dispose(); const oc = S.cracks.material.map; S.cracks.material.map = crackTexOf(th); S.cracks.material.needsUpdate = true; if (oc) oc.dispose(); }
     if (crystalM) { crystalM.color.set(th.crystal[0]); crystalM.emissive.set(th.crystal[1]); }
+    S.floorM.color.set(th.tint || 0xffffff); if (S.dress) S.dress(id, th);
     S.band.material.color.set(th.band); S.band2.material.color.set(th.band);
     th.sky.forEach((k, i) => { if (SKY[i]) { SKY[i].bg = k[0]; SKY[i].hs = k[1]; SKY[i].hg = k[2]; } });
   }
@@ -352,7 +381,9 @@ export function createSurvivors(ctx) {
     FX.shadow = (() => { const m = new THREE.InstancedMesh(flat(new THREE.PlaneGeometry(2, 2)), new THREE.MeshBasicMaterial({ map: shT, transparent: true, depthWrite: false }), 320); m.count = 0; m.frustumCulled = false; m.renderOrder = 1; S.scene.add(m); return m; })();
     FX.chest = (() => { const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xffc23a, emissive: 0xb07a10, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.7 }), wood = new THREE.MeshStandardMaterial({ color: 0x7a3cff, roughness: 0.5, emissive: 0x3a1a99, emissiveIntensity: 0.5 });
       const b = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.8), wood); b.position.y = 0.35; const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 12, 1, false, 0, Math.PI), wood); lid.rotation.z = Math.PI / 2; lid.position.y = 0.7;
-      const bandM = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.84), gold); bandM.position.y = 0.55; const lock = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.1), gold); lock.position.set(0, 0.55, 0.42); g.add(b, lid, bandM, lock); g.visible = false; S.scene.add(g); return g; })();
+      const bandM = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.84), gold); bandM.position.y = 0.55; const lock = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.1), gold); lock.position.set(0, 0.55, 0.42); g.add(b, lid, bandM, lock);
+      { const bm = new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.9 }); new THREE.TextureLoader().load(`/images/surv/ui/fx-beam.webp?v=${ctx.ver || "1"}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; bm.map = t; bm.needsUpdate = true; }, undefined, () => {}); const beamS = new THREE.Sprite(bm); beamS.scale.set(1.5, 8, 1); beamS.position.y = 4.2; g.add(beamS); } // SVR2: Meshy's beam over a chest
+      g.visible = false; S.scene.add(g); return g; })();
     FX.crate = (() => { const t = canvasTex(64, 64, (g, w) => { g.fillStyle = "#8a5a32"; g.fillRect(0, 0, w, w); g.strokeStyle = "#5a3418"; g.lineWidth = 4; g.strokeRect(3, 3, w - 6, w - 6); g.beginPath(); g.moveTo(4, 4); g.lineTo(w - 4, w - 4); g.moveTo(w - 4, 4); g.lineTo(4, w - 4); g.stroke(); g.fillStyle = "#ffc23a"; g.fillRect(0, w / 2 - 4, w, 8); });
       const m = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8, emissive: 0x3a2a10, emissiveIntensity: 0.4 }), 4); m.count = 0; m.frustumCulled = false; S.scene.add(m); return m; })();
     FX.heroShadow = new THREE.Mesh(flat(new THREE.PlaneGeometry(1.6, 1.6)), new THREE.MeshBasicMaterial({ map: shT, transparent: true, depthWrite: false })); FX.heroShadow.position.y = 0.03; S.scene.add(FX.heroShadow);
@@ -650,7 +681,7 @@ export function createSurvivors(ctx) {
     // the entrance: the camera swings to it, time slows, a striped warning banner
     R.focus = { x: m.x, z: m.z, t: 1.6 }; slowMo = 1.6; ring(m.x, m.z, 0.5, 9, 0xff3a5a, 1.2, EASE); disc(m.x, m.z, 4, 0x7a1a3a, 1.4, HOLD, 0.6);
     ui.root.classList.add("boss-in"); setTimeout(() => ui && ui.root.classList.remove("boss-in"), 2400);
-    banner(i === 3 ? T("The Infinity Titan is here!") : T("Boss incoming!"), T(MON[id].boss)); snd("siren"); snd("roar"); buzz([60, 40, 110]); paintBoss();
+    banner(i === 3 ? T("The Infinity Titan is here!") : T("Boss incoming!"), T(MON[id].boss), "boss"); snd("siren"); snd("roar"); buzz([60, 40, 110]); paintBoss();
   }
 
   // ---------------- the hero ----------------
@@ -1119,7 +1150,7 @@ export function createSurvivors(ctx) {
     ui.slots.innerHTML = `<div>${ws.map((id) => { const e = evoOf(id); return `<span class="w${e ? " evo" : ""}${R.w[id] >= MAX_LV ? " max" : ""}">${icon(e ? e.id : id, 18)}<b>${e ? "★" : R.w[id]}</b></span>`; }).join("")}${emp("w", ws.length)}</div><div>${ps.map((id) => `<span class="p${PASSIVES[id].fx ? " fx" : ""}${R.p[id] >= maxLv(id) ? " max" : ""}">${icon(id, 16)}<b>${R.p[id]}</b></span>`).join("")}${emp("p", ps.length)}</div>`; }
   // b-svx: a cut-in: a picture and a name swept across the screen (a skill, an evolution)
   function cutIn(pic, name, over, col) { if (!ui || ctx.reduce) return; const el = document.createElement("div"); el.className = "sv-cut"; el.style.setProperty("--c", col || "#38d8ff"); el.innerHTML = `<span class="pic">${pic}</span><span class="tx"><small>${esc(over)}</small><b>${esc(name)}</b></span>`; ui.root.appendChild(el); setTimeout(() => el.remove(), 1100); }
-  function banner(big, small) { if (!ui) return; ui.banner.hidden = false; ui.banner.querySelector("b").textContent = big; ui.banner.querySelector("small").textContent = small || ""; ui.banner.classList.remove("go"); void ui.banner.offsetWidth; ui.banner.classList.add("go"); clearTimeout(banner.t); banner.t = setTimeout(() => { if (ui) ui.banner.hidden = true; }, 2600); }
+  function banner(big, small, kind) { if (!ui) return; ui.banner.hidden = false; ui.banner.querySelector("b").textContent = big; ui.banner.querySelector("small").textContent = small || ""; ui.banner.classList.remove("go"); ui.banner.classList.toggle("boss", kind === "boss"); void ui.banner.offsetWidth; ui.banner.classList.add("go"); clearTimeout(banner.t); banner.t = setTimeout(() => { if (ui) ui.banner.hidden = true; }, 2600); }
   function flashUi(kind) { if (!ui) return; const el = kind === "hurt" ? ui.hurt : ui.root.querySelector(".sv-vig"); el.classList.remove("go"); void el.offsetWidth; el.classList.add("go"); }
   // the first three runs: three short lines on how it works
   function hints() { let n = 0; try { n = Number(localStorage.getItem("arc.surv.runs")) || 0; localStorage.setItem("arc.surv.runs", String(n + 1)); } catch { /* every run */ } if (n >= 3) return;
@@ -1330,6 +1361,8 @@ export function createSurvivors(ctx) {
     /// near the Game Village: the monsters' file fetched ahead (the bake waits for the visit)
     prefetch: () => { try { fetch("models/world/survivors/monsters.glb?v=" + (ctx.ver || "1")).catch(() => {}); } catch { /* fetched on the visit */ } },
     /// tests: the run's numbers, and a few levers
+    theme: (id) => { if (THEMES[id]) applyTheme(id); }, // tests: show another arena
+    props: () => (S ? S.scene.children.filter((o) => /^sv-prop-/.test(o.name)).map((o) => o.name + ':' + o.children.length + ':' + (o.children[0] ? o.children[0].count : 0)) : []), // SVR2: which Meshy props are in (tests)
     debug: () => (R ? { mode, q: Q, fms: Math.round(frameMs), js: +jsMs.toFixed(2), anim: hero && hero.mixer ? (hero.mixer._actions.filter((a) => a.isRunning() && a.getEffectiveWeight() > 0.5).map((a) => a.getClip().name).join(",")) : "", t: R.t, hp: R.hp, lv: R.lv, xp: R.xp, kills: R.kills, bosses: R.bosses, mons: mons.length, alive: mons.filter((m) => m.st !== "die").length, gems: gems.length, fx: FX ? FX.glow.n + FX.beam.n : 0, w: { ...R.w }, p: { ...R.p }, boss: R.boss && R.boss.id, x: R.x, z: R.z } : { mode }),
     start: () => startRun(), skip: (s) => { if (!R) return; R.t += s; R.eliteT = 0; }, choose: (i) => choose(i), give: (k, id, n = 1) => { if (!R) return; for (let i = 0; i < n; i++) take({ k, id }); }, hurt: (n) => { if (R) { R.hurtT = 0; R.shield = 0; hurtHero(n); } }, xp: (n) => { if (R) addGem(R.x, R.z, n); }, boss: (i) => { if (R) spawnBoss(i); }, killAll: () => { if (R) for (const m of mons) if (m.st !== "die") kill(m); }, mode: () => mode, cam: (k) => { camK = k; }, quality: (q) => { Qmax = Q = q; applyQ(); },
     line: (ids, st0) => { if (!R) return; clearPools(); R.still = true; R.spawnT = 1e9; R.eliteT = 1e9; R.bossNext = 9; R.w = {}; R.swarmAt = []; ids.forEach((id, i) => { const m = spawn(id, (i - (ids.length - 1) / 2) * 2.2, -3); if (m) { m.face = 0; m.born = 1; if (st0) { m.st = st0; m.at = 0; } } }); },
