@@ -6812,3 +6812,7 @@ html.wp-pcphone .sv-boss{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
 .sv.menu .sv-hhp{display:none}
 .sv-art{display:block;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,8,30,.55));pointer-events:none;user-select:none}
 .sv-card-ic .sv-art{width:64px;height:64px;margin:-6px}
+.sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 84px)}
+.sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 126px)}
+html.wp-pcphone .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 96px)}
+html.wp-pcphone .sv-boss:not([hidden]) ~ .sv-streak{top:calc(max(8px,env(safe-area-inset-top)) + 138px)}
