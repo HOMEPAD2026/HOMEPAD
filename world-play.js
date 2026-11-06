@@ -125,7 +125,7 @@ function xpwPopup() {
   const end = (() => { try { return new Intl.DateTimeFormat(LANG === "ko" ? "ko-KR" : LANG === "zh" ? "zh-CN" : LANG === "tr" ? "tr-TR" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(XPW.END)); } catch { return ""; } })();
   const p = document.createElement("div"); p.className = "xpw-pop"; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", TW("3× EXP WEEK")); p.setAttribute("data-no-i18n", "");
   p.innerHTML = `<div class="xpw-in"><button type="button" class="xpw-x" data-later aria-label="${esc(T("Close"))}">×</button>
-    <div class="xpw-art"><img src="/images/surv/ui/key-wide.webp${VER}" alt="" width="960" height="549"><b class="xpw-k">×${XPW.K}</b><span class="xpw-tag">${esc(TW("EVENT"))} · ${esc(TW("7 days"))}</span></div>
+    <div class="xpw-art"><img src="/images/gw/news/surv-remaster-800.webp${VER}" srcset="/images/gw/news/surv-remaster-800.webp${VER} 800w, /images/gw/news/surv-remaster-1200.webp${VER} 1200w" sizes="(max-width: 700px) 92vw, 480px" alt="" width="800" height="450"><b class="xpw-k">×${XPW.K}</b><span class="xpw-tag">${esc(TW("EVENT"))} · ${esc(TW("7 days"))}</span></div>
     <h3>⚡ ${esc(TW("3× EXP WEEK"))}</h3>
     <p class="xpw-sub">${esc(TW("Every EXP you earn is at least ×{k} for 7 days.", { k: XPW.K }))}</p>
     <ul class="xpw-l"><li><b>Lv 1 → 8</b><span>${esc(TW("One SURVIVORS run takes a new hero from Lv 1 to about Lv 8."))}</span></li>
