@@ -25,6 +25,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 import { WORDS, loadWords } from "./world-words-load.js"; // (the player's language only — gen/words-<lang>.js, made from world-words.js by the build)
 import { ask as askCard } from "./world-ask.js";
 import { clockOf as hwClock } from "./world-hwrealm-data.js";
+import { XPW, xpwOn, xpwK } from "./world-xpweek-data.js"; // (the 3× EXP WEEK: gain()'s multiplier, the entry popup)
 import { KEV, kevOn, kevPhase } from "./world-kart-event-data.js"; // (the KART GRAND OPENING EVENT's window: the popup, the Menu tile, KART's chip)
 const VER = new URL(import.meta.url).search;
 // the game's modules (world-all.js): one file in the build, side by side from the source folder
@@ -115,6 +116,28 @@ async function kevMod() {
 async function openKev(tab, k) { try { if (!kartOn) closeAll(); const u = await kevMod(); if (u) await u.open(tab, k); } catch (e) { console.warn("kart event", e); toast(TW("Couldn't open it — try again")); if (diag && diag.err) diag.err("kartevent: " + String((e && e.message) || e), "kartevent"); } }
 async function kevPopup() { kevDone = true; try { const u = await kevMod(); if (u && adpReady()) u.popup(); else kevDone = false; } catch (e) { console.warn("kart event popup", e); } }
 /// the event's Race now / Time Attack on Magma Run: KART opened (or already open) on its pick screen with that mode and track
+// the 3× EXP WEEK (world-xpweek-data.js): the entry notice of the week — a card on every visit inside the window, in the
+// KART event's slot (z-index 13000, the town held behind it), PLAY SURVIVORS or Later; the old What's new card waits
+let xpwDone = false;
+function xpwPopup() {
+  xpwDone = true; if (document.querySelector(".xpw-pop")) return;
+  const left = () => { const ms = Math.max(0, XPW.END - Date.now()), d = Math.floor(ms / 864e5), h = Math.floor((ms % 864e5) / 36e5), m = Math.floor((ms % 36e5) / 6e4); return d > 0 ? TW("{d}d {h}h", { d, h }) : TW("{h}h {m}m", { h, m }); };
+  const end = (() => { try { return new Intl.DateTimeFormat(LANG === "ko" ? "ko-KR" : LANG === "zh" ? "zh-CN" : LANG === "tr" ? "tr-TR" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(XPW.END)); } catch { return ""; } })();
+  const p = document.createElement("div"); p.className = "xpw-pop"; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", TW("3× EXP WEEK")); p.setAttribute("data-no-i18n", "");
+  p.innerHTML = `<div class="xpw-in"><button type="button" class="xpw-x" data-later aria-label="${esc(T("Close"))}">×</button>
+    <div class="xpw-art"><img src="/images/surv/ui/key-wide.webp${VER}" alt="" width="960" height="549"><b class="xpw-k">×${XPW.K}</b><span class="xpw-tag">${esc(TW("EVENT"))} · ${esc(TW("7 days"))}</span></div>
+    <h3>⚡ ${esc(TW("3× EXP WEEK"))}</h3>
+    <p class="xpw-sub">${esc(TW("Every EXP you earn is at least ×{k} for 7 days.", { k: XPW.K }))}</p>
+    <ul class="xpw-l"><li><b>Lv 1 → 8</b><span>${esc(TW("One SURVIVORS run takes a new hero from Lv 1 to about Lv 8."))}</span></li>
+      <li><b>${esc(TW("All play"))}</b><span>${esc(TW("Hunting, quests, SURVIVORS, Rings, Mine, Poker, Jurassic — every EXP counts."))}</span></li>
+      <li><b>5×</b><span>${esc(TW("New members' Starter Festival 5× stays 5×."))}</span></li></ul>
+    <p class="xpw-left">${esc(TW("Ends {t}", { t: end }))} · <b data-left>${esc(left())}</b> ${esc(TW("left"))}</p>
+    <span class="xpw-b"><button type="button" class="xpw-go" data-go>⚔️ ${esc(TW("Play SURVIVORS"))}</button><button type="button" class="xpw-later" data-later>${esc(TW("Later"))}</button></span></div>`;
+  const rel = kevHold(); document.body.appendChild(p); try { Snd.click && Snd.click(); } catch { /* no sound */ }
+  const iv = setInterval(() => { if (!p.isConnected) return clearInterval(iv); const b = p.querySelector("[data-left]"); if (b) b.textContent = left(); }, 30e3);
+  const close = (go) => { clearInterval(iv); p.classList.add("out"); setTimeout(() => p.remove(), 200); rel(); if (go) setTimeout(() => { try { openSurvivors(); } catch (e) { console.warn("xpw → survivors", e); } }, 220); };
+  p.addEventListener("click", (e) => { if (e.target === p || e.target.closest("[data-later]")) return close(false); if (e.target.closest("[data-go]")) close(true); });
+}
 async function kevKart(o) {
   if (!kartOn) await openKart();
   for (let i = 0; i < 40 && kartGame && kartGame.on() && kartGame.phase() !== "pick"; i++) await sleep(150);
@@ -170,13 +193,15 @@ let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep 
 const bless = () => { const v = P.vill, s = sess(); return (v && s && v.w === lc(s.wallet) && v.blessing) || { xp: 0, hp: 0 }; };
 // weekend 2×: XP here, ARCL from play on the server (api/_world-shop.mjs weekendK), both on Seoul's Saturday and Sunday
 const weekend2x = () => { const d = new Date(Date.now() + 9 * 3600e3).getUTCDay(); return d === 0 || d === 6; };
+/// the EXP multiplier now: the Starter Package 2×, a launch potion 3×, the Starter Festival 5× and the weekend 2×
+/// multiplied, then the 3× EXP WEEK raises it to at least ×3 (world-xpweek-data.js; api/_world.mjs's allowance the same)
+function xpMul() { const t = Date.now(); let k = 1;
+  if (xpBoostUntil > t) k *= 2; if (xp3Until > t) k *= 3; if (festUntil > t) k *= 5; if (weekend2x()) k *= 2;
+  return xpwK(t, k); }
 function gain(n, why) {
   if (xpHeld) return;
   if (n > 0 && bless().xp) n = Math.round(n * (1 + bless().xp / 100));
-  if (n > 0 && xpBoostUntil > Date.now()) n *= 2; // the Starter Package's 2× EXP
-  if (n > 0 && xp3Until > Date.now()) n *= 3; // a launch potion's 3× (the server raises the allowance with it)
-  if (n > 0 && festUntil > Date.now()) n *= 5; // the Starter Festival's 5× (the server raises the allowance with it too)
-  if (n > 0 && weekend2x()) n *= 2; // the weekend's 2× (Saturday and Sunday, Seoul time; the server doubles the allowance too)
+  if (n > 0) n *= xpMul(); // the boosts (xpMul above) — the 3× EXP WEEK raises them to at least ×3
   if (n > 0 && petXpPct) n = Math.round(n * (1 + petXpPct / 100)); // a Scholar pet (the server's XP allowance still caps what is saved)
   const before = level(); P.xp += n; save(); paintHud();
   if (n > 0) xpFloat(n); // a number beside the XP bar; the why (feed lines, quest toasts) is told elsewhere
@@ -2444,7 +2469,7 @@ let survGame = null, survOn = false, survBusy = false;
 async function survModule() {
   if (survGame) return survGame;
   let M; try { M = await import("./world-survivors.js"); } catch (e) { throw Object.assign(new Error("load: " + ((e && e.message) || e)), { stage: "load" }); }
-  survGame = M.createSurvivors({ buzz: (p) => buzz(p), THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
+  survGame = M.createSurvivors({ xpMul: () => (xpHeld ? 1 : xpMul()), xpWeek: () => xpwOn(), buzz: (p) => buzz(p), THREE, K, st, ver: VER, T: TW, lang: LANG, esc, toast, Snd, reduce, low: lowGfx, coarse, sess, post, share: (c) => bragCard(c), quality: S.quality || "auto", fam: diag.fam || "", fps: (n) => st.fps(n || S.fpsCap || autoCap || 60), fpsSet: () => !!S.fpsCap, refresh: () => refreshPurse(true), gain: (n, why) => gain(n, why),
         makeHero: (id) => K.makeCharacter(id, VER).then((c) => { if (c && c.setTint) c.setTint(P.tint || 0); return c; }), addSupply: (k, n) => { const ok = !!(rpg && rpg.addSupply && rpg.addSupply(k, n)); try { if (ok && combat && combat.paintPots) combat.paintPots(); } catch { /* shown on the next repaint */ } return ok; },
         onLeave: () => { const veil = $("wp-veil"); survOn = false; frozen = false; svAch = null; keys.clear(); const e = gv.exitOf("surv"); standAt(e.x, e.z, gv.center); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 320); } near = null; paintPrompt(); } });
   return survGame;
@@ -4135,6 +4160,7 @@ const NEWV = "b398";
 function maybeNew() {
   try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
   if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
+  if (xpwOn()) return; // the 3× EXP WEEK's card is the entry notice this week
   autoShow("new", 20, () => openNew());
 }
 function openNew() {
@@ -6568,7 +6594,7 @@ function goAgentTower() {
   const g = agentGate.position, d = Math.hypot(g.x, g.z) || 1; standAt(g.x - (g.x / d) * 16, g.z - (g.z / d) * 16, { x: g.x, z: g.z });
   try { vfx.teleport(here(), { color: 0x5fd3ff, color2: 0xb48cff }); } catch { /* no flash */ } near = null; paintPrompt(); setTimeout(() => openAgent(), 900);
 }
-every(300, () => { if (!kevDone && kevOn(Date.now()) && adpReady() && !document.querySelector(".wp-adp,.kev-pop")) kevPopup(); if (!adpDone && adpReady()) adPromo(); if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } }); /* (the card when you step into the town, not over the loading screen: the owner, 2026-10-24) */
+every(300, () => { if (!xpwDone && xpwOn() && adpReady() && !document.querySelector(".wp-adp,.kev-pop,.xpw-pop")) xpwPopup(); if (!kevDone && kevOn(Date.now()) && adpReady() && !document.querySelector(".wp-adp,.kev-pop,.xpw-pop")) kevPopup(); if (!adpDone && adpReady()) adPromo(); if (adpGo && adpReady()) { adpGo = false; goAgentTower(); } }); /* (the card when you step into the town, not over the loading screen: the owner, 2026-10-24) */
 /// every boss in the world for the window's Boss pane: live or when next, the way there (2026-10-24, the owner's mock-ups)
 function bossList() {
   const now = Date.now(), d = new Date(now), day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), at = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

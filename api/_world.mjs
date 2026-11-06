@@ -29,6 +29,7 @@
 // Bounties, party quests, the village rankings (week / month / all time) and their prizes: api/_world-rank.mjs.
 // Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
+import { xpwK } from "../world-xpweek-data.js"; // the 3× EXP WEEK (the same multiplier as the game's gain())
 import { makeShop, FEE_BURN, BAG_BASE, BAG_MAX, bagSize, DUR_MAX, durOf, weekendK } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
 import { makeChat } from "./_world-chat.mjs";
@@ -523,7 +524,7 @@ export function make(deps) {
     // XP can only climb so fast (the rules: api/_world-social.mjs XP_RULES): the bank refills with time, a day has its
     // limit, and a first save brings at most level 30. Whatever's asked beyond that is cut, and the cut is noted.
     const ownB = (await shop.own(s.wallet).catch(() => ({}))) || {};
-    const boostK = ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * fest.xpK(ownB) * weekendK(now()); // the Starter's 2×, a launch potion's 3×, the Starter Festival's 5× and the weekend's 2× stack
+    const boostK = xpwK(now(), ((Number(ownB.xpBoostUntil) || 0) > now() ? 2 : 1) * ((Number(ownB.xp3Until) || 0) > now() ? 3 : 1) * fest.xpK(ownB) * weekendK(now())); // the Starter's 2×, a launch potion's 3×, the Starter Festival's 5× and the weekend's 2× stack
     // GM wallets (the team's own testing) aren't paced
     // XP the server granted itself (a won RAID QUEENS run: worldXpGrant) goes past that pace, once
     const gk = `worldXpGrant/${s.wallet}`; let extra = 0;

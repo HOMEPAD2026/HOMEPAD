@@ -38,7 +38,7 @@ T = FEST.start + 7200e3; await F.markNew(B); T += 8 * 864e5; r = await F.handle(
 const world = fs.readFileSync(new URL("../../api/_world.mjs", import.meta.url), "utf8"), play = fs.readFileSync(new URL("../../world-play.js", import.meta.url), "utf8");
 ok(/x\.u === "starb" && String\(x\.b\)\.startsWith\("weapon-"\)\) \|\| \(x\.u === "stara" && String\(x\.b\)\.startsWith\("armor-"\)\)/.test(world), "a save keeps the u of the Starlight pieces");
 ok(/fest\.xpK\(ownB\)/.test(world) && /else await fest\.markNew\(s\.wallet\)/.test(world), "the save's XP pace and the first-save mark use the festival");
-ok(/festUntil > Date\.now\(\)\) n \*= 5/.test(play) && /function festOwn\(o\)/.test(play) && /r\.x\.fg/.test(play), "the game's EXP ×5 and the gifts taken once each");
+ok(/if \(festUntil > t\) k \*= 5/.test(play) && /function festOwn\(o\)/.test(play) && /r\.x\.fg/.test(play), "the game's EXP ×5 and the gifts taken once each");
 for (const f of ["models/world/fest/starblade.glb", "models/world/fest/stararmor.glb", "models/world/fest/starwhale.glb", "images/fest/key-wide-960.webp", "images/fest/icon-xp5.webp", "images/fest/icon-whale.webp", "images/fest/icon-blade.webp", "images/fest/icon-armor.webp", "images/fest/icon-potions.webp"]) {
   const p = new URL("../../" + f, import.meta.url); ok(fs.existsSync(p) && fs.statSync(p).size < 700e3, f + " is there and phone-sized");
 }
