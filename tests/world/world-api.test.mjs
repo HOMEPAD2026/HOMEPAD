@@ -1,3 +1,4 @@
+import { XPW } from "../../world-xpweek-data.js";
 // world-api.test.mjs — the World API (world-api) against an in-memory store. Run: node tests/world/world-api.test.mjs (needs ethers 6)
 import { ethers } from "ethers";
 const { make, loginMessage, cleanSave } = await import("../../api/_world.mjs");
@@ -10,7 +11,7 @@ const store = {
   commit: async (ws) => { for (const w of ws) { if (w.create) { if (db.has(w.create)) return { ok: false, conflict: true }; db.set(w.create, w.data); } else if (w.inc) { const d = db.get(w.inc) || {}; for (const [k, n] of Object.entries(w.fields)) d[k] = (d[k] || 0) + n; db.set(w.inc, d); } } return { ok: true }; },
 };
 const json = (status, body) => ({ status, body });
-let T = (() => { let d = Math.floor(Date.now() / 86400000) * 86400000; while ([0, 6].includes(new Date(d + 9 * 3600e3).getUTCDay())) d -= 86400000; return d + 30000; })(); // 30 s into a 10-minute block: the 2-minute online window can't roll over mid-test (it did under load); at 09:00 Seoul, so the test's 3½ hours never cross Seoul's midnight; and on a Seoul weekday, so the weekend 2× XP (api/_world-shop.mjs weekendK) doesn't change the expected numbers (five checks failed on a Saturday)
+let T = (() => { let d = Math.floor(Date.now() / 86400000) * 86400000; while ([0, 6].includes(new Date(d + 9 * 3600e3).getUTCDay()) || (d + 4 * 3600e3 >= XPW.START && d < XPW.END)) d -= 86400000; return d + 30000; })(); /* (and outside the 3× EXP WEEK: world-xpweek-data.js) */ // 30 s into a 10-minute block: the 2-minute online window can't roll over mid-test (it did under load); at 09:00 Seoul, so the test's 3½ hours never cross Seoul's midnight; and on a Seoul weekday, so the weekend 2× XP (api/_world-shop.mjs weekendK) doesn't change the expected numbers (five checks failed on a Saturday)
 const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && new Date(t).toISOString() === iso && T - t <= max; };
 const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, launchRecord: async (c) => (c === "0x" + "c".repeat(40) ? { creator: w.address.toLowerCase() } : null) });
 let r = await W.handle({ action: "world-ping", id: "abcdefabcdef12" });
