@@ -23,8 +23,8 @@ const wave = (t, per, ph = 0) => Math.sin(TAU * (t / per + ph));
 const IMG = {};
 const SRC = {
   mark: "/images/brand/mark-v2.png", sky: "/images/galaxy/sky.webp",
-  town: "parts/town.png", galaxy: "parts/galaxy.png", bricks: "parts/bricks.png", stage: "parts/stage.png", rocket: "parts/rocket.png",
-  coin: "/images/arcl2-256.webp", agent: "/images/hub/ic-agents.webp",
+  town: "parts/town.webp", galaxy: "parts/galaxy.webp", bricks: "parts/bricks.webp", stage: "parts/stage.webp", rocket: "parts/rocket.webp",
+  coin: "/images/arcl2-256.webp", agent: "parts/agent.webp",
 };
 // deterministic stars
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -37,9 +37,9 @@ const WORLDS = [
   { k: "bricks", label: "CREATOR HUB", x: 716,  y: 372, w: 200, bob: 7, ph: 0.35, cp: [830, 400] },
   { k: "galaxy", label: "ARC GALAXY",  x: 1322, y: 96,  w: 214, bob: 4, ph: 0.6, cp: [1210, 90], spin: true },
   { k: "stage",  label: "ARCIA",       x: 1320, y: 368, w: 186, bob: 6, ph: 0.15, cp: [1220, 400] },
-  { k: "rocket", label: "PLATFORM",    x: 1452, y: 232, w: 58,  bob: 9, ph: 0.8, cp: [1330, 240] },
+  { k: "rocket", label: "PLATFORM",    x: 1450, y: 222, w: 62,  bob: 9, ph: 0.8, cp: [1330, 240] },
   { k: "coin",   label: "ARCL",        x: 884,  y: 424, w: 54,  bob: 4, ph: 0.5, cp: [930, 380], coin: true },
-  { k: "agent",  label: "AI AGENTS",   x: 1146, y: 424, w: 58,  bob: 4, ph: 0.9, cp: [1110, 380] },
+  { k: "agent",  label: "AI AGENTS",   x: 1150, y: 418, w: 96,  bob: 4, ph: 0.9, cp: [1110, 380] },
 ];
 
 function quad(p0, p1, p2, u) { const a = 1 - u; return [a * a * p0[0] + 2 * a * u * p1[0] + u * u * p2[0], a * a * p0[1] + 2 * a * u * p1[1] + u * u * p2[1]]; }
@@ -156,12 +156,12 @@ function worlds(t, k, intro) {
     x.restore();
     if (w.k === "rocket") { // exhaust
       x.save(); x.globalCompositeOperation = "lighter";
-      for (let j = 0; j < 14; j++) { const u = ((t * 1.5 + j / 14) % 1), px = w.x + Math.sin(j * 7.3 + t) * 2, py = w.y + by + hh * 0.42 + u * 70;
-        x.globalAlpha = (1 - u) * 0.55 * a; x.fillStyle = j % 2 ? "#8ff3ff" : "#ffffff"; x.beginPath(); x.arc(px, py, (1 - u) * 4 + 1, 0, TAU); x.fill(); }
+      for (let j = 0; j < 14; j++) { const u = ((t * 1.5 + j / 14) % 1), px = w.x + Math.sin(j * 7.3 + TAU * t / LOOP) * 2, py = w.y + by + hh * 0.4 + u * 26;
+        x.globalAlpha = (1 - u) * 0.4 * a; x.fillStyle = j % 2 ? "#8ff3ff" : "#ffffff"; x.beginPath(); x.arc(px, py, (1 - u) * 4 + 1, 0, TAU); x.fill(); }
       x.restore();
     }
     // label
-    const ly = w.y + by + hh / 2 + (w.k === "galaxy" ? -4 : w.k === "stage" ? -6 : 12);
+    const ly = w.y + by + hh / 2 + (w.k === "galaxy" ? -6 : w.k === "rocket" ? 4 : 10);
     x.save(); x.globalAlpha = a * 0.95; x.font = "700 11.5px Sora"; x.textAlign = "center"; x.textBaseline = "middle";
     const tw = x.measureText(w.label).width + 18 + w.label.length * 1.5;
     x.fillStyle = "rgba(6,14,40,0.72)"; x.strokeStyle = "rgba(120,230,255,0.45)"; x.lineWidth = 1;
