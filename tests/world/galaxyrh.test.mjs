@@ -26,7 +26,7 @@ const pad = (h) => h.replace(/^0x/, "").padStart(64, "0");
     ok(dep.k === K.bridge && dep.br === "i" + ROBINHOOD.parentDomain, "RH: an Arbitrum deposit = bridge in");
     const wd = classifyWith(RH_MONEY, { type: "0x2", to: ROBINHOOD.arbsys, input: "0x25e16063", value: "0x0" }, null);
     ok(wd.k === K.bridge && wd.br[0] === "o", "RH: ArbSys = bridge out"); }
-  ok(/const RH = NET === "robinhood"/.test(gj) && /RHW = \{/.test(gj) && /href="\?net=robinhood"/.test(gj) && /href="\/galaxy\/arena"/.test(gj), "the page: Robinhood words, the net switch, the Arena link");
+  ok(/const RH = NET === "robinhood"/.test(gj) && /RHW = \{/.test(gj) && /href="\/galaxy" class=/.test(gj) && /href="\/galaxy\/arena"/.test(gj), "the page: Robinhood words, the net switch, the Arena link");
   for (const L of ["ko", "zh", "tr"]) { const en = gj.slice(gj.indexOf("  en: { tag: \"Every transaction on Robinhood"), gj.indexOf("},", gj.indexOf("  en: { tag: \"Every transaction on Robinhood"))); const bl = gj.slice(gj.indexOf(`  ${L}: { tag:`), gj.indexOf("},", gj.indexOf(`  ${L}: { tag:`))); const miss = [...en.matchAll(/(\w+): "/g)].map((x) => x[1]).filter((k) => !new RegExp("[{ ]" + k + ": \"").test(bl)); ok(!miss.length, "RH words " + L + ": " + miss.join(",")); }
 
   // a feed read end to end on a fake Robinhood Chain: 3 blocks, each with the ArbOS tx + an ETH send + a USDG transfer
@@ -41,7 +41,7 @@ const pad = (h) => h.replace(/^0x/, "").padStart(64, "0");
   const rpc = async (body) => { const one = (q) => q.method === "eth_blockNumber" ? { id: q.id, result: hx(102) } : q.method === "eth_getBlockByNumber" ? { id: q.id, result: blk(Number(q.params[0])) } : q.method === "eth_getBlockReceipts" ? { id: q.id, result: rcs(Number(q.params[0])) } : { id: q.id, result: "0x" }; return Array.isArray(body) ? body.map(one) : one(body); };
   let px = 3000;
   const M2 = evmMoney({ usdc: USDG, px: () => px, skip: (tx) => tx.type === "0x6a" });
-  const G = makeGalaxy({ rpc, cls: (tx, rc) => classifyWith(M2, tx, rc), chain: 4663, key: "rhTest", backfill: 3, maxBlocks: 10, batch: 20, store: { get: async () => ({}), set: async () => {} } });
+  const G = makeGalaxy({ rpc, cls: (tx, rc) => classifyWith(M2, tx, rc), chain: 4663, key: "rhTest", backfill: 3, maxBlocks: 10, batch: 20, store: { get: async () => ({}), set: async () => {} }, now: () => 1794050020000 });
   const o = await G.live();
   ok(o.chain === 4663 && o.stats.txs === 6, "6 user txs from 3 blocks (the ArbOS tx left out): " + o.stats.txs);
   ok(o.rows.every((r) => r[2] !== "0x00000000000000000000000000000000000a4b05"), "no row from ArbOS");
