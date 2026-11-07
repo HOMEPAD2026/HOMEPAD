@@ -67,6 +67,7 @@ ok(Math.abs(out.stats.failRate - 1 / 3) < 1e-9, "a third failed");
 ok(out.stats.usd10m === 10000, "USDC moved: 100 × $1");
 ok(out.labels[USDC] && out.top[0][0] === C && out.top[0][1] === 100, "the busiest contract and the labels of what appears");
 ok(out.stats.tps > 5.9 && out.stats.tps < 6.2, "≈ 6 tx/s from the block times");
+ok(out.records && out.records.ever.block && out.records.ever.block[0] === 3 && out.records.today.usd && out.records.today.usd[0] === 100, "GX9: records — the busiest block (3 tx) and the biggest USDC move ($1) today and ever");
 const before = calls; await g.live(); ok(calls === before, "a call within the gap shares the read");
 clock += 1000; head += 4; out = await g.live();
 ok(out.head === 1004 && out.blocks.length === 104 && out.rows.length === 312, "the next call reads only the 4 new blocks");

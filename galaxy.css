@@ -76,6 +76,21 @@ button, input, select { font: inherit; color: inherit; }
 .gx-card ul { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; display: grid; gap: 4px; }
 .gx-card ul i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: 6px; }
 .gx-card .ln { display: flex; gap: 10px; margin-top: 10px; font-size: 12.5px; }
+/* GX9: records + the next milestone */
+.gx-rec { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.gx-rec h2 { margin-bottom: 6px; }
+.gx-rec dl { display: grid; grid-template-columns: 1fr; gap: 2px 0; margin: 0; font-size: 12px; }
+.gx-rec dt { color: var(--dim); font-size: 11px; margin-top: 4px; }
+.gx-rec dd { margin: 0; font: 500 12px "JetBrains Mono", monospace; color: var(--ink); }
+.gx-rec dd b { color: var(--gold); }
+.gx-recgo { all: unset; cursor: pointer; margin-top: 8px; display: inline-block; font-size: 11.5px; color: var(--cyan); }
+.gx-mile { margin-bottom: 10px; padding: 7px 10px; border-radius: 10px; background: rgba(255, 209, 102, 0.08); border: 1px solid rgba(255, 209, 102, 0.3); font: 600 12px Sora, sans-serif; color: #ffe9b8; }
+.gx-mile.soon { animation: gx-pulse2 1.2s infinite; border-color: rgba(255, 209, 102, 0.8); }
+@keyframes gx-pulse2 { 50% { box-shadow: 0 0 22px rgba(255, 209, 102, 0.45); } }
+.gx-whale.rec { border-color: rgba(169, 139, 255, 0.8); background: linear-gradient(180deg, rgba(40, 20, 70, 0.82), rgba(20, 10, 40, 0.86)); box-shadow: 0 0 40px rgba(169, 139, 255, 0.4); }
+.gx-whale.rec b { color: #d9c9ff; }
+.gx-whale.mile { border-color: rgba(77, 255, 176, 0.8); background: linear-gradient(180deg, rgba(0, 50, 40, 0.82), rgba(0, 25, 20, 0.86)); box-shadow: 0 0 60px rgba(77, 255, 176, 0.45); }
+.gx-whale.mile b { color: var(--mint); font-size: 30px; }
 /* GX8: share a star / name it as its owner */
 .gx-cact { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .gx-cact button, .gx-claimf button { border: 1px solid var(--line2); background: rgba(60, 230, 255, 0.08); color: var(--ink); font: 600 12px Sora, sans-serif; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
