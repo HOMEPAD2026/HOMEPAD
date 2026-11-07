@@ -1,0 +1,71 @@
+/* galaxy-arena.css — CHAIN ARENA (galaxy-arena.html). Dark only, like ARC GALAXY. */
+:root { --bg: #02040c; --glass: rgba(8, 17, 42, 0.72); --line: rgba(120, 200, 255, 0.16); --line2: rgba(120, 220, 255, 0.34); --ink: #eaf4ff; --dim: #8fa6c8; --gold: #ffd166; --pad: 16px; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Sora, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.ga-bg { position: fixed; inset: 0; z-index: 0; background: radial-gradient(ellipse at 50% -10%, rgba(29, 159, 207, 0.25), transparent 60%), linear-gradient(180deg, rgba(2, 4, 12, 0.35), rgba(2, 4, 12, 0.92) 60%), url(/images/galaxy/key-wide.webp) center top / cover no-repeat; }
+.ga-top, .ga-main, .ga-toast { position: relative; z-index: 1; }
+.ga-top { display: flex; justify-content: space-between; align-items: center; padding: calc(14px + env(safe-area-inset-top, 0px)) var(--pad) 0; max-width: 1080px; margin: 0 auto; gap: 10px; }
+.ga-back { color: var(--dim); text-decoration: none; font: 700 13px "Exo 2", sans-serif; letter-spacing: 0.04em; }
+.ga-back:hover { color: var(--ink); }
+.ga-tools { display: flex; gap: 8px; align-items: center; }
+.ga-live { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; background: var(--glass); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--dim); white-space: nowrap; }
+.ga-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.ga-live.on i { background: #4dffb0; box-shadow: 0 0 10px #4dffb0; }
+.ga-tools select { height: 32px; background: var(--glass); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 0 8px; font: 600 12px Sora, sans-serif; }
+.ga-tools option { background: #0a1630; }
+.ga-main { max-width: 1080px; margin: 0 auto; padding: 0 var(--pad) calc(40px + env(safe-area-inset-bottom, 0px)); }
+.ga-hero { text-align: center; padding: 34px 0 22px; }
+.ga-hero h1 { margin: 0; font: 900 clamp(34px, 7vw, 64px)/1 "Exo 2", sans-serif; letter-spacing: 0.02em; }
+.ga-hero h1 span { background: linear-gradient(90deg, #3ce6ff, #ccff00 55%, #b69cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ga-hero p { margin: 12px auto 0; max-width: 560px; color: var(--dim); font-size: 14px; }
+.ga-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ga-card { position: relative; padding: 16px 18px 14px; background: var(--glass); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.ga-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--g); box-shadow: 0 0 18px var(--g); }
+.ga-card header { display: flex; align-items: center; gap: 8px; }
+.ga-card header i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--g); }
+.ga-card h2 { margin: 0; font: 800 17px "Exo 2", sans-serif; }
+.ga-card header em { margin-left: auto; font-style: normal; font-size: 10.5px; color: var(--gold); }
+.ga-big { display: block; margin-top: 12px; font: 900 42px/1 "Exo 2", sans-serif; color: var(--g); }
+.ga-u { display: block; color: var(--dim); font-size: 12px; margin-top: 4px; }
+.ga-card dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 12px 0 0; font-size: 12.5px; }
+.ga-card dt { color: var(--dim); } .ga-card dd { margin: 0; font-family: "JetBrains Mono", monospace; text-align: right; }
+.ga-card small { display: block; margin-top: 8px; color: var(--dim); font-size: 11px; }
+.ga-down { color: var(--dim); margin: 18px 0 8px; }
+.ga-rows { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ga-row { padding: 14px 16px; background: var(--glass); border: 1px solid var(--line); border-radius: 16px; }
+.ga-row h3 { margin: 0 0 10px; font: 700 14px Sora, sans-serif; }
+.ga-row h3 small { display: block; margin-top: 2px; font-weight: 500; font-size: 11px; color: var(--dim); }
+.ga-bar { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 10px; padding: 4px 0; font-size: 12.5px; }
+.ga-bar .n .s { display: none; }
+.ga-bar .n { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ga-bar .t { height: 12px; border-radius: 4px; background: rgba(143, 166, 200, 0.08); overflow: hidden; }
+.ga-bar .t i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--c); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); transition: width 0.6s cubic-bezier(.2, .8, .2, 1); }
+.ga-bar b { font: 700 12.5px "JetBrains Mono", monospace; white-space: nowrap; min-width: 92px; text-align: right; }
+.ga-bar b em { font-style: normal; font-weight: 500; color: var(--dim); font-family: Sora, sans-serif; font-size: 11.5px; }
+.ga-bar b u { text-decoration: none; color: var(--gold); font-family: Sora, sans-serif; font-size: 11px; }
+.ga-final, .ga-basis { margin-top: 22px; }
+.ga-final h2, .ga-basis h2 { margin: 0 0 10px; font: 700 12px/1.2 Sora, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+.ga-fin { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ga-f { padding: 12px 14px; background: var(--glass); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 12px; font-size: 12.5px; }
+.ga-f b { display: block; margin-bottom: 4px; }
+.ga-f span { color: var(--dim); }
+.ga-basis p { margin: 0 0 8px; padding-left: 12px; border-left: 3px solid var(--c); color: var(--dim); font-size: 12.5px; }
+.ga-basis p b { color: var(--ink); }
+.ga-note { border: 0 !important; padding: 0 !important; margin-top: 12px !important; font-size: 11.5px !important; }
+.ga-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.ga-acts button, .ga-btn { height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line2); background: var(--glass); color: var(--ink); font: 600 13px Sora, sans-serif; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.ga-toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); padding: 9px 16px; background: rgba(8, 17, 42, 0.95); border: 1px solid var(--line2); border-radius: 12px; font-size: 13px; z-index: 5; }
+@media (max-width: 760px) {
+  .ga-hero { padding: 22px 0 16px; }
+  .ga-cards { grid-template-columns: 1fr; gap: 8px; }
+  .ga-card { padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: end; }
+  .ga-card header { grid-column: 1 / -1; }
+  .ga-big { font-size: 32px; margin-top: 8px; } .ga-u { grid-column: 1; }
+  .ga-card dl { grid-column: 2; grid-row: 2 / span 2; margin: 0; }
+  .ga-card small, .ga-down { grid-column: 1 / -1; }
+  .ga-rows { grid-template-columns: 1fr; gap: 8px; }
+  .ga-bar .n .f { display: none; } .ga-bar .n .s { display: inline; }
+  .ga-bar { grid-template-columns: 82px 1fr auto; gap: 8px; font-size: 12px; } .ga-bar b { min-width: 78px; font-size: 12px; }
+  .ga-fin { grid-template-columns: 1fr; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .ga-bar .t i { transition: none; } }

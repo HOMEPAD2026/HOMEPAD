@@ -26,7 +26,7 @@ const pad = (h) => h.replace(/^0x/, "").padStart(64, "0");
     ok(dep.k === K.bridge && dep.br === "i" + ROBINHOOD.parentDomain, "RH: an Arbitrum deposit = bridge in");
     const wd = classifyWith(RH_MONEY, { type: "0x2", to: ROBINHOOD.arbsys, input: "0x25e16063", value: "0x0" }, null);
     ok(wd.k === K.bridge && wd.br[0] === "o", "RH: ArbSys = bridge out"); }
-  ok(/const RH = NET === "robinhood"/.test(gj) && /RHW = \{/.test(gj) && /href="\?net=robinhood"/.test(gj), "the page: Robinhood words, the net switch");
+  ok(/const RH = NET === "robinhood"/.test(gj) && /RHW = \{/.test(gj) && /href="\?net=robinhood"/.test(gj) && /href="\/galaxy\/arena"/.test(gj), "the page: Robinhood words, the net switch, the Arena link");
   for (const L of ["ko", "zh", "tr"]) { const en = gj.slice(gj.indexOf("  en: { tag: \"Every transaction on Robinhood"), gj.indexOf("},", gj.indexOf("  en: { tag: \"Every transaction on Robinhood"))); const bl = gj.slice(gj.indexOf(`  ${L}: { tag:`), gj.indexOf("},", gj.indexOf(`  ${L}: { tag:`))); const miss = [...en.matchAll(/(\w+): "/g)].map((x) => x[1]).filter((k) => !new RegExp("[{ ]" + k + ": \"").test(bl)); ok(!miss.length, "RH words " + L + ": " + miss.join(",")); }
 
   // a feed read end to end on a fake Robinhood Chain: 3 blocks, each with the ArbOS tx + an ETH send + a USDG transfer

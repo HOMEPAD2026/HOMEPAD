@@ -62,6 +62,7 @@
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?arc=galaxy                  ARC GALAXY: the whole chain's last two minutes of transactions, live (api/_arc-galaxy.mjs)
 //   GET  /api/social?arc=galaxy-day · ?arc=galaxy-tx&h=0x…   ARC GALAXY: the last 24 h by the minute · one transaction
+//   GET  /api/social?arc=arena   CHAIN ARENA: Arc vs Robinhood Chain vs Solana, live (GXA)
 //   GET  /api/social?arc=galaxy-daily[&days=30|&d=YYYY-MM-DD] · ?arc=galaxy-collect&key=…   ARC GALAXY's daily records (GXD)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders, burned on Robinhood Chain; (api/_arcia-coin.mjs)
@@ -368,6 +369,11 @@ export async function GET(req) {
   }
   // GXD: the daily records — ?arc=galaxy-daily&days=30 (totals a day) · &d=YYYY-MM-DD (one day in full);
   // ?arc=galaxy-collect&key=<CRON_SECRET> runs the keeper (also run by api/arcia-tg.mjs ?buys=1 every minute)
+  // GXA: CHAIN ARENA — Arc, Robinhood Chain and Solana side by side (api/_chain-arena.mjs)
+  if (url.searchParams.get("arc") === "arena") {
+    try { const [{ arena }, { galaxy }] = await Promise.all([import("./_chain-arena.mjs"), import("./_arc-galaxy.mjs")]); return json(200, await arena({ galaxy }), "public, max-age=5, s-maxage=8, stale-while-revalidate=30"); }
+    catch (err) { console.error("chain arena", err && err.message || err); return json(502, { error: "couldn't read the chains right now" }, "public, max-age=5"); }
+  }
   if (url.searchParams.get("arc") === "galaxy-daily") {
     try {
       const m = await import("./_arc-galaxy.mjs"), d = url.searchParams.get("d");
