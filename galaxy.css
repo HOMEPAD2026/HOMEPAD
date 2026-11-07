@@ -110,6 +110,7 @@ body.carded .gx-topc { display: none; }
 .gx-whale.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
 .gx-whale b { font: 900 26px/1 "Exo 2", sans-serif; color: var(--gold); text-shadow: 0 0 18px rgba(255, 209, 102, 0.6); }
 .gx-whale span { font-size: 12.5px; color: #ffe9b8; }
+body.whaling .gx-note, body.topopen .gx-whale, body.carded .gx-whale { opacity: 0 !important; visibility: hidden; }
 .gx-tx.whale { border-color: rgba(255, 209, 102, 0.75); box-shadow: 0 0 14px rgba(255, 209, 102, 0.3); }
 .gx-lb.gate { font: 700 11px "JetBrains Mono", monospace; color: #e6f0ff; opacity: 0.85; }
 .gx-lb.pop { font: 800 13px "JetBrains Mono", monospace; text-shadow: 0 0 10px currentColor, 0 0 3px #000; }
