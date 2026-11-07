@@ -16,7 +16,8 @@ const who = (x) => x && (x.name || x.w || "?");
 
 /// the live side: players online, the event's phase, the weekly #1s. Every read is short and may fail (then it's left out).
 export async function worldLive(origin) {
-  const [stats, ev, kNexus, kVol, surv, rings, swap] = await Promise.all([get(origin, "stats"), get(origin, "kart-event"), get(origin, "kart-top&track=nexus"), get(origin, "kart-top&track=volcano"), get(origin, "surv-top"), get(origin, "rings-top"), get(origin, "swap")]);
+  const gxGet = async () => { try { const r = await fetch(`${origin}/api/social?arc=galaxy`, { signal: AbortSignal.timeout(6000) }); return r.ok ? await r.json() : null; } catch { return null; } };
+  const [stats, ev, kNexus, kVol, surv, rings, swap, gx] = await Promise.all([get(origin, "stats"), get(origin, "kart-event"), get(origin, "kart-top&track=nexus"), get(origin, "kart-top&track=volcano"), get(origin, "surv-top"), get(origin, "rings-top"), get(origin, "swap"), gxGet()]);
   const top = (b, f) => (b && b.top && b.top[0] ? f(b.top[0]) : null);
   return {
     online: stats ? stats.online || 0 : null, players: stats ? stats.players || 0 : null,
@@ -24,6 +25,7 @@ export async function worldLive(origin) {
     kart: { nexus: top(kNexus, (x) => `${who(x)} ${x.t}s`), volcano: top(kVol, (x) => `${who(x)} ${x.t}s`) },
     surv: top(surv, (x) => `${who(x)} survived ${Math.floor(x.secs / 60)}:${String(x.secs % 60).padStart(2, "0")}`),
     rings: top(rings, (x) => `${who(x)} ${x.stars} stars`),
+    arc: gx && gx.stats ? { tps: gx.stats.tps1m || gx.stats.tps || 0, usd10m: gx.stats.usd10m || 0, txs: gx.stats.txs || 0, top: gx.top && gx.top[0] ? ((gx.labels && gx.labels[gx.top[0][0]] && gx.labels[gx.top[0][0]][0]) || gx.top[0][0].slice(0, 10)) : null, bridgeIn: (gx.rows || []).filter((r) => r[4] === 2 && typeof r[9] === "string" && r[9][0] === "i").reduce((x, r) => x + (r[5] || 0), 0) } : null, // (GX4: ARC GALAXY's feed)
     swap: swap && swap.ok ? { rate: swap.rate || 0, open: !!swap.open, n: (swap.totals && swap.totals.n) || 0, arc: (swap.totals && swap.totals.arc) || 0 } : null, // (EX: the exchange's posted rate and its record)
   };
 }
@@ -36,6 +38,7 @@ export function worldText(W) {
     k.nexus || k.volcano ? `- KART this week's #1: ${[k.nexus && `Nexus Circuit ${k.nexus}`, k.volcano && `Magma Run ${k.volcano}`].filter(Boolean).join(", ")}` : "",
     W.surv ? `- SURVIVORS this week's #1: ${W.surv}` : "",
     W.rings ? `- INFINITY RINGS this week's #1: ${W.rings}` : "",
+    W.arc ? `- Arc right now (ARC GALAXY, arcircle.app/galaxy): ${W.arc.tps.toFixed(1)} tx a second, $${Math.round(W.arc.usd10m / 100).toLocaleString("en-US")} USDC moved in the last 10 min over ${W.arc.txs} transactions${W.arc.top ? `, busiest contract: ${W.arc.top}` : ""}${W.arc.bridgeIn ? `, $${Math.round(W.arc.bridgeIn / 100).toLocaleString("en-US")} bridged in through CCTP in the last 2 min` : ""}` : "",
     W.swap ? (W.swap.rate ? `- The Exchange: 1 $ARCIRCLE = ${W.swap.rate} $ARCL (set by the treasury${W.swap.open ? "" : ", paused right now"}); ${W.swap.n} exchanges settled, ${W.swap.arc.toLocaleString("en-US")} $ARCIRCLE paid out` : "- The Exchange: the treasury hasn't posted the rate yet") : "",
   ].filter(Boolean).join("\n");
 }
@@ -57,6 +60,7 @@ export const HOUR_TOPICS = [
   { k: "jurassic", say: "Jurassic World and its boss hour" },
   { k: "poker", say: "ARCIA POKER LOUNGE and its Sit & Go tournaments" },
   { k: "rings", say: "INFINITY RINGS puzzles and the time attack" },
+  { k: "galaxy", say: "ARC GALAXY (arcircle.app/galaxy, community-built by ARCIRCLE): what the whole Arc chain is doing right now — use LIVE's 'Arc right now' numbers (tx a second, USDC moved in the last 10 minutes, the busiest contract, a big bridge in if there was one) and invite people to watch every transaction fly in 3D" },
 ];
 
 // ARCIRCLE KART's play video on X (the owner, 2026-11-01): whenever ARCIA talks about KART — her hourly post, a reply or a

@@ -503,7 +503,7 @@ async function hourlyPost(origin, st) {
   // one link a post (the owner, 2026-11-01): the KART hour → the KART play video's link (never a quote of the video); the
   // official info post every OFFICIAL_EVERY hours on another topic; else the game's link on its hours
   const fest = topic.k === "fest" || aboutFest(text), shop = !fest && (topic.k === "shop" || aboutShop(text)), kart = !fest && !shop && (topic.k === "kart" || aboutKart(text)), official = !fest && !shop && !kart && h % OFFICIAL_EVERY === 1;
-  const url = fest ? `🎁 ${FEST_POST}` : shop ? `🛒 ${SHOP_POST}` : kart ? `🎬 ${KART_VIDEO}` : official ? `📌 ${OFFICIAL_POST}` : link ? `🎮 ${SITE}/game` : "";
+  const url = topic.k === "galaxy" ? `🌌 ${SITE}/galaxy` : fest ? `🎁 ${FEST_POST}` : shop ? `🛒 ${SHOP_POST}` : kart ? `🎬 ${KART_VIDEO}` : official ? `📌 ${OFFICIAL_POST}` : link ? `🎮 ${SITE}/game` : "";
   if (url && xLen(`${text}\n\n${url}`) <= 278) text = `${text}\n\n${url}`;
   if (xLen(text) > 278) return [];
   return [{ id, text }];
