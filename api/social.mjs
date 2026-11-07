@@ -211,6 +211,8 @@ const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, q
   arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]), blockNumber: () => rpcCall("eth_blockNumber", []), ownerOf: (a) => rpcCall("eth_call", [{ to: a, data: "0x8da5cb5b" }, "latest"]), ethCall: (to, data) => rpcCall("eth_call", [{ to, data }, "latest"]) }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
+// ARC GALAXY networks: Arc mainnet (default), Arc testnet, Robinhood Chain (GXR)
+const galaxyNet = (n) => (n === "testnet" || n === "robinhood" ? n : "mainnet");
 export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
@@ -347,7 +349,7 @@ export async function GET(req) {
   }
   // ARC GALAXY (arcircle.app/galaxy): every Arc transaction of the last two minutes + ten minutes of block stats (api/_arc-galaxy.mjs)
   if (url.searchParams.get("arc") === "galaxy") {
-    try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
+    try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(galaxyNet(url.searchParams.get("net"))); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
     catch (err) { console.error("arc galaxy", err && err.message || err); return json(502, { error: "couldn't read Arc right now" }, "public, max-age=2"); }
   }
   // GX8: a contract's own ARC GALAXY page (/galaxy/c/<address>, vercel.json) with its link card
@@ -361,7 +363,7 @@ export async function GET(req) {
     catch (err) { return json(502, { error: "couldn't read Arc right now" }, "public, max-age=5"); }
   }
   if (url.searchParams.get("arc") === "galaxy-day") {
-    try { const { galaxyDay } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyDay(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
+    try { const { galaxyDay } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyDay(galaxyNet(url.searchParams.get("net"))), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { return json(502, { error: "couldn't read the day" }, "public, max-age=10"); }
   }
   // GXD: the daily records — ?arc=galaxy-daily&days=30 (totals a day) · &d=YYYY-MM-DD (one day in full);
@@ -380,7 +382,7 @@ export async function GET(req) {
     catch (err) { return json(500, { error: String(err && err.message || err).slice(0, 160) }, "no-store"); }
   }
   if (url.searchParams.get("arc") === "galaxy-tx") {
-    try { const { galaxyTx } = await import("./_arc-galaxy.mjs"); const r = await galaxyTx(url.searchParams.get("h"), url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"); return r ? json(200, r, "public, max-age=60, s-maxage=3600") : json(404, { error: "no such transaction on Arc" }, "public, max-age=10"); }
+    try { const { galaxyTx } = await import("./_arc-galaxy.mjs"); const r = await galaxyTx(url.searchParams.get("h"), galaxyNet(url.searchParams.get("net"))); return r ? json(200, r, "public, max-age=60, s-maxage=3600") : json(404, { error: "no such transaction on Arc" }, "public, max-age=10"); }
     catch (err) { return json(502, { error: "couldn't read Arc right now" }, "public, max-age=5"); }
   }
   // $ARCIRCLE supply for CoinGecko / CoinMarketCap (api/_supply.mjs): JSON, or one plain number with &q=total|circulating|max|burned
