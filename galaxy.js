@@ -64,9 +64,9 @@ const world = new THREE.Group(); scene.add(world);
 // one soft-point material for stars, dust, contracts and flying transactions
 function pointsMat(scale = 1) {
   return new THREE.ShaderMaterial({
-    uniforms: { uScale: { value: innerHeight * DPR * 0.5 * scale } },
-    vertexShader: "attribute float size; attribute float alpha; attribute vec3 color; varying vec3 vC; varying float vA; uniform float uScale;" +
-      "void main(){ vC=color; vA=alpha; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=clamp(size*uScale/-mv.z,0.0,96.0); gl_Position=projectionMatrix*mv; }",
+    uniforms: { uScale: { value: innerHeight * DPR * 0.5 * scale }, uTime: { value: 0 }, uTw: { value: 0 } },
+    vertexShader: "attribute float size; attribute float alpha; attribute vec3 color; varying vec3 vC; varying float vA; uniform float uScale; uniform float uTime; uniform float uTw;" +
+      "void main(){ vC=color; vA=alpha*(1.0-uTw*0.45*(0.5+0.5*sin(uTime*1.7+position.x*0.37+position.z*0.21))); vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=clamp(size*uScale/-mv.z,0.0,96.0); gl_Position=projectionMatrix*mv; }",
     fragmentShader: "varying vec3 vC; varying float vA; void main(){ vec2 d=gl_PointCoord-0.5; float r=dot(d,d)*4.0; if(r>1.0) discard; float a=exp(-r*3.2)*vA + smoothstep(0.18,0.0,r)*vA*0.9; gl_FragColor=vec4(vC*a, a); }",
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
   });
@@ -79,13 +79,14 @@ function cloud(n, fill, scale = 1) {
   const m = new THREE.Points(g, pointsMat(scale)); m.frustumCulled = false; return m;
 }
 const tmpC = new THREE.Color();
-// far stars
-world.add(cloud(PHONE ? 1400 : 3200, (i, p, c, s, a) => {
+// far stars (they twinkle)
+const starCloud = world.add(cloud(PHONE ? 1400 : 3200, (i, p, c, s, a) => {
   const u = Math.random() * 2 - 1, th = Math.random() * Math.PI * 2, r = 900 + Math.random() * 900, q = Math.sqrt(1 - u * u);
   p[i * 3] = r * q * Math.cos(th); p[i * 3 + 1] = r * u; p[i * 3 + 2] = r * q * Math.sin(th);
   tmpC.setHSL(0.55 + Math.random() * 0.15, 0.4, 0.75 + Math.random() * 0.25); c.set([tmpC.r, tmpC.g, tmpC.b], i * 3);
   s[i] = 2 + Math.random() * 4; a[i] = 0.35 + Math.random() * 0.5;
-}));
+})).children.at(-1);
+starCloud.material.uniforms.uTw.value = 1;
 // the galaxy's disc: three arms of faint dust round the core
 const ARMS = 3, armTh = (r, arm, jitter) => arm * (Math.PI * 2 / ARMS) + r * 0.032 + jitter;
 const disc = cloud(LOW ? 3500 : PHONE ? 6000 : 14000, (i, p, c, s, a) => {
@@ -190,6 +191,26 @@ const flyCloud = cloud(CAP * TRAIL, (i, p, c, s, a) => { s[i] = 0; a[i] = 0; }, 
 world.add(flyCloud);
 const fA = flyCloud.geometry.attributes;
 const flies = []; const freeSlots = Array.from({ length: CAP }, (_, i) => CAP - 1 - i);
+// comet streaks: one line segment between each pair of trail samples, all flies in ONE LineSegments (additive: black = gone)
+const SEG = TRAIL - 1;
+const streakGeo = new THREE.BufferGeometry(); streakGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(CAP * SEG * 6), 3)); streakGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(CAP * SEG * 6), 3));
+const streaks = new THREE.LineSegments(streakGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); streaks.frustumCulled = false; world.add(streaks);
+const sP = streakGeo.attributes.position, sC = streakGeo.attributes.color;
+// short-lived links (a swap's route, a hovered star's wallets)
+const LINKS = PHONE ? 120 : 360;
+const linkGeo = new THREE.BufferGeometry(); linkGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LINKS * 6), 3)); linkGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(LINKS * 6), 3));
+const linkMesh = new THREE.LineSegments(linkGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); linkMesh.frustumCulled = false; world.add(linkMesh);
+const links = []; let linkNext = 0;
+function link(a, b, col, life = 1.4) { const i = linkNext++ % LINKS; links[i] = { a: a.clone(), b: b.clone(), col: col.clone(), t: 0, life }; }
+function stepLinks(dt) {
+  const P = linkGeo.attributes.position.array, Cc = linkGeo.attributes.color.array;
+  for (let i = 0; i < LINKS; i++) { const l = links[i]; const o = i * 6; if (!l) { Cc[o] = Cc[o + 1] = Cc[o + 2] = Cc[o + 3] = Cc[o + 4] = Cc[o + 5] = 0; continue; }
+    l.t += dt; const u = l.t / l.life; if (u >= 1) { links[i] = null; Cc.fill(0, o, o + 6); continue; }
+    const k = Math.sin(Math.min(1, u * 3) * Math.PI / 2) * (1 - u) * 0.5;
+    P[o] = l.a.x; P[o + 1] = l.a.y; P[o + 2] = l.a.z; P[o + 3] = l.b.x; P[o + 4] = l.b.y; P[o + 5] = l.b.z;
+    Cc[o] = l.col.r * k; Cc[o + 1] = l.col.g * k; Cc[o + 2] = l.col.b * k; Cc[o + 3] = l.col.r * k * 0.4; Cc[o + 4] = l.col.g * k * 0.4; Cc[o + 5] = l.col.b * k * 0.4; }
+  linkGeo.attributes.position.needsUpdate = linkGeo.attributes.color.needsUpdate = true;
+}
 const flash = cloud(PHONE ? 200 : 500, (i, p, c, s, a) => { s[i] = 0; a[i] = 0; }, 1); world.add(flash);
 const flA = flash.geometry.attributes; let flashNext = 0; const flashes = [];
 function walletPos(addr) {
@@ -241,6 +262,8 @@ function stepFlies(dt) {
     const base = f.slot * TRAIL;
     if (f.t >= 1) {
       for (let q = 0; q < TRAIL; q++) fA.alpha.array[base + q] = 0;
+      sC.array.fill(0, f.slot * SEG * 6, (f.slot + 1) * SEG * 6);
+      arrive(f);
       if (f.node) { f.node.heat = Math.min(6, f.node.heat + 1.2); } else if (!f.row[3]) pulseCore(0.6);
       spark(f.p2, f.col, f.size * (f.big ? 3 : 1.8), f.big ? 1.6 : 0.8);
       if (f.row[5] >= 1e5) pop("+" + fmtUsd(f.row[5]), f.p2, f.col);           // ≥ $1,000 lands with its amount
@@ -259,16 +282,45 @@ function stepFlies(dt) {
       fA.alpha.array[base + q] = (q === 0 ? 1 : 0.55 * fade) * (e > 0.92 ? (1 - e) / 0.08 : 1);
     }
     if (f.lb) { f.lbPos = f.lbPos || new THREE.Vector3(); bez(f.lbPos, f.p0, f.p1, f.p2, e); }
+    // the streak: segment q joins sample q and q+1, fading down the tail
+    const so = f.slot * SEG * 6;
+    for (let q = 0; q < SEG; q++) {
+      const o = so + q * 6, i0 = (base + q) * 3, i1 = (base + q + 1) * 3, A = fA.position.array, fa = fA.alpha.array[base + q] * 0.9, fb = fA.alpha.array[base + q + 1] * 0.9;
+      sP.array[o] = A[i0]; sP.array[o + 1] = A[i0 + 1]; sP.array[o + 2] = A[i0 + 2]; sP.array[o + 3] = A[i1]; sP.array[o + 4] = A[i1 + 1]; sP.array[o + 5] = A[i1 + 2];
+      sC.array[o] = f.col.r * fa; sC.array[o + 1] = f.col.g * fa; sC.array[o + 2] = f.col.b * fa; sC.array[o + 3] = f.col.r * fb; sC.array[o + 4] = f.col.g * fb; sC.array[o + 5] = f.col.b * fb;
+    }
   }
+  sP.needsUpdate = sC.needsUpdate = true;
   fA.position.needsUpdate = fA.color.needsUpdate = fA.size.needsUpdate = fA.alpha.needsUpdate = true;
   for (let i = 0; i < flashes.length; i++) { const s = flashes[i]; if (!s) continue; s.t += dt; const u = s.t / s.life; if (u >= 1) { flA.alpha.array[i] = 0; flashes[i] = null; continue; } flA.size.array[i] = s.size * (1 + u * 1.5); flA.alpha.array[i] = (1 - u) * 0.9; }
   flA.size.needsUpdate = flA.alpha.needsUpdate = true;
   // contracts: size from their activity, a flare when something lands
-  for (const n of nodes.values()) { n.heat = Math.max(0, n.heat - dt * 1.5); nAttr.size.array[n.i] = 3 + Math.min(14, Math.sqrt(n.count) * 1.6) + n.heat * 2.2 + (n.addr === follow ? 6 : 0); nAttr.alpha.array[n.i] = 0.75 + Math.min(0.25, n.heat * 0.1); }
+  for (const n of nodes.values()) { if (n.born) continue; n.heat = Math.max(0, n.heat - dt * 1.5); nAttr.size.array[n.i] = 3 + Math.min(14, Math.sqrt(n.count) * 1.6) + n.heat * 2.2 + (n.addr === follow ? 6 : 0); nAttr.alpha.array[n.i] = 0.75 + Math.min(0.25, n.heat * 0.1); }
   nAttr.size.needsUpdate = nAttr.alpha.needsUpdate = true;
   const fi = follow ? wals.get(follow) : -1;
   for (let i = 0; i < WAL_MAX; i++) if (i !== fi && wA.alpha.array[i] > 0.16) wA.alpha.array[i] = Math.max(0.16, wA.alpha.array[i] - dt * 0.05);
   wA.alpha.needsUpdate = true;
+}
+// what happens where a transaction lands (GX3)
+function arrive(f) {
+  const r = f.row;
+  if (r[6] === 0) { for (let i = 0; i < 6; i++) spark(tmpV.copy(f.p2).add(new THREE.Vector3((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 9)), RED, 2 + Math.random() * 2, 0.5 + Math.random() * 0.5); }
+  if (r[4] === 5 && typeof r[10] === "string" && r[10][0] === "c") birth(r[10].slice(1));
+  if (r[4] === 1 && Array.isArray(r[10]) && f.node && (r[5] >= 1e5 || f.me)) for (const a of r[10]) { const n = nodeOf(a); n.heat = Math.min(6, n.heat + 0.3); link(f.node.pos, n.pos, f.col, 1.3); }
+  sound(r[4], r[6] === 0, r[5]);
+}
+// a new contract: a star condenses out of the core's light and flies to its place
+const births = [];
+function birth(addr) {
+  const n = nodeOf(addr); n.count++; n.heat = 0; n.born = 0.001;
+  births.push({ n, t: 0 });
+  pulse(true); pop("✦ NEW " + short(addr), n.pos, new THREE.Color(0xffffff));
+}
+function stepBirths(dt) {
+  for (let i = births.length - 1; i >= 0; i--) { const b = births[i]; b.t += dt; const u = Math.min(1, b.t / 1.8);
+    nAttr.size.array[b.n.i] = (3 + Math.sin(u * Math.PI) * 18) * u; nAttr.alpha.array[b.n.i] = u;
+    if (Math.random() < 0.5) spark(tmpV.copy(b.n.pos).add(new THREE.Vector3((Math.random() - 0.5) * 24 * (1 - u), (Math.random() - 0.5) * 12 * (1 - u), (Math.random() - 0.5) * 24 * (1 - u))), new THREE.Color(0xffffff), 2.5, 0.4);
+    if (u >= 1) { b.n.born = 0; births.splice(i, 1); } }
 }
 let coreKick = 0; const pulseCore = (k) => { coreKick = Math.min(1.5, coreKick + k); };
 
@@ -316,7 +368,7 @@ function paintLabels() {
   for (const h of hubLabels) placeLabel(h.el, h.pos, 1);
   for (const f of flies) if (f.lb && f.lbPos) placeLabel(f.lb, f.lbPos, f.me ? 1 : 0);
   for (const g of gates.values()) { if (g.heat > 0.05) placeLabel(g.el, g.pos, 1); else g.el.style.display = "none"; }
-  for (const p of pops) { tmpV2.copy(p.pos); tmpV2.y += p.t * 14; placeLabel(p.el, tmpV2, 1); p.el.style.opacity = String(Math.max(0, 1 - p.t / 1.6)); }
+  for (const p of pops) { tmpV2.copy(p.pos); tmpV2.y += p.t * 14; placeLabel(p.el, tmpV2, 0); p.el.style.opacity = String(Math.max(0, 1 - p.t / 1.6)); }
   const far = orbit.d > 300; topLabels.forEach((l, i) => { if (far && i >= (PHONE ? 2 : 4)) { l.el.style.display = "none"; return; } placeLabel(l.el, l.n.pos, 0); });
 }
 
@@ -369,7 +421,8 @@ function take(j) {
     if (!DEMO) note(t("replay"), false, REPLAY_S * 1000);
   }
   if (j.head && j.head !== head) {
-    pulse(rows.length > 40); head = j.head; $("gx-block").textContent = "#" + head.toLocaleString("en-US");
+    pulse(rows.length > 40); head = j.head; beat();
+    const bEl = $("gx-block"); bEl.textContent = "#" + head.toLocaleString("en-US"); bEl.classList.remove("roll"); void bEl.offsetWidth; bEl.classList.add("roll");
     // the busiest stars breathe with each block, even when it brought nothing
     (j.top || []).slice(0, 4).forEach(([a], i) => { const n = nodes.get(a); if (n) setTimeout(() => { n.heat = Math.min(6, n.heat + 0.5); }, 120 * i); });
   }
@@ -512,6 +565,11 @@ $("gx-share").addEventListener("click", () => {
   open(`https://x.com/intent/post?text=${encodeURIComponent(txt)}&url=${encodeURIComponent("https://www.arcircle.app/galaxy")}`, "_blank", "noopener");
 });
 $("gx-lang").addEventListener("change", (e) => { LANG = e.target.value; try { localStorage.setItem("arc.galaxy.lang", LANG); } catch {} paintWords(); });
+{ // sound: off until asked
+  const b = document.createElement("button"); b.type = "button"; b.id = "gx-snd"; b.textContent = "🔇"; b.title = "Sound"; b.setAttribute("aria-label", "Sound");
+  $("gx-share").before(b);
+  b.addEventListener("click", () => { soundOn = !soundOn; b.textContent = soundOn ? "🔊" : "🔇"; if (soundOn && !actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { soundOn = false; b.textContent = "🔇"; } } if (actx && actx.state === "suspended") actx.resume(); });
+}
 { // phones: the busiest list behind a button
   const b = document.createElement("button"); b.type = "button"; b.className = "ph"; b.id = "gx-topbtn"; b.textContent = "★"; b.title = "Busiest contracts";
   if (PHONE) $("gx-spin").before(b);
@@ -537,7 +595,7 @@ function demoFeed() {
       const from = demoW[Math.floor(Math.random() * demoW.length)], k = Math.random() < 0.02 ? 5 : c[1];
       const usd = k === 0 || k === 1 || k === 2 ? Math.floor(Math.pow(10, 1 + Math.random() * 4.4)) * 100 : 0;
       const dd = [0, 6, 3, 5, 2, 7, 1, 10][Math.floor(Math.random() * 8)], dbr = k === 2 ? (Math.random() < 0.6 ? "i" : "o") + dd : 0;
-      demoRows.push(["0x" + (demoN * 100 + i).toString(16).padStart(64, "0"), demoN, from, k === 5 ? "" : k === 0 && Math.random() < 0.5 ? demoW[(Math.random() * demoW.length) | 0] : c[0], k, usd, Math.random() < 0.04 ? 0 : 1, "0x", Math.floor(demoT / 1000) * 1000, dbr]);
+      demoRows.push(["0x" + (demoN * 100 + i).toString(16).padStart(64, "0"), demoN, from, k === 5 ? "" : k === 0 && Math.random() < 0.5 ? demoW[(Math.random() * demoW.length) | 0] : c[0], k, usd, Math.random() < 0.04 ? 0 : 1, "0x", Math.floor(demoT / 1000) * 1000, dbr, k === 5 ? "c0x" + (hash("new" + demoN + i, 5) * 1e16).toString(16).slice(0, 10).padEnd(40, "d") : k === 1 ? [demoC[6 + (i % 3)][0], demoC[10 + (demoN % 20)][0]] : 0]);
     }
   }
   demoRows = demoRows.filter((r) => r[8] > now - 120e3);
@@ -548,6 +606,47 @@ function demoFeed() {
 
 // ---------------------------------------------------------------- frame
 addEventListener("resize", () => { R.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); for (const m of world.children) if (m.isPoints) m.material.uniforms.uScale.value = innerHeight * DPR * 0.5; });
+// GX3: bloom on computers, parallax, auto tour, hover, sound
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let composer = null;
+if (!PHONE && !LOW && Q.get("bloom") !== "0") Promise.all([import("/vendor/three/addons/EffectComposer.js"), import("/vendor/three/addons/RenderPass.js"), import("/vendor/three/addons/UnrealBloomPass.js"), import("/vendor/three/addons/OutputPass.js")]).then(([{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }]) => {
+  const c = new EffectComposer(R); c.addPass(new RenderPass(scene, cam));
+  const bl = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.62, 0.42, 0.62); c.addPass(bl); c.addPass(new OutputPass());
+  composer = c; addEventListener("resize", () => { c.setSize(innerWidth, innerHeight); bl.resolution.set(innerWidth / 2, innerHeight / 2); });
+}).catch(() => { /* plain rendering */ });
+const par = { x: 0, y: 0, tx: 0, ty: 0 };
+addEventListener("pointermove", (e) => { par.tx = (e.clientX / innerWidth - 0.5); par.ty = (e.clientY / innerHeight - 0.5); hoverAt = { x: e.clientX, y: e.clientY }; });
+// auto tour: idle for 25 s → glide to the busiest star, stay, come back
+const tourS = { t: 0, phase: 0 };
+function tour(dt) {
+  if (REDUCED || !orbit.spin || ptrs.size || cardOf || follow) { tourS.t = 0; tourS.phase = 0; return; }
+  if (orbit.idle < 25) return;
+  tourS.t += dt;
+  if (tourS.phase === 0) { const a = (lastTop[Math.floor(Math.random() * Math.min(4, lastTop.length))] || [])[0]; const n = a && nodes.get(a); if (n) { orbit.want = { tgt: n.pos.clone(), d: 120 }; tourS.phase = 1; tourS.t = 0; } }
+  else if (tourS.phase === 1 && tourS.t > 9) { goHome(); tourS.phase = 2; tourS.t = 0; }
+  else if (tourS.phase === 2 && tourS.t > 12) { tourS.phase = 0; }
+}
+// hover a star: its name and the wallets that touched it light up
+let hoverAt = null, hoverN = null, hoverEl = null, hoverT = 0;
+function hoverTick(dt) {
+  hoverT += dt; if (PHONE || !hoverAt || ptrs.size || hoverT < 0.12) return; hoverT = 0;
+  let best = null, bd = 18 * 18;
+  for (const n of nodes.values()) { tmpV.copy(n.pos).applyMatrix4(world.matrixWorld).project(cam); if (tmpV.z > 1) continue; const sx = (tmpV.x + 1) / 2 * innerWidth, sy = (1 - tmpV.y) / 2 * innerHeight, d = (sx - hoverAt.x) ** 2 + (sy - hoverAt.y) ** 2; if (d < bd) { bd = d; best = n; } }
+  if (best !== hoverN) { hoverN = best; if (hoverEl) { hoverEl.remove(); hoverEl = null; }
+    if (best) { hoverEl = label(`${nameOf(best.addr)} · ${best.count}`, "hover"); const col = new THREE.Color().setHSL((GROUPS[best.g] || GROUPS.other).hue, 0.8, 0.65); recent.filter((r) => r[3] === best.addr).slice(-16).forEach((r) => link(walletPos(r[2]), best.pos, col, 2.2)); }
+    canvas.style.cursor = best ? "pointer" : ""; }
+  if (hoverEl && hoverN) placeLabel(hoverEl, hoverN.pos, 1);
+}
+// sound (off until switched on): a soft note a kind, a low beat a block
+let actx = null, soundOn = false, lastSnd = 0;
+const NOTE = [523.25, 659.25, 392, 587.33, 783.99, 261.63, 440, 493.88];
+function sound(k, failed, usd) {
+  if (!soundOn || !actx || document.hidden) return; const t0 = actx.currentTime; if (t0 - lastSnd < 0.09) return; lastSnd = t0;
+  const o = actx.createOscillator(), g = actx.createGain(); o.type = failed ? "square" : "sine"; o.frequency.value = failed ? 140 : NOTE[k] * (usd >= 1e7 ? 0.5 : 1);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(failed ? 0.02 : usd >= 1e7 ? 0.09 : 0.035, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + (usd >= 1e7 ? 1.4 : 0.35));
+  o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + 1.5);
+}
+function beat() { if (!soundOn || !actx) return; const t0 = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(); o.frequency.setValueAtTime(90, t0); o.frequency.exponentialRampToValueAtTime(45, t0 + 0.25); g.gain.setValueAtTime(0.05, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3); o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + 0.32); }
 let last = performance.now(), visible = true;
 document.addEventListener("visibilitychange", () => { visible = !document.hidden; last = performance.now(); });
 function frame(now) {
@@ -563,8 +662,13 @@ function frame(now) {
   for (const g of gates.values()) { g.heat = Math.max(0, g.heat - dt / 20); g.sp.material.opacity = 0.25 + g.heat * 0.75; g.sp.scale.setScalar(26 + g.heat * 22); }
   for (let i = pops.length - 1; i >= 0; i--) { pops[i].t += dt; if (pops[i].t > 1.6) { pops[i].el.remove(); pops.splice(i, 1); } }
   if (shake > 0) { shake = Math.max(0, shake - dt * 1.6); const a = shake * shake * 2.2; cam.position.x += (Math.random() - 0.5) * a; cam.position.y += (Math.random() - 0.5) * a; }
-  feedTick(now); stepFlies(dt);
-  world.updateMatrixWorld(); R.render(scene, cam); paintLabels();
+  feedTick(now); stepFlies(dt); stepLinks(dt); stepBirths(dt); hoverTick(dt);
+  starCloud.material.uniforms.uTime.value = now / 1000;
+  tour(dt);
+  if (!PHONE && !REDUCED) { par.x += (par.tx - par.x) * Math.min(1, dt * 3); par.y += (par.ty - par.y) * Math.min(1, dt * 3); cam.position.x += par.x * 8; cam.position.y += par.y * 5; cam.lookAt(orbit.tgt); }
+  world.updateMatrixWorld();
+  if (composer) composer.render(); else R.render(scene, cam);
+  paintLabels();
 }
 paintWords();
 if (DEMO) note(t("demo"), true);

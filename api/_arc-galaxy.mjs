@@ -126,8 +126,12 @@ export function classify(tx, rc) {
   else if (usd > 0n && logs.length && logs.every((l) => lc(l.address) === USDC)) k = K.usdc;
   else k = K.call;
   const ok = rc ? (lc(rc.status) === "0x1" ? 1 : 0) : -1;
+  // GX3: a swap's route — the other contracts whose logs it left (pools, tokens), at most 3; a deployment's new address
+  let route = 0;
+  if (k === K.swap) { const seen = new Set([to, USDC]); const r = []; for (const l of logs) { const a = lc(l.address); if (!seen.has(a)) { seen.add(a); r.push(a); if (r.length >= 3) break; } } if (r.length) route = r; }
+  if (k === K.deploy && rc && rc.contractAddress) route = "c" + lc(rc.contractAddress);
   const cents = usd > 9007199254740991n ? 9007199254740991 : Number(usd);
-  return { k, usd: cents, ok, sel, br };
+  return { k, usd: cents, ok, sel, br, route };
 }
 
 const hx = (n) => "0x" + Number(n).toString(16);
@@ -202,7 +206,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
       const c = classify(tx, byHash.get(lc(tx.hash)) || null);
       if (c.ok === 0) fails++;
       usd += c.usd;
-      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0]);
+      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0]);
     }
     st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed))]);
   }
@@ -296,7 +300,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
         failRate: known.length ? failed / known.length : null, kinds, wallets: new Set(st.rows.map((r) => r[2])).size,
       },
       top: topList, blocks: b.map((x) => x.slice(0, 5)),
-      rows: rows.map((r) => r.slice(0, 10)), labels, groups: GROUPS, kindNames: KINDS,
+      rows: rows.map((r) => r.slice(0, 11)), labels, groups: GROUPS, kindNames: KINDS,
       err: st.err,
     };
   }
@@ -340,7 +344,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const to = lc(t.to || "");
     await resolveNames([to].filter(Boolean), now()).catch(() => {});
     const labels = {}; const nm = to && nameOf(to); if (nm) labels[to] = nm;
-    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
+    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
   }
   /// the last 24 hours, a minute at a time: [minute, txs, usd cents, failed] (only minutes the feed read)
   async function day() { if (!st.loaded) await loadSnap(now()).catch(() => {}); return { at: now(), minutes: dayOut() }; }
