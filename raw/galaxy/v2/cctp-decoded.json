@@ -1,0 +1,42 @@
+{
+ "logs": 239,
+ "blocks": [
+  29913807,
+  29933807
+ ],
+ "MessageReceived_sourceDomain": {
+  "7 Polygon PoS": 27,
+  "0 Ethereum": 26,
+  "3 Arbitrum": 13,
+  "6 Base": 13,
+  "5 Solana": 3,
+  "14 World Chain": 3,
+  "2 OP": 2,
+  "15 Monad": 2,
+  "19 HyperEVM": 1
+ },
+ "DepositForBurn_destinationDomain": {
+  "6 Base": 7,
+  "0 Ethereum": 6,
+  "5 Solana": 5,
+  "19 HyperEVM": 4,
+  "3 Arbitrum": 3,
+  "7 Polygon PoS": 3,
+  "15 Monad": 1
+ },
+ "MessageSent_src_dst": {
+  "26->0": 6,
+  "26->5": 5,
+  "26->6": 11,
+  "26->7": 3,
+  "26->19": 4,
+  "26->3": 3,
+  "26->15": 1
+ },
+ "mintUSDC": 7734442.213574,
+ "mintFeeUSDC": 0.700415,
+ "depositUSDC": 72155.922602,
+ "sameTxRecMint": "87/90",
+ "mintTopics": "topic1=mintRecipient topic2=mintToken; data amount, feeCollected",
+ "depTopics": "topic1=burnToken topic2=depositor topic3=minFinalityThreshold"
+}

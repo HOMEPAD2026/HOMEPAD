@@ -1,0 +1,50 @@
+{
+ "block_number_balance_updated_at": 71124239,
+ "coin_balance": "189028000000000000000",
+ "creation_status": "success",
+ "creation_transaction_hash": null,
+ "creator_address_hash": null,
+ "ens_domain_name": null,
+ "exchange_rate": null,
+ "has_beacon_chain_withdrawals": false,
+ "has_logs": true,
+ "has_token_transfers": true,
+ "has_tokens": true,
+ "has_validated_blocks": false,
+ "hash": "0x3600000000000000000000000000000000000000",
+ "implementations": [
+  {
+   "address_hash": "0xC6AD664ac6679F4Ce74e10E91449C93Ec1ae3cA6",
+   "name": "NativeFiatTokenV2_2"
+  }
+ ],
+ "is_contract": true,
+ "is_scam": false,
+ "is_verified": true,
+ "metadata": null,
+ "name": "FiatTokenProxy",
+ "private_tags": [],
+ "proxy_type": "eip1967_oz",
+ "public_tags": [],
+ "reputation": "ok",
+ "token": {
+  "address_hash": "0x3600000000000000000000000000000000000000",
+  "circulating_market_cap": null,
+  "circulating_supply": null,
+  "decimals": "6",
+  "exchange_rate": null,
+  "holders_count": "5105308",
+  "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+  "name": "USDC",
+  "new_ui_multiplier": null,
+  "reputation": "ok",
+  "symbol": "USDC",
+  "total_supply": "309147011408262082",
+  "type": "ERC-20",
+  "ui_multiplier": null,
+  "ui_multiplier_effective_at": null,
+  "volume_24h": null
+ },
+ "watchlist_address_id": null,
+ "watchlist_names": []
+}

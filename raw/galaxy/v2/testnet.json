@@ -1,0 +1,72 @@
+[
+ {
+  "url": "https://rpc.testnet.arc.network",
+  "chainId": 5042002,
+  "cors": "https://www.arcircle.app",
+  "preflight": "204 https://www.arcircle.app / content-type, authorization",
+  "block": 71123865,
+  "blockTime": "0.517",
+  "txps": "4.58",
+  "txs60": 142,
+  "blockReceipts": "{\"code\":-32005,\"message\":\"rate limit exceeded\"}",
+  "batch10": "10/10",
+  "batch50": "50/50",
+  "batch100": "100/100"
+ },
+ {
+  "url": "https://rpc.testnet.arc.io",
+  "chainId": 5042002,
+  "cors": "https://www.arcircle.app",
+  "preflight": "204 https://www.arcircle.app / content-type, authorization",
+  "block": 71123866,
+  "blockTime": "0.500",
+  "txps": "4.30",
+  "txs60": 129,
+  "blockReceipts": "{\"code\":-32005,\"message\":\"rate limit exceeded\"}",
+  "batch10": "10/10",
+  "batch50": "50/50",
+  "batch100": "100/100"
+ },
+ {
+  "url": "https://rpc.blockdaemon.testnet.arc.io",
+  "chainId": null,
+  "cors": "*",
+  "preflight": "200 * / *",
+  "block": 71123869,
+  "blockTime": "0.517",
+  "txps": "8.90",
+  "txs60": 276,
+  "blockReceipts": "yes (6)",
+  "batch10": "10/10",
+  "batch50": "50/50",
+  "batch100": "100/100"
+ },
+ {
+  "url": "https://rpc.drpc.testnet.arc.io",
+  "chainId": 5042002,
+  "cors": "*",
+  "preflight": "204 https://www.arcircle.app / content-type",
+  "block": 71123873,
+  "blockTime": "0.517",
+  "txps": "0.00",
+  "txs60": 0,
+  "blockReceipts": "yes (4)",
+  "batch10": "10/10",
+  "batch50": "0/50 err:{\"message\":\"Batch of more than 10 requests are not allowed on free plan, to use ",
+  "batch100": "0/100 err:{\"message\":\"Batch of more than 10 requests are not allowed on free plan, to use "
+ },
+ {
+  "url": "https://rpc.quicknode.testnet.arc.io",
+  "chainId": 5042002,
+  "cors": "https://www.arcircle.app",
+  "preflight": "204 https://www.arcircle.app / content-type, authorization",
+  "block": 71123877,
+  "blockTime": "0.517",
+  "txps": "4.51",
+  "txs60": 140,
+  "blockReceipts": "{\"code\":-32005,\"message\":\"rate limit exceeded\"}",
+  "batch10": "10/10",
+  "batch50": "50/50",
+  "batch100": "100/100"
+ }
+]
