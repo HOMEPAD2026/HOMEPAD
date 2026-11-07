@@ -77,5 +77,8 @@ const soc = fs.readFileSync(new URL("../../api/social.mjs", import.meta.url), "u
 ok(/searchParams\.get\("arc"\) === "galaxy"/.test(soc) && /_arc-galaxy\.mjs/.test(soc), "the route in api/social.mjs");
 ok((vj.rewrites || []).some((r) => r.source === "/galaxy" && r.destination === "/galaxy.html"), "/galaxy rewrite");
 ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync(new URL("../../galaxy.js", import.meta.url)), "the page's files");
+{ const h = fs.readFileSync(new URL("../../galaxy.html", import.meta.url), "utf8");
+  ok(/og:image" content="https:\/\/www\.arcircle\.app\/images\/galaxy\/og-card\.jpg"/.test(h) && /twitter:image" content="https:\/\/www\.arcircle\.app\/images\/galaxy\/og-card\.jpg"/.test(h) && /summary_large_image/.test(h), "the X card: og + twitter image tags");
+  ok(fs.statSync(new URL("../../images/galaxy/og-card.jpg", import.meta.url)).size < 300000, "the card's picture < 300 KB"); }
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
