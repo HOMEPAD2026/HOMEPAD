@@ -109,6 +109,10 @@
       "destination": "/galaxy.html"
     },
     {
+      "source": "/galaxy/c/:addr",
+      "destination": "/api/social?arc=galaxy-page&a=:addr"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },

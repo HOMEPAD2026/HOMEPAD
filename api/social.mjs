@@ -349,6 +349,11 @@ export async function GET(req) {
     try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
     catch (err) { console.error("arc galaxy", err && err.message || err); return json(502, { error: "couldn't read Arc right now" }, "public, max-age=2"); }
   }
+  // GX8: a contract's own ARC GALAXY page (/galaxy/c/<address>, vercel.json) with its link card
+  if (url.searchParams.get("arc") === "galaxy-page") {
+    try { const { galaxyPage } = await import("./_arc-galaxy.mjs"); const origin = url.origin && url.origin !== "null" ? url.origin : "https://www.arcircle.app"; const r = await galaxyPage(url.searchParams.get("a"), origin, "mainnet"); return new Response(r.html, { status: r.status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60, s-maxage=300" } }); }
+    catch (err) { return new Response("<!doctype html><p><a href=\"/galaxy\">ARC GALAXY</a></p>", { status: 502, headers: { "content-type": "text/html; charset=utf-8" } }); }
+  }
   // the home hub's Arc line: the feed's numbers only (no rows), cached longer
   if (url.searchParams.get("arc") === "galaxy-lite") {
     try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy("mainnet"); return json(200, { head: g.head, chain: g.chain, stats: g.stats, stale: !!g.stale }, "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
@@ -820,6 +825,7 @@ export async function POST(req) {
       if (b.action === "refnote") return await v6().refNote(b, ip);
       return await v6().plan(b, ip);
     }
+    if (b.action === "arc-galaxy-claim") { const { galaxyClaim } = await import("./_arc-galaxy.mjs"); const r = await galaxyClaim(b, recoverSigner, b.net === "testnet" ? "testnet" : "mainnet"); return json(r.status || 200, r); }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
     if (/^world-[a-z][a-z0-9-]{1,30}$/.test(String(b.action))) return await world().handle(b);
