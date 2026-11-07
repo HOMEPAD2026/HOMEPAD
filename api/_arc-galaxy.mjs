@@ -502,29 +502,23 @@ export async function galaxyPage(addr, origin, net, fetchTpl) {
   return { status: 200, html: h };
 }
 
-// GX12: who's watching ARC GALAXY right now — each open page says "here" every WATCH_PING; a browser counts once a
-// WATCH_WIN window (a create-only doc a window an id, paired in one commit with the window's counter, so a repeat can't
-// add again); the count shown is the busier of this window and the last (this one is still filling)
-export const WATCH_WIN = 60e3, WATCH_PING = 25e3;
-export function makeWatch({ commit = (w) => fstore.commit(w), get = (p) => fstore.getDocs(p), now = () => Date.now(), on = storeOn, key = "arcGalaxy" } = {}) {
-  const mem = new Map(); // no store (a local run): this function's own last minute
-  const win = () => Math.floor(now() / WATCH_WIN);
+// GX12: how many times ARC GALAXY has been opened, all told — every page open counts (a reload, the same browser or IP
+// again, mainnet and testnet together); one counter doc, incremented atomically
+export function makeViews({ commit = (w) => fstore.commit(w), get = (p) => fstore.getDocs(p), on = storeOn, doc = "arcGalaxy/views" } = {}) {
+  let mem = 0; // no store (a local run): this function's own count
   async function count() {
-    if (!on()) { let n = 0; for (const [id, t] of mem) { if (now() - t > WATCH_WIN) mem.delete(id); else n++; } return n; }
-    const w = win(), d = await get([`${key}Watch/${w}`, `${key}Watch/${w - 1}`]).catch(() => ({}));
-    return Math.max((d[`${key}Watch/${w}`] || {}).n || 0, (d[`${key}Watch/${w - 1}`] || {}).n || 0);
+    if (!on()) return mem;
+    const d = await get([doc]).catch(() => ({}));
+    return (d[doc] || {}).n || 0;
   }
-  async function ping(id) {
-    id = String(id || "");
-    if (!/^[a-z0-9]{12,40}$/.test(id)) return { status: 400, error: "bad id" };
-    if (!on()) { mem.set(id, now()); return { watching: await count() }; }
-    const w = win();
-    await commit([{ create: `${key}Seen/${w}_${id}`, data: { at: now() } }, { inc: `${key}Watch/${w}`, fields: { n: 1 } }]).catch(() => null);
-    return { watching: await count() };
+  async function hit() {
+    if (!on()) { mem++; return { views: mem }; }
+    await commit([{ inc: doc, fields: { n: 1 } }]).catch(() => null);
+    return { views: await count() };
   }
-  return { ping, count };
+  return { hit, count };
 }
-let watchMain = null, watchTest = null;
-const watchOf = (net) => net === "testnet" ? (watchTest || (watchTest = makeWatch({ key: "arcGalaxyTest" }))) : (watchMain || (watchMain = makeWatch()));
-export const galaxyWatch = (id, net) => watchOf(net).ping(id);
-export const galaxyWatching = (net) => watchOf(net).count();
+let views = null;
+const viewsOf = () => views || (views = makeViews());
+export const galaxyView = () => viewsOf().hit();
+export const galaxyViews = () => viewsOf().count();
