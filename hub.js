@@ -26,7 +26,7 @@
       f2: "$ARCIRCLE로 교환", f2p: "게임에서 ARCL → $ARCIRCLE 교환을 요청하면 트레저리가 공시된 비율로 정산해요.", f3: "런칭 & 거래", f3p: "ARCIRCLE PAD에서 런칭, 라운드, 주문에 써요 — 가스는 USDC.",
       f4: "바이백 & 소각", f4p: "상점 지출과 플랫폼 수수료가 $ARCIRCLE을 사서 소각해요.",
       more: "더 보기", lWp: "백서", lRoad: "로드맵", lUpd: "업데이트", lDocs: "문서", lSup: "지원", lBrand: "브랜드", lPriv: "개인정보",
-      foot: "Circle의 Arc 위에 만든 커뮤니티 프로젝트입니다. Arc나 Circle의 공식 사이트가 아닙니다.", gameOnline: "{n}명 지금 플레이 중", galaxyWatch: "{n}명 보는 중", galaxyTps: "지금 초당 {n}건", coinMcap: "$ARCIRCLE 시가총액 {n}"
+      foot: "Circle의 Arc 위에 만든 커뮤니티 프로젝트입니다. Arc나 Circle의 공식 사이트가 아닙니다.", gameOnline: "{n}명 지금 플레이 중", galaxyViews: "누적 {n}회 조회", galaxyTps: "지금 초당 {n}건", coinMcap: "$ARCIRCLE 시가총액 {n}"
     },
     zh: {
       skip: "直达各个世界", navGame: "游戏世界", navPad: "平台", navStudio: "创作者中心", navArcia: "ARCIA", navGalaxy: "星系", navArcl: "ARCL", navAgents: "AI 代理", navCoins: "代币",
@@ -48,7 +48,7 @@
       f2: "兑换为 $ARCIRCLE", f2p: "在游戏中申请 ARCL → $ARCIRCLE，由金库按公布的汇率结算。", f3: "发行与交易", f3p: "在 ARCIRCLE PAD 上用于发行、轮次和订单 —— 用 USDC 付 gas。",
       f4: "回购与销毁", f4p: "商店消费和平台手续费用于回购并销毁 $ARCIRCLE。",
       more: "更多", lWp: "白皮书", lRoad: "路线图", lUpd: "更新", lDocs: "文档", lSup: "支持", lBrand: "品牌", lPriv: "隐私",
-      foot: "基于 Circle 的 Arc 的社区项目，并非 Arc 或 Circle 官方网站。", gameOnline: "{n} 人正在游玩", galaxyWatch: "{n} 人正在看", galaxyTps: "当前每秒 {n} 笔", coinMcap: "$ARCIRCLE 市值 {n}"
+      foot: "基于 Circle 的 Arc 的社区项目，并非 Arc 或 Circle 官方网站。", gameOnline: "{n} 人正在游玩", galaxyViews: "累计 {n} 次浏览", galaxyTps: "当前每秒 {n} 笔", coinMcap: "$ARCIRCLE 市值 {n}"
     },
     tr: {
       skip: "Dünyalara geç", navGame: "Oyun Dünyası", navPad: "Platform", navStudio: "Creator Hub", navArcia: "ARCIA", navGalaxy: "Galaksi", navArcl: "ARCL", navAgents: "AI Ajanlar", navCoins: "Coinler",
@@ -70,10 +70,10 @@
       f2: "$ARCIRCLE'a çevir", f2p: "Oyunda ARCL → $ARCIRCLE iste; hazine ilan edilen oranla öder.", f3: "Başlat & al-sat", f3p: "ARCIRCLE PAD'de başlatmalar, turlar ve emirler için kullan — gaz USDC ile.",
       f4: "Geri alım & yakım", f4p: "Dükkân harcamaları ve platform ücretleri $ARCIRCLE'ı geri alıp yakar.",
       more: "Daha fazla", lWp: "Whitepaper", lRoad: "Yol haritası", lUpd: "Güncellemeler", lDocs: "Belgeler", lSup: "Destek", lBrand: "Marka", lPriv: "Gizlilik",
-      foot: "Circle'ın Arc'ı üzerinde bir topluluk projesi. Resmi bir Arc veya Circle sitesi değildir.", gameOnline: "{n} kişi şu an oynuyor", galaxyWatch: "{n} kişi izliyor", galaxyTps: "şu an saniyede {n} işlem", coinMcap: "$ARCIRCLE piyasa değeri {n}"
+      foot: "Circle'ın Arc'ı üzerinde bir topluluk projesi. Resmi bir Arc veya Circle sitesi değildir.", gameOnline: "{n} kişi şu an oynuyor", galaxyViews: "{n} görüntülenme", galaxyTps: "şu an saniyede {n} işlem", coinMcap: "$ARCIRCLE piyasa değeri {n}"
     }
   };
-  var EN = { gameOnline: "{n} playing now", galaxyWatch: "{n} watching", galaxyTps: "{n} tx / s right now", coinMcap: "$ARCIRCLE market cap {n}" };
+  var EN = { gameOnline: "{n} playing now", galaxyViews: "{n} views", galaxyTps: "{n} tx / s right now", coinMcap: "$ARCIRCLE market cap {n}" };
   var LANG = "en";
   try { var s = localStorage.getItem("arcircle.lang"); if (s && (s === "en" || W[s])) LANG = s; else { var n = (navigator.language || "en").slice(0, 2); if (W[n]) LANG = n; } } catch (e) { /* private */ }
   var t = function (k) { return (W[LANG] && W[LANG][k]) || EN[k] || k; };
@@ -150,7 +150,7 @@
   function paintLive() {
     if (live.online > 0) { chip("online", fmtN(live.online)); meta("gameOnline", "● " + t("gameOnline").replace("{n}", fmtN(live.online))); }
     if (live.visitors > 0) chip("visitors", fmtN(live.visitors));
-    if (live.tps != null) { var v = live.tps >= 10 ? live.tps.toFixed(0) : live.tps.toFixed(1); chip("tps", v); meta("galaxyTps", "● " + t("galaxyTps").replace("{n}", v) + (live.gw > 0 ? " · 👁 " + t("galaxyWatch").replace("{n}", fmtN(live.gw)) : "")); }
+    if (live.tps != null) { var v = live.tps >= 10 ? live.tps.toFixed(0) : live.tps.toFixed(1); chip("tps", v); meta("galaxyTps", "● " + t("galaxyTps").replace("{n}", v) + (live.gv > 0 ? " · 👁 " + t("galaxyViews").replace("{n}", fmtN(live.gv)) : "")); }
     if (live.mcap > 0) { chip("mcap", fmtUsd(live.mcap)); meta("coinMcap", t("coinMcap").replace("{n}", fmtUsd(live.mcap))); }
   }
   var get = function (u, o) { return fetch(u, o).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
@@ -160,7 +160,7 @@
   var stats = function () { return get("/api/social?world=stats"); };
   (vid && !navigator.webdriver ? get("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "world-ping", id: vid, visit: true, gate: true }) }).then(function (j) { return j && j.visitors != null ? j : stats(); }) : stats())
     .then(function (j) { if (j) { live.online = j.online; live.visitors = j.visitors; paintLive(); } });
-  function arc() { get("/api/social?arc=galaxy-lite").then(function (j) { if (j && j.stats) { var s = j.stats; live.tps = s.tps1m != null ? s.tps1m : s.tps; live.gw = j.watching || 0; paintLive(); } }); }
+  function arc() { get("/api/social?arc=galaxy-lite").then(function (j) { if (j && j.stats) { var s = j.stats; live.tps = s.tps1m != null ? s.tps1m : s.tps; live.gv = j.views || 0; paintLive(); } }); }
   arc(); setInterval(function () { if (!document.hidden) arc(); }, 20000);
   get("/api/social?token=arcircle").then(function (j) { if (j && j.mcap != null) { live.mcap = j.mcap; paintLive(); } });
 
