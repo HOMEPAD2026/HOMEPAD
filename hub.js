@@ -93,7 +93,9 @@
 
   // the top bar turns solid once you scroll; the phone menu
   var top = $("hb-top"), menu = $("hb-menu"), drawer = $("hb-drawer");
-  var onScroll = function () { top.classList.toggle("solid", window.scrollY > 24); };
+  // the universe dims as the worlds scroll over it
+  var bgArt = document.querySelector(".hb-bg-art");
+  var onScroll = function () { top.classList.toggle("solid", window.scrollY > 24); bgArt.style.setProperty("--dim", Math.max(0.28, 1 - window.scrollY / (innerHeight * 1.1)).toFixed(3)); };
   window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
   menu.addEventListener("click", function () { var open = drawer.hidden; drawer.hidden = !open; menu.setAttribute("aria-expanded", String(open)); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !drawer.hidden) { drawer.hidden = true; menu.setAttribute("aria-expanded", "false"); } });
