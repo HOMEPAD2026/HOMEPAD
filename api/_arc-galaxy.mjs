@@ -241,8 +241,8 @@ export const defaultStore = {
 // testnet's Blockscout answers (explorerFor). Names come from eth_call + LABELS.
 export const explorerFor = (base) => (base ? (a) => fetchJson(`${base}/api/v2/addresses/${a}`) : async () => null);
 // maxBlocks / backfill / batch: Arc reads 120 / 100 blocks a call in batches of 40; Robinhood Chain (0.1 s blocks, an RPC that
-// rate-limits bursts of ~150 requests) 150 / 100 in batches of 20 — its explorer API sits behind a bot check, so names come from eth_call
-export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy", cls = classify, chain = 5042, before = null, maxBlocks = MAX_BLOCKS, backfill = BACKFILL, batch = 40 } = {}) {
+// rate-limits bursts of ~150 requests) 60 / 30 in batches of 20 with 0.25 s between them — its explorer API sits behind a bot check, so names come from eth_call
+export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy", cls = classify, chain = 5042, before = null, maxBlocks = MAX_BLOCKS, backfill = BACKFILL, batch = 40, pause = 0 } = {}) {
   const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [], claims: new Map(), rec: null };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
@@ -251,15 +251,20 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const body = [];
     ns.forEach((n, i) => { body.push({ jsonrpc: "2.0", id: 2 * i, method: "eth_getBlockByNumber", params: [hx(n), true] }); if (st.receipts) body.push({ jsonrpc: "2.0", id: 2 * i + 1, method: "eth_getBlockReceipts", params: [hx(n)] }); });
     const out = [];
-    for (let i = 0; i < body.length; i += batch) out.push(...(await rpc(body.slice(i, i + batch)))); // Arc's RPC takes 100 a batch
+    // Arc's RPC takes 100 a batch; Robinhood Chain's refuses bursts, so it gets a pause between batches. A refused batch after
+    // some were read keeps what was read (the next call goes on from there) instead of losing the whole read
+    for (let i = 0; i < body.length; i += batch) {
+      try { out.push(...(await rpc(body.slice(i, i + batch)))); } catch (e) { if (!out.length) throw e; break; }
+      if (pause && i + batch < body.length) await new Promise((r) => setTimeout(r, pause));
+    }
     const by = new Map(out.map((r) => [r.id, r]));
     const res = [];
-    ns.forEach((n, i) => {
+    for (let i = 0; i < ns.length; i++) {
       const b = by.get(2 * i), r = st.receipts ? by.get(2 * i + 1) : null;
-      if (!b || !b.result) return;
+      if (!b || !b.result || (st.receipts && !r)) break; // contiguous: stop at the first block not (fully) read
       if (r && r.error && /not (found|supported|available)|unknown|does not exist/i.test(String(r.error.message))) st.receipts = false;
       res.push({ b: b.result, rcs: r && Array.isArray(r.result) ? r.result : null });
-    });
+    }
     return res;
   }
 
@@ -405,7 +410,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const head = Number(await call("eth_blockNumber", []));
     let from = st.head ? st.head + 1 : head - backfill + 1;
     if (head - from + 1 > maxBlocks) from = head - maxBlocks + 1; // asleep too long: skip the gap (the older rows age out)
-    if (from <= head) { for (const x of await readBlocks(from, head)) add(x); st.head = head; }
+    if (from <= head) { const got = await readBlocks(from, head); for (const x of got) add(x); st.head = got.length ? Number(got[got.length - 1].b.number) : st.head || from - 1; }
     trim(Math.max(t, st.blocks.length ? st.blocks[st.blocks.length - 1][1] : 0));
     // name what's busy or just flew (the busiest first)
     const cnt = new Map(); for (const r of st.rows) if (r[3] && r[4] !== K.usdc) cnt.set(r[3], (cnt.get(r[3]) || 0) + 1);
@@ -554,7 +559,7 @@ export async function testRpc(body) {
 let one = null, test = null;
 let rh = null;
 const inst = (net) => net === "testnet" ? (test || (test = makeGalaxy({ rpc: testRpc, explorer: explorerFor(TESTNET.explorer), key: "arcGalaxyTest" })))
-  : net === "robinhood" ? (rh || (rh = makeGalaxy({ rpc: rhRpc, explorer: explorerFor(null), maxBlocks: 150, backfill: 100, batch: 20, key: "rhGalaxy", chain: ROBINHOOD.chainId, cls: (tx, rc) => classifyWith(RH_MONEY, tx, rc), before: rhPrice })))
+  : net === "robinhood" ? (rh || (rh = makeGalaxy({ rpc: rhRpc, explorer: explorerFor(null), maxBlocks: 60, backfill: 30, batch: 20, pause: 250, key: "rhGalaxy", chain: ROBINHOOD.chainId, cls: (tx, rc) => classifyWith(RH_MONEY, tx, rc), before: rhPrice })))
   : (one || (one = makeGalaxy()));
 export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ? { ...o, chain: TESTNET.chainId, net: "testnet" } : net === "robinhood" ? { ...o, net: "robinhood", ethUsd: ethPx } : o));
 export const galaxyDay = (net) => inst(net).day();
