@@ -349,6 +349,11 @@ export async function GET(req) {
     try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
     catch (err) { console.error("arc galaxy", err && err.message || err); return json(502, { error: "couldn't read Arc right now" }, "public, max-age=2"); }
   }
+  // the home hub's Arc line: the feed's numbers only (no rows), cached longer
+  if (url.searchParams.get("arc") === "galaxy-lite") {
+    try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy("mainnet"); return json(200, { head: g.head, chain: g.chain, stats: g.stats, stale: !!g.stale }, "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
+    catch (err) { return json(502, { error: "couldn't read Arc right now" }, "public, max-age=5"); }
+  }
   if (url.searchParams.get("arc") === "galaxy-day") {
     try { const { galaxyDay } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyDay(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { return json(502, { error: "couldn't read the day" }, "public, max-age=10"); }

@@ -99,7 +99,7 @@ export const CSS_PURGED = {
 // which tools/build-updates.py writes, and anything new links it).
 const ARCIA_LAZY = BUNDLES["arcia.bundle.js"];
 export const CSS_PAGES = {
-  "index.min.css": ["index.html", "arc-log.js", "i18n-boot.js", "world-lock.js", "arc-gate.js", "world-gate.js", "world-kit.js", ...BUNDLES["home.bundle.js"], ...ARCIA_LAZY],
+  "index.min.css": ["platform.html", "arc-log.js", "i18n-boot.js", "world-lock.js", ...BUNDLES["home.bundle.js"], ...ARCIA_LAZY],
   "arcpad.min.css": ["arcpad.html", "arc-log.js", "wallet-arc.js", ...BUNDLES["arcpad.bundle.js"], ...BUNDLES["arcpad-tools.bundle.js"]],
   "circlepad.min.css": ["circlepad.html", "arc-log.js", ...BUNDLES["circlepad.bundle.js"], "circlepad-escrow-code.js", ...ARCIA_LAZY],
   "arcircle.min.css": ["arcircle.html", "arc-log.js", ...BUNDLES["arcircle.bundle.js"], ...ARCIA_LAZY],

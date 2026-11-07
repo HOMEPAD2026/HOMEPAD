@@ -18,8 +18,8 @@
 if (window.__arcShell) await new Promise(() => {});
 if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = true;
-  if (window.arcWorldLock) await window.arcWorldLock.ask({ cancelHref: "/?skip" });
-  else { (window.__arcFrame ? window.top : window).location.replace("/?skip"); await new Promise(() => {}); }
+  if (window.arcWorldLock) await window.arcWorldLock.ask({ cancelHref: "/platform" });
+  else { (window.__arcFrame ? window.top : window).location.replace("/platform"); await new Promise(() => {}); }
   document.getElementById("wp-loading").hidden = false;
 }
 import { WORDS, loadWords } from "./world-words-load.js"; // (the player's language only — gen/words-<lang>.js, made from world-words.js by the build)
@@ -470,7 +470,7 @@ if ($("wp-music-btn")) {
 // ---------------- the scene ----------------
 const cv = $("wp-cv");
 if (!K.webglOk()) {
-  $("wp-loading").innerHTML = `<span>${esc(T("This browser can't draw the 3D world."))}</span><a class="wp-cta" href="/?skip">${esc(T("Go to the Platform World"))}</a>`;
+  $("wp-loading").innerHTML = `<span>${esc(T("This browser can't draw the 3D world."))}</span><a class="wp-cta" href="/platform">${esc(T("Go to the Platform World"))}</a>`;
   throw new Error("no webgl");
 }
 try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
@@ -4244,7 +4244,7 @@ if (brandA) {
   brandM.addEventListener("click", (e) => {
     const b = e.target.closest("[data-bm]"); if (!b) return; brandM.hidden = true; brandA.setAttribute("aria-expanded", "false");
     const k = b.dataset.bm;
-    if (k === "mine") goIsland({}); else if (k === "random") island.tour(); else if (k === "list") island.openIsles(); else if (k === "platform") (window.__arcFrame ? window.top : window).location.href = brandA.getAttribute("href") || "/?skip";
+    if (k === "mine") goIsland({}); else if (k === "random") island.tour(); else if (k === "list") island.openIsles(); else if (k === "platform") (window.__arcFrame ? window.top : window).location.href = brandA.getAttribute("href") || "/platform";
   });
   document.addEventListener("pointerdown", (e) => { if (!brandM.hidden && !brandM.contains(e.target) && !brandA.contains(e.target)) { brandM.hidden = true; brandA.setAttribute("aria-expanded", "false"); } });
   // role=menu: arrows (and Home/End) move between its items, wrapping round
@@ -5126,7 +5126,7 @@ if (coarse && navigator.wakeLock) {
 // stepping into the portal: drawn in (smaller, spinning, toward its middle), the screen fills with light and the view
 // widens, then off to the platform (0.6 s); a tap or a key goes straight there. Back from it (bfcache), all is undone
 const PULL_MS = 620; let pull = null;
-const pullGo = () => { (window.__arcFrame ? window.top : window).location.href = "/?skip"; };
+const pullGo = () => { (window.__arcFrame ? window.top : window).location.href = "/platform"; };
 function portalGo(g) {
   if (pull) return;
   if (reduce) { pullGo(); return; }

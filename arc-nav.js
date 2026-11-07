@@ -205,7 +205,7 @@ try {
     tabs.setAttribute("role", "navigation");
     tabs.setAttribute("aria-label", t("Menu"));
     tabs.setAttribute("data-no-i18n", "");
-    tabs.innerHTML = '<a class="anav-tab' + (path === "/" ? " on" : "") + '" href="/">' + svg("home") + "<span>" + esc(t("Home")) + "</span></a>" +
+    tabs.innerHTML = '<a class="anav-tab' + (path === "/platform" ? " on" : "") + '" href="/platform">' + svg("home") + "<span>" + esc(t("Home")) + "</span></a>" +
       GROUPS.map(function (g, i) { return (i === 2 ? '<a class="anav-tab anav-tab-play" href="/play" aria-label="' + esc(t("Enter Game World")) + '"><i>' + svg("planet") + "</i><span>" + esc(t("Play")) + "</span></a>" : "") + '<button type="button" class="anav-tab' + (here[0] === g.id ? " on" : "") + '" data-g="' + g.id + '" aria-haspopup="dialog">' + svg(g.icon) + "<span>" + esc(t(g.label)) + "</span></button>"; }).join("");
 
     sheet = D.createElement("div");

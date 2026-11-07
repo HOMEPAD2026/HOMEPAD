@@ -20,6 +20,7 @@ PAGES = [  # file, title, url
     ("reward.html", "Reward", "/reward"),
     ("docs.html", "Docs", "/docs"),
     ("index.html", "Home", "/"),
+    ("platform.html", "ARCIRCLE PAD", "/platform"),
     ("start.html", "Get started", "/start"),
     ("roadmap.html", "Roadmap", "/roadmap"),
     ("brand.html", "Brand kit", "/brand"),
