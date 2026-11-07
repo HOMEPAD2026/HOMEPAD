@@ -174,6 +174,22 @@ export function tokenLabel(sym, name) {
   if (sym && name && name.toLowerCase() !== sym.toLowerCase() && (sym + " · " + name).length <= 30) return `${sym} · ${name}`;
   return (sym || name).slice(0, 30);
 }
+
+// ---------------------------------------------------------------- claim a star (GX8)
+// A contract's owner names its star: they sign a message with the wallet that the contract's owner() returns, the
+// server recovers the signer (EIP-191) and reads owner() from the chain. Only what the chain proves: no owner() → no
+// claim. Names that pretend to be Arc / Circle / USDC / us, or anything already labelled, are refused.
+export const CLAIM_RESERVED = /\b(arc|circle|usdc|eurc|cctp|uniswap|arcircle|arcia|official|tether|usdt|metamask|binance|coinbase)\b/i;
+export const CLAIM_TTL_MS = 10 * 60e3;
+export function cleanClaimName(n) {
+  const v = String(n || "").normalize("NFKC").replace(/\s+/g, " ").trim();
+  if (v.length < 2 || v.length > 28) return null;
+  if (!/^[\p{L}\p{N} .\-_&'·!+]+$/u.test(v)) return null;
+  if (CLAIM_RESERVED.test(v)) return null;
+  return v;
+}
+export const claimMessage = (addr, name, issued) => `ARC GALAXY — name a star\nContract: ${String(addr).toLowerCase()}\nName: ${name}\nIssued: ${issued}`;
+const ownerOfWord = (res) => { const h = String(res || "").replace(/^0x/, ""); return h.length >= 64 && /^0{24}/.test(h.slice(0, 24)) && !/^0+$/.test(h.slice(24, 64)) ? "0x" + h.slice(24, 64).toLowerCase() : null; };
 // GX6: what kind of contract it is, from its code alone (when it has no token name): an EIP-1167 clone (the
 // implementation's address is in the code), an EIP-1967 proxy (the implementation in its storage slot), a Safe wallet
 // (the proxy's masterCopy() selector). Only what the bytes prove — the label names the pattern, never a guess at the app.
@@ -210,7 +226,7 @@ export const defaultStore = {
 // testnet's Blockscout answers (explorerFor). Names come from eth_call + LABELS.
 export const explorerFor = (base) => (base ? (a) => fetchJson(`${base}/api/v2/addresses/${a}`) : async () => null);
 export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy" } = {}) {
-  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [] };
+  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [], claims: new Map() };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
   async function readBlocks(from, to) {
@@ -252,7 +268,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   }
 
   // names: what the store already knows, then the chain, then the explorer
-  const nameOf = (a) => { const n = LABELS[a] ? { n: LABELS[a][0], g: LABELS[a][1], at: Infinity } : st.names.get(a); return n && n.n ? [n.n, n.g] : null; };
+  const nameOf = (a) => { const n = LABELS[a] ? { n: LABELS[a][0], g: LABELS[a][1], at: Infinity } : st.claims.get(a) || st.names.get(a); return n && n.n ? [n.n, n.g] : null; };
   async function resolveNames(addrs, t) {
     const want = addrs.filter((a) => a && !LABELS[a] && !(st.names.get(a) && t - st.names.get(a).at < (st.names.get(a).n ? NAME_TTL : MISS_TTL)));
     if (!want.length) return;
@@ -292,6 +308,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   // the snapshot: the last rows + ten minutes of blocks + the day's minutes, so a cold start opens with a full replay
   async function loadSnap(t) {
     st.loaded = true;
+    try { const c = (await store.get([key + "/claims"]).catch(() => ({})))[key + "/claims"]; if (c && Array.isArray(c.list)) for (const x of c.list) if (x && x.a && x.n) st.claims.set(x.a, { n: x.n, g: x.g || "other", by: x.by, at: x.at }); } catch { /* none yet */ }
     const d = (await store.get([key + "/snap"]).catch(() => ({})))[key + "/snap"];
     if (!d || !d.j) return;
     try {
@@ -344,7 +361,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
         fee10m: b.reduce((s, x) => s + (x[6] || 0), 0), feeTxs: st.receipts ? total : 0, auth10m: b.reduce((s, x) => s + (x[7] || 0), 0),
       },
       top: topList, blocks: b.map((x) => x.slice(0, 5)),
-      rows: rows.map((r) => r.slice(0, 12)), labels, groups: GROUPS, kindNames: KINDS,
+      rows: rows.map((r) => r.slice(0, 12)), labels, groups: GROUPS, kindNames: KINDS, claimed: [...st.claims.keys()].filter((a) => labels[a]),
       err: st.err,
     };
   }
@@ -390,9 +407,37 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const labels = {}; const nm = to && nameOf(to); if (nm) labels[to] = nm;
     return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0, c.auth], fee: c.fee, labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
   }
+  /// GX8: the owner names its star — { addr, name, issued, sig } signed by the wallet owner() returns
+  async function claim(body, recover, t = now()) {
+    const addr = lc(body && body.addr), name = cleanClaimName(body && body.name), issued = String((body && body.issued) || "");
+    if (!/^0x[0-9a-f]{40}$/.test(addr)) return { error: "not a contract address", status: 400 };
+    if (!name) return { error: "pick a name of 2–28 letters or numbers (Arc, Circle, USDC and other brands are reserved)", status: 400 };
+    if (LABELS[addr]) return { error: "this star already carries its known name", status: 409 };
+    const it = Date.parse(issued); if (!(it > 0) || Math.abs(t - it) > CLAIM_TTL_MS) return { error: "the signature is too old — sign again", status: 400 };
+    let signer = null; try { signer = lc(recover(claimMessage(addr, String(body.name), issued), String(body.sig || ""))); } catch { signer = null; } // (signed as sent; stored cleaned)
+    if (!signer || !/^0x[0-9a-f]{40}$/.test(signer)) return { error: "couldn't read the signature", status: 400 };
+    let owner = null;
+    try { const out = await rpc({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: addr, data: "0x8da5cb5b" }, "latest"] }); owner = ownerOfWord(out && out.result); } catch { owner = null; }
+    if (!owner) return { error: "this contract has no owner() to check, so it can't be claimed yet", status: 409 };
+    if (owner !== signer) return { error: "only the wallet that owner() returns can name this star", status: 403 };
+    const prev = st.claims.get(addr), g = (st.names.get(addr) && st.names.get(addr).g) || "other";
+    st.claims.set(addr, { n: name, g, by: signer, at: t });
+    if (st.claims.size > 500) st.claims.delete(st.claims.keys().next().value);
+    await store.set(key + "/claims", { at: t, list: [...st.claims.entries()].map(([a, v]) => ({ a, ...v })) });
+    if (st.out) st.out = shape(t);
+    return { ok: true, addr, name, by: signer, renamed: !!prev };
+  }
+  /// GX8: a contract's own page (/galaxy/c/<address>): the galaxy, opened on that star, with its own link card
+  function pageMeta(addr) {
+    const a = lc(addr); if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
+    const n = nameOf(a), c = st.rows.filter((r) => r[3] === a).length, top = st.out && st.out.top ? st.out.top.findIndex((x) => x[0] === a) : -1;
+    const title = (n ? n[0] : a.slice(0, 6) + "…" + a.slice(-4)) + " on ARC GALAXY";
+    const desc = (top >= 0 ? `#${top + 1} busiest contract on Arc right now · ` : "") + (c ? `${c} transactions in the last 10 minutes · ` : "") + "watch it live in 3D on ARC GALAXY";
+    return { addr: a, title, desc, claimed: st.claims.has(a) };
+  }
   /// the last 24 hours, a minute at a time: [minute, txs, usd cents, failed] (only minutes the feed read)
   async function day() { if (!st.loaded) await loadSnap(now()).catch(() => {}); return { at: now(), minutes: dayOut() }; }
-  return { live, day, tx, state: st, nameOf };
+  return { live, day, tx, claim, pageMeta, state: st, nameOf, ready: async () => { if (!st.loaded) await loadSnap(now()).catch(() => {}); } };
 }
 
 // GX4: Arc TESTNET (chain 5042002) — its own RPCs (checked by the worker 2026-11-07: every one takes 100 a batch except
@@ -421,3 +466,23 @@ const inst = (net) => net === "testnet" ? (test || (test = makeGalaxy({ rpc: tes
 export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ? { ...o, chain: TESTNET.chainId, net: "testnet" } : o));
 export const galaxyDay = (net) => inst(net).day();
 export const galaxyTx = (h, net) => inst(net).tx(h);
+export const galaxyClaim = (body, recover, net) => inst(net).claim(body, recover);
+/// GX8: /galaxy/c/<address> — galaxy.html with that contract's title / description / link card and the star to open
+export async function galaxyPage(addr, origin, net, fetchTpl) {
+  const g = inst(net); await g.ready();
+  const m = g.pageMeta(addr);
+  let tpl = ""; try { tpl = fetchTpl ? await fetchTpl() : await fetch(new URL("/galaxy.html", origin)).then((r) => (r.ok ? r.text() : "")); } catch { tpl = ""; }
+  if (!tpl || !m) return { status: m ? 502 : 404, html: tpl || "<!doctype html><title>ARC GALAXY</title><p><a href=\"/galaxy\">ARC GALAXY</a></p>" };
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const url = `https://www.arcircle.app/galaxy/c/${m.addr}`;
+  let h = tpl
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(m.title)}</title>`)
+    .replace(/(<meta property="og:title" content=")[^"]*/, `$1${esc(m.title)}`)
+    .replace(/(<meta name="twitter:title" content=")[^"]*/, `$1${esc(m.title)}`)
+    .replace(/(<meta property="og:description" content=")[^"]*/, `$1${esc(m.desc)}`)
+    .replace(/(<meta name="twitter:description" content=")[^"]*/, `$1${esc(m.desc)}`)
+    .replace(/(<meta name="description" content=")[^"]*/, `$1${esc(m.desc)}`)
+    .replace(/(<meta property="og:url" content=")[^"]*/, `$1${url}`);
+  h = h.replace("</head>", `<link rel="canonical" href="${url}">\n<script>window.__GX = { focus: "${m.addr}" };</script>\n</head>`);
+  return { status: 200, html: h };
+}

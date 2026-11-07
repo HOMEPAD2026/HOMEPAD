@@ -140,5 +140,47 @@ ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync
   const c3 = G.classify({ to: G.USDC, input: "0xa9059cbb" + p32(to) + p32("64"), from: "0x" + "33".repeat(20), value: "0x0", hash: "0x" + "77".repeat(32) }, null);
   ok(c3.auth === 0 && c3.fee === 0, "a plain transfer is not a signed payment; no receipt, no fee");
 }
+// GX8: a contract's owner names its star; the contract's own page
+{
+  const { ethers } = await import("ethers");
+  const { recoverSigner } = await import("../../api/social.mjs");
+  const G = await import("../../api/_arc-galaxy.mjs");
+  const owner = ethers.Wallet.createRandom(), other = ethers.Wallet.createRandom();
+  const CT = "0x" + "ab".repeat(20), NOOWN = "0x" + "cd".repeat(20);
+  const word = (a) => "0x" + "0".repeat(24) + a.slice(2).toLowerCase();
+  const mem = new Map(), store = { get: async (ps) => Object.fromEntries(ps.filter((x) => mem.has(x)).map((x) => [x, mem.get(x)])), set: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } };
+  const T0 = Date.parse("2026-11-07T04:00:00Z");
+  const rpc = async (b) => { const one = (q) => q.method === "eth_call" ? { id: q.id, result: q.params[0].to === CT && q.params[0].data === "0x8da5cb5b" ? word(owner.address) : "0x" } : q.method === "eth_blockNumber" ? { id: q.id, result: "0x10" } : { id: q.id, result: null }; return Array.isArray(b) ? b.map(one) : one(b); };
+  const gx = G.makeGalaxy({ rpc, now: () => T0, store, explorer: null, key: "gxt" });
+  const issued = new Date(T0).toISOString();
+  const sig = async (w, addr, name, iss = issued) => w.signMessage(G.claimMessage(addr, name, iss));
+  let r = await gx.claim({ addr: CT, name: "Moon Arcade", issued, sig: await sig(owner, CT, "Moon Arcade") }, recoverSigner, T0);
+  ok(r.ok && r.by === owner.address.toLowerCase(), "the wallet owner() returns names its star");
+  ok(gx.nameOf(CT) && gx.nameOf(CT)[0] === "Moon Arcade", "the claimed name is the star's name");
+  ok(mem.get("gxt/claims") && mem.get("gxt/claims").list[0].n === "Moon Arcade", "claims are kept in the store");
+  r = await gx.claim({ addr: CT, name: "Not Yours", issued, sig: await sig(other, CT, "Not Yours") }, recoverSigner, T0);
+  ok(r.status === 403, "another wallet can't name it");
+  r = await gx.claim({ addr: NOOWN, name: "Orphan", issued, sig: await sig(owner, NOOWN, "Orphan") }, recoverSigner, T0);
+  ok(r.status === 409, "no owner() → no claim");
+  r = await gx.claim({ addr: CT, name: "Official USDC", issued, sig: await sig(owner, CT, "Official USDC") }, recoverSigner, T0);
+  ok(r.status === 400, "brand names are reserved");
+  const old = new Date(T0 - 11 * 60e3).toISOString();
+  r = await gx.claim({ addr: CT, name: "Moon Arcade", issued: old, sig: await sig(owner, CT, "Moon Arcade", old) }, recoverSigner, T0);
+  ok(r.status === 400, "an old signature is refused");
+  r = await gx.claim({ addr: G.USDC, name: "Mine", issued, sig: await sig(owner, G.USDC, "Mine") }, recoverSigner, T0);
+  ok(r.status === 409, "a labelled contract can't be renamed");
+  ok(G.cleanClaimName("  Pixel   Pals ") === "Pixel Pals" && G.cleanClaimName("x") === null && G.cleanClaimName("<script>") === null, "names are cleaned");
+  // a fresh instance reads the claim back from the store
+  const gx2 = G.makeGalaxy({ rpc, now: () => T0, store, explorer: null, key: "gxt" }); await gx2.ready();
+  ok(gx2.nameOf(CT) && gx2.nameOf(CT)[0] === "Moon Arcade", "claims survive a cold start");
+  const m = gx2.pageMeta(CT);
+  ok(m && m.title === "Moon Arcade on ARC GALAXY" && m.claimed, "the page's title is the star's name");
+  ok(gx2.pageMeta("nope") === null, "a bad address has no page");
+  const html = fs.readFileSync(new URL("../../galaxy.html", import.meta.url), "utf8");
+  const pg = await G.galaxyPage(CT, "https://www.arcircle.app", "mainnet", async () => html);
+  ok(pg.status === 200 && pg.html.includes('window.__GX = { focus: "' + CT + '" }') && pg.html.includes("/galaxy/c/" + CT), "the page opens on the star with its own link");
+  const vj = JSON.parse(fs.readFileSync(new URL("../../vercel.json", import.meta.url), "utf8"));
+  ok(vj.rewrites.some((x) => x.source === "/galaxy/c/:addr"), "rewrite /galaxy/c/:addr");
+}
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
