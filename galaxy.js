@@ -793,7 +793,7 @@ $("gx-lang").addEventListener("change", (e) => { LANG = e.target.value; try { lo
   $("gx-share").before(sb); sb.addEventListener("click", () => shareShot());
   const pl = document.createElement("a"); pl.id = "gx-play"; pl.className = "gx-play"; pl.href = "/game"; pl.target = "_blank"; pl.rel = "noopener"; pl.innerHTML = "🎮 <span>" + esc(t("play")) + "</span>";
   $("gx-tools").prepend(pl);
-  const nt = document.createElement("div"); nt.className = "gx-net"; nt.innerHTML = `<a href="?net=mainnet" class="${NET === "mainnet" ? "on" : ""}">Arc</a><a href="?net=testnet" class="${NET === "testnet" ? "on" : ""}">Testnet</a><a href="?net=robinhood" class="rh ${RH ? "on" : ""}">Robinhood</a>`;
+  const nt = document.createElement("div"); nt.className = "gx-net"; nt.innerHTML = `<a href="?net=mainnet" class="${NET === "mainnet" ? "on" : ""}">Arc</a><a href="?net=testnet" class="${NET === "testnet" ? "on" : ""}">Testnet</a><a href="?net=robinhood" class="rh ${RH ? "on" : ""}">Robinhood</a><a href="/galaxy/arena" class="ar">⚔️ Arena</a>`;
   $("gx-live").after(nt);
 }
 if (EMBED) { document.body.classList.add("gx-embed"); const o = document.createElement("a"); o.className = "gx-open"; o.href = "/galaxy" + (NET === "testnet" ? "?net=testnet" : ""); o.target = "_blank"; o.rel = "noopener"; o.textContent = t("openFull") + " ↗"; document.body.appendChild(o); }

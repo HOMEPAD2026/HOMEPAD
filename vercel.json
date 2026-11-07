@@ -105,6 +105,10 @@
       "destination": "/galaxy.html"
     },
     {
+      "source": "/galaxy/arena",
+      "destination": "/galaxy-arena.html"
+    },
+    {
       "source": "/embed/galaxy",
       "destination": "/galaxy.html"
     },

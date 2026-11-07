@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CHAIN ARENA — Arc vs Robinhood Chain vs Solana, live</title>
+<meta name="description" content="Arc, Robinhood Chain and Solana side by side, live: transactions a second, block time, average fee, value moved and failures — each measured from the chain's own public RPC. Community-built by ARCIRCLE.">
+<meta property="og:title" content="CHAIN ARENA — Arc vs Robinhood Chain vs Solana, live">
+<meta property="og:description" content="Transactions a second, block time, fees, value moved — three chains measured live from their own RPCs.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE">
+<meta property="og:url" content="https://www.arcircle.app/galaxy/arena">
+<meta property="og:image" content="https://www.arcircle.app/images/galaxy/og-card.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="CHAIN ARENA — Arc vs Robinhood Chain vs Solana, live">
+<meta name="twitter:image" content="https://www.arcircle.app/images/galaxy/og-card.jpg">
+<meta name="theme-color" content="#02040c">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-v2-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,800&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/galaxy-arena.css?v=1">
+</head>
+<body class="ga">
+<div class="ga-bg" aria-hidden="true"></div>
+<header class="ga-top">
+  <a class="ga-back" href="/galaxy" data-i="back">‹ ARC GALAXY</a>
+  <div class="ga-tools">
+    <span class="ga-live" id="ga-live"><i></i><span id="ga-live-t" data-i="connecting">Connecting…</span></span>
+    <select id="ga-lang" aria-label="Language"><option value="en">EN</option><option value="ko">한국어</option><option value="zh">中文</option><option value="tr">TR</option></select>
+  </div>
+</header>
+<main class="ga-main">
+  <section class="ga-hero">
+    <h1><span>CHAIN</span> ARENA</h1>
+    <p data-i="tag">Arc vs Robinhood Chain vs Solana — measured live, each from its own public RPC.</p>
+  </section>
+  <section class="ga-cards" id="ga-cards" aria-label="The three chains"></section>
+  <section class="ga-rows" id="ga-rows" aria-label="Side by side"></section>
+  <section class="ga-final">
+    <h2 data-i="finality">Finality — when is a transaction final?</h2>
+    <div class="ga-fin" id="ga-fin"></div>
+  </section>
+  <section class="ga-basis">
+    <h2 data-i="how">How we measure</h2>
+    <div id="ga-basis"></div>
+    <p class="ga-note" data-i="note">Live numbers move with each chain's traffic minute by minute — a quiet minute isn't a slow chain. Community-built by ARCIRCLE; not an official site of Arc, Circle, Robinhood or Solana.</p>
+    <div class="ga-acts"><button type="button" id="ga-copy" data-i="copy">📋 Copy summary</button><a href="/galaxy" class="ga-btn" data-i="open">🌌 Open ARC GALAXY</a><a href="/galaxy?net=robinhood" class="ga-btn" data-i="openRh">Robinhood Chain galaxy</a></div>
+  </section>
+</main>
+<div class="ga-toast" id="ga-toast" hidden></div>
+<script type="module" src="/galaxy-arena.js?v=1"></script>
+</body>
+</html>
