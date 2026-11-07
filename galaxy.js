@@ -782,6 +782,16 @@ $("gx-lang").addEventListener("change", (e) => { LANG = e.target.value; try { lo
 }
 if (EMBED) { document.body.classList.add("gx-embed"); const o = document.createElement("a"); o.className = "gx-open"; o.href = "/galaxy" + (NET === "testnet" ? "?net=testnet" : ""); o.target = "_blank"; o.rel = "noopener"; o.textContent = t("openFull") + " ↗"; document.body.appendChild(o); }
 if (OBS) { document.body.classList.add("gx-obs"); orbit.idle = 20; }
+{ // GXD2: the daily records — a day's report, 7 / 30-day trends, a report card (galaxy-daily.js, loaded on first open)
+  if (NET === "mainnet" && !EMBED && !OBS) {
+    const b = document.createElement("button"); b.type = "button"; b.id = "gx-daily"; b.textContent = "📅"; b.title = "Daily records"; b.setAttribute("aria-label", "Daily records");
+    $("gx-share").before(b);
+    let mod = null;
+    const open = async () => { try { mod = mod || (await import("/galaxy-daily.js" + new URL(import.meta.url).search)); window.__gxDaily = mod.openDaily({ esc, fmtUsd, fmtN, KINDS, kcss, DOMAINS: Object.fromEntries(Object.entries(DOMAINS).map(([k, v]) => [k, [v[0]]])), EXPLORER, note, kindName: (i) => t(KINDS[i]), lang: () => LANG, phone: PHONE }); } catch { note("Couldn't open the daily records"); } };
+    b.addEventListener("click", open);
+    if (Q.get("daily") === "1") setTimeout(open, 600);
+  }
+}
 { // sound: off until asked
   const b = document.createElement("button"); b.type = "button"; b.id = "gx-snd"; b.textContent = "🔇"; b.title = "Sound"; b.setAttribute("aria-label", "Sound");
   $("gx-share").before(b);
