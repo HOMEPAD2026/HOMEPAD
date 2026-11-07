@@ -122,7 +122,7 @@
           var ask = document.createElement("div"); ask.className = "wp-shell-ask"; ask.setAttribute("role", "dialog"); ask.setAttribute("aria-modal", "true");
           ask.innerHTML = "<div><p>" + T.ask + '</p><button type="button" class="stay">' + T.stay + '</button><button type="button" class="go">' + T.go + "</button></div>";
           box.appendChild(ask); ask.querySelector(".stay").focus();
-          ask.addEventListener("click", function (e) { if (e.target.closest(".go")) location.href = "/?skip"; else if (e.target.closest(".stay") || e.target === ask) { ask.remove(); focus(); } });
+          ask.addEventListener("click", function (e) { if (e.target.closest(".go")) location.href = "/platform"; else if (e.target.closest(".stay") || e.target === ask) { ask.remove(); focus(); } });
           ask.addEventListener("keydown", function (e) { if (e.key === "Escape") { ask.remove(); focus(); } });
         }
       });
