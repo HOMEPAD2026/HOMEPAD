@@ -47,7 +47,7 @@ button, input, select { font: inherit; color: inherit; }
 .gx-legend li button em { margin-left: auto; font: 500 12px "JetBrains Mono", monospace; color: var(--dim); font-style: normal; }
 .gx-legend li.off button { opacity: 0.38; } .gx-legend li.off button i { box-shadow: none; }
 .gx-hint { margin: 8px 0 0; font-size: 11px; color: var(--dim); opacity: 0.8; }
-.gx-topc { right: var(--pad); top: calc(80px + var(--sa-t)); width: 290px; max-height: calc(100vh - 290px); overflow: auto; scrollbar-width: thin; }
+.gx-topc { right: var(--pad); top: calc(96px + var(--sa-t)); width: 290px; max-height: calc(100vh - 306px); overflow: auto; scrollbar-width: thin; }
 .gx-topc ol { margin: 0; padding: 0; list-style: none; counter-reset: c; }
 .gx-topc li button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 2px 8px; width: 100%; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
 .gx-topc li button:hover, .gx-topc li.sel button { background: rgba(120, 200, 255, 0.1); }
@@ -63,7 +63,7 @@ button, input, select { font: inherit; color: inherit; }
 .gx-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; padding: 6px 8px; font: 500 13px "JetBrains Mono", monospace; }
 .gx-search input::placeholder { color: var(--dim); font-family: Sora, sans-serif; }
 .gx-search button { border: 0; border-radius: 10px; padding: 6px 14px; background: linear-gradient(90deg, #1fb6ff, #2be3a8); color: #021018; font-weight: 700; cursor: pointer; }
-.gx-card { right: var(--pad); top: calc(80px + var(--sa-t)); width: 320px; max-height: calc(100vh - 290px); overflow: auto; padding: 14px 16px; background: var(--glass2); border-color: var(--line2); animation: gx-in 0.25s ease-out; }
+.gx-card { right: var(--pad); top: calc(96px + var(--sa-t)); width: 320px; max-height: calc(100vh - 290px); overflow: auto; padding: 14px 16px; background: var(--glass2); border-color: var(--line2); animation: gx-in 0.25s ease-out; }
 .gx-card h3 { margin: 0 0 4px; font: 800 17px "Exo 2", sans-serif; padding-right: 24px; }
 .gx-card .ad { font: 500 10.5px "JetBrains Mono", monospace; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gx-card .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; color: var(--dim); font-size: 18px; cursor: pointer; }
@@ -118,6 +118,16 @@ body.whaling .gx-note, body.topopen .gx-whale, body.carded .gx-whale { opacity: 
 .gx-lb.gate { font: 700 11px "JetBrains Mono", monospace; color: #e6f0ff; opacity: 0.85; }
 .gx-lb.pop { font: 800 13px "JetBrains Mono", monospace; text-shadow: 0 0 10px currentColor, 0 0 3px #000; }
 
+/* GX4: network switch, Play, embed / OBS */
+.gx-net { position: fixed; z-index: 2; top: calc(58px + var(--sa-t)); right: var(--pad); display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--glass); border: 1px solid var(--line); font-size: 11px; }
+.gx-net a { padding: 3px 9px; border-radius: 7px; color: var(--dim); text-decoration: none !important; }
+.gx-net a.on { background: rgba(60, 230, 255, 0.16); color: #fff; }
+.gx-play { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: var(--r); background: linear-gradient(90deg, #1fb6ff, #2be3a8); color: #021018 !important; font-weight: 800; text-decoration: none !important; }
+body.gx-embed .gx-stats, body.gx-embed .gx-side, body.gx-embed .gx-search, body.gx-embed .gx-bottom, body.gx-embed .gx-net, body.gx-embed .gx-brand p, body.gx-embed .gx-card { display: none !important; }
+body.gx-embed .gx-brand h1 { font-size: 22px; }
+.gx-open { position: fixed; z-index: 3; right: 10px; bottom: 10px; padding: 7px 12px; border-radius: 10px; background: var(--glass2); border: 1px solid var(--line2); color: #fff !important; font: 700 12px Sora, sans-serif; text-decoration: none !important; }
+body.gx-obs .gx-top, body.gx-obs .gx-stats, body.gx-obs .gx-side, body.gx-obs .gx-search, body.gx-obs .gx-bottom, body.gx-obs .gx-net, body.gx-obs .gx-note, body.gx-obs .gx-card { display: none !important; }
+
 /* labels drawn over the 3D */
 #gx-labels { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
 .gx-lb { position: absolute; left: 0; top: 0; transform: translate(-50%, -140%); white-space: nowrap; font: 600 11px Sora, sans-serif; color: #dff3ff; text-shadow: 0 0 6px #000, 0 0 12px #000; opacity: 0.9; will-change: transform; }
@@ -154,5 +164,7 @@ body.whaling .gx-note, body.topopen .gx-whale, body.carded .gx-whale { opacity: 
   .gx-tape { height: 56px; } .gx-tx { min-width: 128px; padding: 4px 8px; }
   .gx-tools { justify-content: center; } .gx-tools button, .gx-tools select { height: 34px; min-width: 34px; padding: 0 9px; font-size: 13px; }
   .gx-src { display: none; }
+  .gx-net { top: calc(42px + var(--sa-t)); font-size: 10px; } .gx-play span { display: none; } .gx-play { height: 34px; padding: 0 10px; }
+  .gx-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; } .gx-tools::-webkit-scrollbar { display: none; } #gx-full, #gx-share { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .gx-tx, .gx-card { animation: none; } .gx-live.on i { animation: none; } }

@@ -101,6 +101,10 @@
       "destination": "/galaxy.html"
     },
     {
+      "source": "/embed/galaxy",
+      "destination": "/galaxy.html"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },

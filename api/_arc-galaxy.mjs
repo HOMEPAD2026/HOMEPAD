@@ -82,7 +82,10 @@ export const LABELS = {
   "0xa5628a11c412596e1f63b75a2c0284f843c549d6": ["Argus Portal (v1)", "launch"],
   "0x07a688a001f416cc433c68ff56aa26bc5131cc6e": ["Argus Portal (v2)", "launch"],
 };
-const BRIDGE = new Set(["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", "0x81d40f21f12a8f0e3252bccb954d722d4c464b64"]);
+// CCTP V2: mainnet Token Messenger / Message Transmitter, and the testnet's (Circle's testnet V2 addresses)
+const BRIDGE = new Set(["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", "0x81d40f21f12a8f0e3252bccb954d722d4c464b64", "0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa", "0xe737e5cebeeba77efe34d4aa090756590b1ce275"]);
+const TRANSMITTERS = new Set(["0x81d40f21f12a8f0e3252bccb954d722d4c464b64", "0xe737e5cebeeba77efe34d4aa090756590b1ce275"]);
+const MESSENGERS = new Set(["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", "0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa"]);
 const SWAPPERS = new Set(["0x8366a39cc670b4001a1121b8f6a443a643e40951", "0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1", "0x305da1b305249072b13b73ab394e02046c865d56", "0xfca8fd788d44bb335b1451257366e06d67114785"]);
 const SEL_APPROVE = new Set(["0x095ea7b3", "0x87517c45", "0xd505accf"]); // approve, Permit2 approve, permit
 const SEL_TRANSFER = new Set(["0xa9059cbb", "0x23b872dd"]);              // transfer, transferFrom
@@ -96,9 +99,9 @@ export function classify(tx, rc) {
   for (const l of logs) {
     const a = lc(l.address), t0 = lc(l.topics && l.topics[0]);
     if (BRIDGE.has(a)) bridge = true;
-    if (a === CCTP.transmitter && t0 === CCTP.received) { const d = word(l.data, 0); if (d != null && d < 1000) br = "i" + d; }
-    if (a === CCTP.messenger && t0 === CCTP.deposit) { const d = word(l.data, 2); if (d != null && d < 1000) br = "o" + d; }
-    if (a === CCTP.messenger && t0 === CCTP.mint) { const m = big("0x" + String(l.data || "").replace(/^0x/, "").slice(0, 64)) / 10000n; if (m > mint) mint = m; }
+    if (TRANSMITTERS.has(a) && t0 === CCTP.received) { const d = word(l.data, 0); if (d != null && d < 1000) br = "i" + d; }
+    if (MESSENGERS.has(a) && t0 === CCTP.deposit) { const d = word(l.data, 2); if (d != null && d < 1000) br = "o" + d; }
+    if (MESSENGERS.has(a) && t0 === CCTP.mint) { const m = big("0x" + String(l.data || "").replace(/^0x/, "").slice(0, 64)) / 10000n; if (m > mint) mint = m; }
     if (SWAP_TOPICS.has(t0)) swap = true;
     if (t0 === T.single || t0 === T.batch) nft = true;
     if (t0 === T.transfer) {
@@ -351,7 +354,29 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   return { live, day, tx, state: st, nameOf };
 }
 
-let one = null;
-export const galaxy = () => (one || (one = makeGalaxy())).live();
-export const galaxyDay = () => (one || (one = makeGalaxy())).day();
-export const galaxyTx = (h) => (one || (one = makeGalaxy())).tx(h);
+// GX4: Arc TESTNET (chain 5042002) — its own RPCs (checked by the worker 2026-11-07: every one takes 100 a batch except
+// dRPC; a -32005 'rate limit' right after a big batch passes a moment later → the next RPC), names from eth_call + its
+// Blockscout (explorer.testnet.arc.io answers, CORS *), kept apart in the store (arcGalaxyTest…)
+export const TESTNET = { chainId: 5042002, rpcs: ["https://rpc.testnet.arc.io", "https://rpc.testnet.arc.network", "https://rpc.quicknode.testnet.arc.io", "https://rpc.blockdaemon.testnet.arc.io"], explorer: "https://explorer.testnet.arc.io" };
+let tIdx = 0;
+export async function testRpc(body) {
+  let err;
+  for (let k = 0; k < TESTNET.rpcs.length; k++) {
+    const url = TESTNET.rpcs[(tIdx + k) % TESTNET.rpcs.length];
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) });
+      if (r.status === 429 || r.status >= 500) throw new Error("rpc " + r.status);
+      const out = await r.json();
+      const bad = (Array.isArray(out) ? out : [out]).find((x) => x && x.error && /rate|limit|batch/i.test(String(x.error.message)));
+      if (bad || (Array.isArray(body) && !Array.isArray(out))) throw new Error((bad && bad.error.message) || "batch refused");
+      tIdx = (tIdx + k) % TESTNET.rpcs.length;
+      return out;
+    } catch (e) { err = e; }
+  }
+  throw err || new Error("no testnet rpc");
+}
+let one = null, test = null;
+const inst = (net) => net === "testnet" ? (test || (test = makeGalaxy({ rpc: testRpc, explorer: explorerFor(TESTNET.explorer), key: "arcGalaxyTest" }))) : (one || (one = makeGalaxy()));
+export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ? { ...o, chain: TESTNET.chainId, net: "testnet" } : o));
+export const galaxyDay = (net) => inst(net).day();
+export const galaxyTx = (h, net) => inst(net).tx(h);
