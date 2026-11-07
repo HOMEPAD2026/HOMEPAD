@@ -89,19 +89,24 @@ const MESSENGERS = new Set(["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", "0x8fe
 const SWAPPERS = new Set(["0x8366a39cc670b4001a1121b8f6a443a643e40951", "0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1", "0x305da1b305249072b13b73ab394e02046c865d56", "0xfca8fd788d44bb335b1451257366e06d67114785"]);
 const SEL_APPROVE = new Set(["0x095ea7b3", "0x87517c45", "0xd505accf"]); // approve, Permit2 approve, permit
 const SEL_TRANSFER = new Set(["0xa9059cbb", "0x23b872dd"]);              // transfer, transferFrom
+// GX7: EIP-3009 signed USDC payments — transferWithAuthorization (v,r,s and bytes forms) / receiveWithAuthorization —
+// how x402 and AI agents pay without holding gas; a relayer's batch is caught by USDC's AuthorizationUsed log
+export const SEL_AUTH = new Set(["0xe3ee160e", "0xcf092995", "0xef55bec6"]);
+export const T_AUTH_USED = "0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5";
 
 const big = (h) => { try { return BigInt(h || "0x0"); } catch { return 0n; } };
 /// one transaction (+ its receipt when the RPC gives receipts) → { k, usd (cents), ok }
 export function classify(tx, rc) {
   const to = lc(tx.to), input = String(tx.input || tx.data || "0x"), sel = input.length >= 10 ? input.slice(0, 10).toLowerCase() : "";
   const logs = (rc && rc.logs) || [];
-  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false, br = 0, mint = 0n;
+  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false, br = 0, mint = 0n, auth = to === USDC && SEL_AUTH.has(sel);
   for (const l of logs) {
     const a = lc(l.address), t0 = lc(l.topics && l.topics[0]);
     if (BRIDGE.has(a)) bridge = true;
     if (TRANSMITTERS.has(a) && t0 === CCTP.received) { const d = word(l.data, 0); if (d != null && d < 1000) br = "i" + d; }
     if (MESSENGERS.has(a) && t0 === CCTP.deposit) { const d = word(l.data, 2); if (d != null && d < 1000) br = "o" + d; }
     if (MESSENGERS.has(a) && t0 === CCTP.mint) { const m = big("0x" + String(l.data || "").replace(/^0x/, "").slice(0, 64)) / 10000n; if (m > mint) mint = m; }
+    if (a === USDC && t0 === T_AUTH_USED) auth = true;
     if (SWAP_TOPICS.has(t0)) swap = true;
     if (t0 === T.single || t0 === T.batch) nft = true;
     if (t0 === T.transfer) {
@@ -114,6 +119,7 @@ export function classify(tx, rc) {
   // the native coin is USDC (18 decimals); count it when no USDC Transfer log says the same thing already
   const native = big(tx.value) / 10n ** 16n;
   if (native > usd) usd = native;
+  if (!usd && to === USDC && SEL_AUTH.has(sel)) usd = big("0x" + input.slice(138, 202)) / 10000n; // (from, to, value, …)
   if (!usd && to === USDC && SEL_TRANSFER.has(sel)) { // no receipt: read the amount from the call itself
     const amt = big("0x" + input.slice(sel === "0xa9059cbb" ? 74 : 138, sel === "0xa9059cbb" ? 138 : 202));
     usd = amt / 10000n;
@@ -134,7 +140,10 @@ export function classify(tx, rc) {
   if (k === K.swap) { const seen = new Set([to, USDC]); const r = []; for (const l of logs) { const a = lc(l.address); if (!seen.has(a)) { seen.add(a); r.push(a); if (r.length >= 3) break; } } if (r.length) route = r; }
   if (k === K.deploy && rc && rc.contractAddress) route = "c" + lc(rc.contractAddress);
   const cents = usd > 9007199254740991n ? 9007199254740991 : Number(usd);
-  return { k, usd: cents, ok, sel, br, route };
+  // GX7: the fee in USDC (the native gas coin, 18 decimals) in millionths of a dollar
+  let fee = 0;
+  if (rc && rc.gasUsed) { const f = big(rc.gasUsed) * big(rc.effectiveGasPrice || tx.gasPrice || "0x0") / 10n ** 12n; fee = f > 9007199254740991n ? 9007199254740991 : Number(f); }
+  return { k, usd: cents, ok, sel, br, route, auth: auth ? 1 : 0, fee };
 }
 
 const hx = (n) => "0x" + Number(n).toString(16);
@@ -224,15 +233,15 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   function add({ b, rcs }) {
     const n = Number(b.number), ts = Number(b.timestamp) * 1000;
     const byHash = new Map((rcs || []).map((r) => [lc(r.transactionHash), r]));
-    let fails = 0, usd = 0;
+    let fails = 0, usd = 0, fee = 0, auth = 0;
     for (const tx of b.transactions || []) {
       if (typeof tx !== "object") continue;
       const c = classify(tx, byHash.get(lc(tx.hash)) || null);
       if (c.ok === 0) fails++;
-      usd += c.usd;
-      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0]);
+      usd += c.usd; fee += c.fee; auth += c.auth;
+      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0, c.auth]);
     }
-    st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed))]);
+    st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed)), fee, auth]);
   }
 
   function trim(t) {
@@ -331,9 +340,11 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
         span, txs: total, tps: span > 0 ? total / span : null, tps1m: span1 > 0 ? tx1 / span1 : null,
         blockTime: bt, usd1m: m1.reduce((s, x) => s + x[4], 0), usd10m: b.reduce((s, x) => s + x[4], 0),
         failRate: known.length ? failed / known.length : null, kinds, wallets: new Set(st.rows.map((r) => r[2])).size,
+        // GX7: fees paid in USDC (millionths of a dollar) and signed (EIP-3009) payments over the ten minutes; blocks read without receipts carry no fee
+        fee10m: b.reduce((s, x) => s + (x[6] || 0), 0), feeTxs: st.receipts ? total : 0, auth10m: b.reduce((s, x) => s + (x[7] || 0), 0),
       },
       top: topList, blocks: b.map((x) => x.slice(0, 5)),
-      rows: rows.map((r) => r.slice(0, 11)), labels, groups: GROUPS, kindNames: KINDS,
+      rows: rows.map((r) => r.slice(0, 12)), labels, groups: GROUPS, kindNames: KINDS,
       err: st.err,
     };
   }
@@ -377,7 +388,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const to = lc(t.to || "");
     await resolveNames([to].filter(Boolean), now()).catch(() => {});
     const labels = {}; const nm = to && nameOf(to); if (nm) labels[to] = nm;
-    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
+    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0, c.auth], fee: c.fee, labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
   }
   /// the last 24 hours, a minute at a time: [minute, txs, usd cents, failed] (only minutes the feed read)
   async function day() { if (!st.loaded) await loadSnap(now()).catch(() => {}); return { at: now(), minutes: dayOut() }; }

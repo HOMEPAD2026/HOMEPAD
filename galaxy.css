@@ -35,6 +35,10 @@ button, input, select { font: inherit; color: inherit; }
 .gx-st b { display: block; font: 800 22px/1.1 "Exo 2", sans-serif; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
 .gx-st span { display: block; margin-top: 3px; color: var(--dim); font-size: 11px; }
 .gx-st.gold b { color: var(--gold); text-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
+/* GX7: the fee / signed-payment row is slimmer on computers; the legend follows the stats down */
+@media (min-width: 761px) { .gx-st.mini { padding: 7px 12px; } .gx-st.mini b { font-size: 16px; } .gx-st.mini span { font-size: 10.5px; margin-top: 1px; } }
+.gx-st.agent b { color: #ff9a3c; text-shadow: 0 0 14px rgba(255, 154, 60, 0.4); }
+.gx-tx.auth { border-color: rgba(255, 154, 60, 0.45); }
 
 /* side panels */
 .gx-side { padding: 12px 14px; }
