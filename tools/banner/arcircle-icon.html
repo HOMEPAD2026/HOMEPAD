@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>ARCIRCLE icon</title>
+<!-- The ARCIRCLE square icon (500×500) and its 8 s loop: the glass ∞ (Meshy, images/brand/mark-v2.png) on a navy disc,
+     an orbit ring with riding lights, a light sweeping the glass, twinkling stars. Everything sits inside the inner circle,
+     so a round crop keeps it whole. window.draw(t) paints the moment t (s); tools/banner/render-icon.mjs records it. -->
+<style>html,body{margin:0;background:#050b22}canvas{display:block}</style>
+</head><body>
+<canvas id="c"></canvas>
+<script>
+const Q = new URLSearchParams(location.search);
+const S = +(Q.get("scale") || 1), W = 500, H = 500, LOOP = 8, TAU = Math.PI * 2;
+const cv = document.getElementById("c"); cv.width = W * S; cv.height = H * S; cv.style.width = W + "px"; cv.style.height = H + "px";
+const x = cv.getContext("2d");
+const wave = (t, per, ph = 0) => Math.sin(TAU * (t / per + ph));
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const STARS = Array.from({ length: 90 }, () => ({ x: rnd() * W, y: rnd() * H, r: 0.4 + Math.pow(rnd(), 3) * 1.5, a: 0.3 + rnd() * 0.7, k: 1 + Math.floor(rnd() * 3), p: rnd() }));
+const IMG = {};
+const off = document.createElement("canvas"), ox = off.getContext("2d");
+function draw(t) {
+  x.setTransform(S, 0, 0, S, 0, 0);
+  const C = W / 2;
+  // navy disc with a soft blue / violet / mint glow
+  x.fillStyle = "#050b22"; x.fillRect(0, 0, W, H);
+  const g = (cx, cy, r, col) => { const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r); gr.addColorStop(0, col); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; x.fillRect(0, 0, W, H); };
+  x.globalCompositeOperation = "lighter";
+  g(C, C, 250, `rgba(40,120,255,${0.34 + 0.04 * wave(t, LOOP / 2)})`);
+  g(C - 90, C + 60, 170, "rgba(150,70,255,0.16)");
+  g(C + 95, C - 50, 170, "rgba(40,230,170,0.14)");
+  x.globalCompositeOperation = "source-over";
+  for (const s of STARS) { const tw = 0.55 + 0.45 * wave(t, LOOP / s.k, s.p); x.globalAlpha = s.a * tw; x.fillStyle = "#ffffff"; x.beginPath(); x.arc(s.x, s.y, s.r, 0, TAU); x.fill(); }
+  x.globalAlpha = 1;
+  // the orbit ring and its lights (tilted ellipse round the mark)
+  x.save(); x.translate(C, C + 6); x.rotate(-0.18);
+  x.strokeStyle = "rgba(143,233,255,0.28)"; x.lineWidth = 1.6; x.setLineDash([3, 8]); x.beginPath(); x.ellipse(0, 0, 205, 92, 0, 0, TAU); x.stroke(); x.setLineDash([]);
+  x.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 3; i++) { const a = TAU * (t / LOOP + i / 3), px = Math.cos(a) * 205, py = Math.sin(a) * 92, gr = x.createRadialGradient(px, py, 0, px, py, 16); gr.addColorStop(0, "rgba(170,255,240,0.95)"); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; x.fillRect(px - 16, py - 16, 32, 32); }
+  x.restore();
+  // the glass ∞, breathing, with a light sweeping across it every 4 s
+  const im = IMG.mark; if (!im) return;
+  const sc = 1 + 0.02 * wave(t, LOOP / 2), w = 380 * sc, h = w * im.height / im.width, X0 = C - w / 2, Y0 = C - h / 2 + 3 * wave(t, LOOP, 0.25);
+  x.save(); x.globalCompositeOperation = "lighter"; const gr = x.createRadialGradient(C, C, 0, C, C, w * 0.6); gr.addColorStop(0, "rgba(90,200,255,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; x.fillRect(0, 0, W, H); x.restore();
+  x.drawImage(im, X0, Y0, w, h);
+  const u = ((t % (LOOP / 2)) / (LOOP / 2)) * 1.8 - 0.4;
+  if (u > -0.3 && u < 1.3) {
+    off.width = Math.ceil(w); off.height = Math.ceil(h); ox.clearRect(0, 0, off.width, off.height); ox.drawImage(im, 0, 0, w, h);
+    ox.globalCompositeOperation = "source-atop"; const sx = u * w, lg = ox.createLinearGradient(sx - 60, 0, sx + 60, h * 0.25);
+    lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(0.5, "rgba(255,255,255,0.6)"); lg.addColorStop(1, "rgba(255,255,255,0)"); ox.fillStyle = lg; ox.fillRect(0, 0, w, h); ox.globalCompositeOperation = "source-over";
+    x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = 0.8; x.drawImage(off, X0, Y0); x.restore();
+  }
+}
+window.draw = draw;
+window.ready = new Promise((ok) => { const im = new Image(); im.onload = () => { IMG.mark = im; ok(); }; im.onerror = ok; im.src = "/images/brand/mark-v2.png"; }).then(() => draw(+(Q.get("t") || 1)));
+</script>
+</body></html>
