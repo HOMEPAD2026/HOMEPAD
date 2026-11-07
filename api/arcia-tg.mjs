@@ -1040,6 +1040,31 @@ async function talkWrite(T, topic, last) {
 }
 const JOIN_TOPIC = "how to join ARCIRCLE WORLD right now, for anyone new in the chat: open arcircle.app/game, tap PLAY FREE, it runs in the browser on a phone or PC, play as a guest first and connect a wallet later to keep progress and earn ARCL; name one game to try first (KART is the newest) and invite them to ask you anything here";
 const homeKb = () => kb([[{ text: "🎮 Play free", url: `${SITE}/game` }, { text: "🛠 Studio", url: `${SITE}/studio` }]]);
+// GX9: ARC GALAXY on Telegram — a $100K+ USDC move on Arc, at most one post every GX_WHALE_GAP, and each new million
+// blocks; only with ARCIA_TG_WHALES=1 (the owner turns it on), to the announcement targets
+const GX_WHALE = 1e7, GX_WHALE_GAP = 20 * 60e3; // cents; ms
+async function galaxyPosts(T, c) {
+  if (process.env.ARCIA_TG_WHALES !== "1" || !c.targets.length) return 0;
+  const r = await fetch("https://www.arcircle.app/api/social?arc=galaxy", { signal: AbortSignal.timeout(6000) }).catch(() => null);
+  const j = r && r.ok ? await r.json().catch(() => null) : null;
+  if (!j || !Array.isArray(j.rows)) return 0;
+  const now = Date.now(), seen = new Set(T.gxSeen || []);
+  let out = 0;
+  const mil = Math.floor((j.head || 0) / 1e6) * 1e6;
+  if (mil && T.gxMil && mil > T.gxMil) out += await postToTargets(c, { text: `🎉 Arc just passed block #${mil.toLocaleString("en-US")}.\n\nWatch every transaction fly live on ARC GALAXY:\nhttps://www.arcircle.app/galaxy`, noPreview: false });
+  if (mil) T.gxMil = mil;
+  if (now - (T.gxAt || 0) >= GX_WHALE_GAP) {
+    const big = j.rows.filter((x) => x[5] >= GX_WHALE && x[6] !== 0 && !seen.has(x[0]) && now - x[8] < 10 * 60e3).sort((a, b2) => b2[5] - a[5])[0];
+    if (big) {
+      T.gxAt = now; seen.add(big[0]); T.gxSeen = [...seen].slice(-60);
+      const kinds = j.kindNames || [], kind = kinds[big[4]] || "transfer", usd = Math.round(big[5] / 100).toLocaleString("en-US");
+      const lab = j.labels && big[3] && j.labels[big[3]] ? ` to ${j.labels[big[3]][0]}` : "";
+      const how = kind === "bridge" ? (typeof big[9] === "string" && big[9][0] === "i" ? " bridged in through CCTP" : " bridged out through CCTP") : kind === "swap" ? " in a swap" : "";
+      out += await postToTargets(c, { text: `🐋 $${usd} USDC just moved on Arc${how}${lab}.\n\nSee it on ARC GALAXY: https://www.arcircle.app/galaxy?tx=${big[0]}`, noPreview: true });
+    }
+  }
+  return out;
+}
 async function talkPost(T, c) {
   const now = Date.now(), h = Math.floor(now / 3600e3);
   let out = 0;
@@ -2137,6 +2162,7 @@ async function tick() {
   T.mirrored = [...posts.map((x) => String(x.id)), ...(T.mirrored || [])].slice(0, 60);
   // her own word to the community (2026-11-01)
   if (!first) { try { out.talk = await talkPost(T, c); } catch (e) { out.talk = String(e.message || e).slice(0, 120); } }
+  if (!first) { try { out.galaxy = await galaxyPosts(T, c); } catch (e) { out.galaxy = String(e.message || e).slice(0, 120); } }
   // scheduled announcements
   const sc = (await getDoc(DOC.sched)) || { list: [] };
   const due = sc.list.filter((x) => x.at <= now);

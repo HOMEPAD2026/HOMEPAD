@@ -226,7 +226,7 @@ export const defaultStore = {
 // testnet's Blockscout answers (explorerFor). Names come from eth_call + LABELS.
 export const explorerFor = (base) => (base ? (a) => fetchJson(`${base}/api/v2/addresses/${a}`) : async () => null);
 export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy" } = {}) {
-  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [], claims: new Map() };
+  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [], claims: new Map(), rec: null };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
   async function readBlocks(from, to) {
@@ -246,6 +246,16 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     return res;
   }
 
+  // GX9: records — today's (UTC) and everything ARC GALAXY has seen: the biggest USDC move [cents, tx, t], the busiest
+  // block [txs, number, t], the peak tx/s over a minute [x100, head, t]; kept with the snapshot
+  const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
+  function bump(kind, v, ref, t) {
+    if (!(v > 0)) return;
+    const r = st.rec || (st.rec = { day: dayKey(t), today: {}, ever: {} });
+    if (r.day !== dayKey(t)) { r.day = dayKey(t); r.today = {}; }
+    if (!r.today[kind] || v > r.today[kind][0]) r.today[kind] = [v, ref, t];
+    if (!r.ever[kind] || v > r.ever[kind][0]) r.ever[kind] = [v, ref, t];
+  }
   function add({ b, rcs }) {
     const n = Number(b.number), ts = Number(b.timestamp) * 1000;
     const byHash = new Map((rcs || []).map((r) => [lc(r.transactionHash), r]));
@@ -255,9 +265,11 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
       const c = classify(tx, byHash.get(lc(tx.hash)) || null);
       if (c.ok === 0) fails++;
       usd += c.usd; fee += c.fee; auth += c.auth;
+      if (c.usd > 0 && c.ok !== 0) bump("usd", c.usd, lc(tx.hash), ts);
       st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0, c.auth]);
     }
     st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed)), fee, auth]);
+    bump("block", (b.transactions || []).length, n, ts);
   }
 
   function trim(t) {
@@ -316,6 +328,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
       if (Array.isArray(j.day)) st.day = j.day.filter((m) => m[0] > t - 864e5);
       if (!(t - (j.at || 0) < 10 * 60e3) || !Array.isArray(j.rows)) return;
       if (j.names) for (const [a, n, g] of j.names) if (!st.names.has(a)) st.names.set(a, { n, g, at: t });
+      if (j.rec && !st.rec) st.rec = j.rec;
       st.rows = j.rows; st.blocks = j.blocks || []; st.head = j.head || 0; st.out = shape(t); st.out.warming = true;
     } catch { /* start fresh */ }
   }
@@ -329,7 +342,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     if (t - st.snapAt < snapEvery) return;
     st.snapAt = t;
     const names = [...st.names.entries()].filter(([, v]) => v.n).slice(-300).map(([a, v]) => [a, v.n, v.g]);
-    const rows = st.rows.slice(-900), j = JSON.stringify({ at: t, head: st.head, rows, blocks: st.blocks, day: dayOut(), names });
+    const rows = st.rows.slice(-900), j = JSON.stringify({ at: t, head: st.head, rows, blocks: st.blocks, day: dayOut(), names, rec: st.rec });
     store.set(key + "/snap", { j, at: t });
   }
 
@@ -378,6 +391,8 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     await Promise.race([resolveNames([...cnt.entries()].sort((x, y) => y[1] - x[1]).slice(0, 40).map((x) => x[0]), t), new Promise((r) => setTimeout(r, 2500))]).catch(() => {});
     addDay(); saveSnap(t);
     st.err = null; st.readAt = t; st.out = shape(t);
+    if (st.out.stats && st.out.stats.tps1m != null && st.blocks.length > 60) bump("tps", Math.round(st.out.stats.tps1m * 100), st.head, t);
+    st.out.records = st.rec;
     return st.out;
   }
 
