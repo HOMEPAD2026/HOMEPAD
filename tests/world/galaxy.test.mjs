@@ -32,6 +32,11 @@ ok(classify({ to: C, input: "0x23b872dd" + pad(A) + pad(B) + pad("1") }, rc([{ a
 ok(classify({ to: C, input: "0xa9059cbb" + pad(B) + pad("ff") }, rc([{ address: C, topics: [T.transfer, "0x" + pad(A), "0x" + pad(B)], data: "0xff" }])).k === K.token, "another token's transfer");
 ok(classify({ to: C, input: "0x095ea7b3" + pad(B) + pad("ff") }, rc([])).k === K.approve, "an approval");
 ok(classify({ to: C, input: "0xdeadbeef" }, rc([], false)).ok === 0, "a failed call");
+{ const P1 = "0x" + "1".repeat(40), P2 = "0x" + "2".repeat(40);
+  const sw = classify({ to: "0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1", input: "0x24856bc3" }, rc([{ address: P1, topics: [T.v4] }, { address: P2, topics: [T.transfer, "0x" + pad(A), "0x" + pad(B)], data: "0x01" }, usdcLog(5)]));
+  ok(Array.isArray(sw.route) && sw.route[0] === P1 && sw.route[1] === P2 && sw.route.length === 2, "a swap's route: the pool and the token it touched");
+  const dp = classify({ to: null, input: "0x6080" }, { status: "0x1", logs: [], contractAddress: P1 });
+  ok(dp.route === "c" + P1, "a deployment carries its new address"); }
 ok(classify({ to: C, input: "0xdeadbeef" }, rc([])).k === K.call, "anything else: a contract call");
 ok(LABELS[USDC][0] === "USDC" && LABELS["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d"][1] === "circle", "labels");
 
