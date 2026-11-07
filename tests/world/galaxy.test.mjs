@@ -42,11 +42,14 @@ const rpc = async (body) => {
     if (q.method === "eth_blockNumber") return { id: q.id, result: "0x" + head.toString(16) };
     const n = Number(q.params[0]);
     if (q.method === "eth_getBlockByNumber") return { id: q.id, result: n <= head ? blk(n) : null };
+    if (q.method === "eth_call") { const sel = q.params[0].data, to = q.params[0].to; if (to !== C) return { id: q.id, result: "0x" }; const str = (x) => "0x" + pad("20") + pad(x.length.toString(16)) + Buffer.from(x).toString("hex").padEnd(64, "0"); return { id: q.id, result: sel === "0x95d89b41" ? str("PEPE") : sel === "0x06fdde03" ? str("Pepe Token") : "0x" + pad("12") }; }
     if (q.method === "eth_getBlockReceipts") return receiptsOk ? { id: q.id, result: rcs(n) } : { id: q.id, error: { message: "the method eth_getBlockReceipts does not exist" } };
   };
   return Array.isArray(body) ? body.map(one) : one(body);
 };
-const g = makeGalaxy({ rpc, now: () => clock });
+const mem = new Map(), memStore = { async get(ps) { return Object.fromEntries(ps.map((x) => [x, mem.get(x) || null])); }, async set(x, d) { mem.set(x, d); } };
+const noEx = async () => null;
+const g = makeGalaxy({ rpc, now: () => clock, store: memStore, explorer: noEx });
 let out = await g.live();
 ok(out.head === 1000 && out.blocks.length === 100 && out.rows.length === 300, "a cold start reads the last BACKFILL blocks");
 ok(out.stats.kinds[K.usdc] === 100 && out.stats.kinds[K.deploy] === 100 && out.stats.kinds[K.call] === 100, "kinds counted");
@@ -63,12 +66,12 @@ ok(out.rows.every((r) => r[8] >= out.at - WINDOW_MS - 60e3), "rows only from the
 ok(out.blocks.length <= MAX_BLOCKS + 104, "asleep too long → starts over with the last MAX_BLOCKS");
 // an RPC without eth_getBlockReceipts: status not known, nothing breaks
 receiptsOk = false;
-const g2 = makeGalaxy({ rpc, now: () => clock });
+const g2 = makeGalaxy({ rpc, now: () => clock, store: { async get() { return {}; }, async set() {} }, explorer: noEx });
 out = await g2.live(); clock += 1000; head += 2; out = await g2.live();
 ok(out.receipts === false && out.rows.slice(-3).every((r) => r[6] === -1), "no receipts → ok -1");
 ok(out.rows.slice(-3)[0][5] === 100, "the USDC amount still read from the call");
 // a failing RPC after a good read keeps the last answer, marked stale
-const g3 = makeGalaxy({ rpc: async (b) => { if (bad) throw new Error("rpc 503"); return rpc(b); }, now: () => clock });
+const g3 = makeGalaxy({ rpc: async (b) => { if (bad) throw new Error("rpc 503"); return rpc(b); }, now: () => clock, store: { async get() { return {}; }, async set() {} }, explorer: noEx });
 let bad = false; receiptsOk = true; await g3.live(); clock += 1500; bad = true; out = await g3.live();
 ok(out.stale && /503/.test(out.err) && out.rows.length > 0, "a failed read keeps the last answer (stale)");
 
@@ -80,5 +83,23 @@ ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync
 { const h = fs.readFileSync(new URL("../../galaxy.html", import.meta.url), "utf8");
   ok(/og:image" content="https:\/\/www\.arcircle\.app\/images\/galaxy\/og-card\.jpg"/.test(h) && /twitter:image" content="https:\/\/www\.arcircle\.app\/images\/galaxy\/og-card\.jpg"/.test(h) && /summary_large_image/.test(h), "the X card: og + twitter image tags");
   ok(fs.statSync(new URL("../../images/galaxy/og-card.jpg", import.meta.url)).size < 300000, "the card's picture < 300 KB"); }
+// GX1: names, the snapshot, the day
+{
+  ok(out.labels && true, "labels present");
+  const t1 = makeGalaxy({ rpc, now: () => clock, store: memStore, explorer: noEx });
+  head = 5000; clock = t0 + 4000 * 500; receiptsOk = true;
+  let o = await t1.live();
+  ok(o.labels[C] && o.labels[C][0] === "PEPE · Pepe Token" && o.labels[C][1] === "token", "an unlabelled ERC-20 gets its symbol · name");
+  ok(mem.get("arcGalaxyName/" + C) && mem.get("arcGalaxyName/" + C).n === "PEPE · Pepe Token", "the name is kept in the store");
+  ok(mem.get("arcGalaxy/snap") && JSON.parse(mem.get("arcGalaxy/snap").j).rows.length > 0, "a snapshot is saved");
+  // a cold start with a slow chain answers from the snapshot (warming)
+  const slow = async (b) => { await new Promise((r) => setTimeout(r, 3200)); return rpc(b); };
+  const t2 = makeGalaxy({ rpc: slow, now: () => clock, store: memStore, explorer: noEx });
+  const s0 = Date.now(); o = await t2.live();
+  ok(o.warming && o.rows.length > 0 && Date.now() - s0 < 3100, "a cold start serves the snapshot while the first read runs");
+  ok(o.labels[C] && o.labels[C][0].startsWith("PEPE"), "names come back with the snapshot");
+  const d = await t1.day();
+  ok(Array.isArray(d.minutes) && d.minutes.length > 0 && d.minutes.every((m) => m.length === 4), "the day's minutes");
+}
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

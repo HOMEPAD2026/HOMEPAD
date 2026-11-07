@@ -18,11 +18,11 @@ const POLL_MS = 2000, LAG_MS = 4500, REPLAY_S = 12;
 
 // ---------------------------------------------------------------- words (en / ko / zh / tr)
 const W = {
-  ko: { tag: "Arc의 모든 트랜잭션을 실시간 3D로", by: "커뮤니티 제작:", notOfficial: "Arc 공식 사이트가 아닙니다", connecting: "Arc에 연결하는 중…", live: "LIVE", replay: "지난 2분 되감기", quiet: "Arc가 조용한 순간 — 지난 2분을 다시 보여줍니다", tps: "초당 트랜잭션", blockTime: "블록 시간", usd10: "USDC 이동 · 10분", txs10: "트랜잭션 · 10분", okRate: "성공률", wallets: "활동 지갑", kinds: "날아가는 것들", kindsHint: "종류를 눌러 숨기거나 보이세요.", busiest: "가장 바쁜 컨트랙트 · 10분", follow: "지갑이나 컨트랙트 따라가기 — 0x… 붙여넣기", followBtn: "따라가기", share: "공유", src: "데이터: Arc 공개 RPC · 2초마다 갱신", usdc: "USDC 전송", swap: "스왑", bridge: "브리지 (CCTP)", token: "토큰 전송", nft: "NFT", deploy: "새 컨트랙트", approve: "승인", call: "컨트랙트 호출", failed: "실패", txsSeen: "본 트랜잭션", lastMin: "최근 2분", kindsOf: "종류", openExp: "탐색기에서 보기", copy: "주소 복사", copied: "복사됨", following: "따라가는 중", waiting: "이 주소의 다음 트랜잭션을 기다리는 중…", bad: "Arc RPC가 응답하지 않아요 — 다시 시도 중", demo: "DEMO — 만들어낸 데이터입니다 (실제 Arc 아님)", top: "Top", none: "아직 없음", contract: "컨트랙트", wallet: "지갑", noWebgl: "이 브라우저는 WebGL을 쓸 수 없어 3D를 그릴 수 없어요.", badAddr: "0x로 시작하는 40자리 주소를 넣어 주세요." },
-  zh: { tag: "Arc 上的每一笔交易，实时 3D 呈现", by: "社区制作：", notOfficial: "非 Arc 官方网站", connecting: "正在连接 Arc…", live: "实时", replay: "回放最近 2 分钟", quiet: "Arc 此刻很安静 — 回放最近 2 分钟", tps: "每秒交易", blockTime: "出块时间", usd10: "USDC 流动 · 10 分钟", txs10: "交易 · 10 分钟", okRate: "成功率", wallets: "活跃钱包", kinds: "正在飞的", kindsHint: "点按类型以隐藏或显示。", busiest: "最繁忙合约 · 10 分钟", follow: "关注钱包或合约 — 粘贴 0x…", followBtn: "关注", share: "分享", src: "数据：Arc 公共 RPC · 每 2 秒更新", usdc: "USDC 转账", swap: "兑换", bridge: "跨链桥 (CCTP)", token: "代币转账", nft: "NFT", deploy: "新合约", approve: "授权", call: "合约调用", failed: "失败", txsSeen: "看到的交易", lastMin: "最近 2 分钟", kindsOf: "类型", openExp: "在浏览器中查看", copy: "复制地址", copied: "已复制", following: "正在关注", waiting: "等待此地址的下一笔交易…", bad: "Arc RPC 未响应 — 正在重试", demo: "DEMO — 虚构数据（不是真实的 Arc）", top: "排行", none: "暂无", contract: "合约", wallet: "钱包", noWebgl: "此浏览器无法使用 WebGL，无法绘制 3D。", badAddr: "请输入以 0x 开头的 40 位地址。" },
-  tr: { tag: "Arc'taki her işlem, canlı 3D", by: "Topluluk yapımı:", notOfficial: "resmi Arc sitesi değildir", connecting: "Arc'a bağlanılıyor…", live: "CANLI", replay: "Son 2 dakika geri sarılıyor", quiet: "Arc'ta sakin bir an — son 2 dakika tekrar", tps: "işlem / saniye", blockTime: "blok süresi", usd10: "taşınan USDC · 10 dk", txs10: "işlem · 10 dk", okRate: "başarılı", wallets: "aktif cüzdan", kinds: "Uçanlar", kindsHint: "Gizlemek / göstermek için bir türe dokunun.", busiest: "En yoğun kontratlar · 10 dk", follow: "Bir cüzdanı veya kontratı izle — 0x… yapıştır", followBtn: "İzle", share: "Paylaş", src: "Veri: Arc'ın açık RPC'si · 2 sn'de bir", usdc: "USDC transferi", swap: "Takas", bridge: "Köprü (CCTP)", token: "Token transferi", nft: "NFT", deploy: "Yeni kontrat", approve: "Onay", call: "Kontrat çağrısı", failed: "başarısız", txsSeen: "görülen işlem", lastMin: "son 2 dk", kindsOf: "türler", openExp: "Gezginde aç", copy: "Adresi kopyala", copied: "Kopyalandı", following: "İzleniyor", waiting: "Bu adresin bir sonraki işlemi bekleniyor…", bad: "Arc RPC yanıt vermedi — yeniden deneniyor", demo: "DEMO — uydurma veri (gerçek Arc değil)", top: "Top", none: "henüz yok", contract: "kontrat", wallet: "cüzdan", noWebgl: "Bu tarayıcı WebGL kullanamıyor; 3D çizilemez.", badAddr: "0x ile başlayan 40 haneli bir adres girin." },
+  ko: { warming: "피드를 깨우는 중 — 저장된 최근 기록부터 보여줍니다…", reading: "Arc의 최신 블록을 읽는 중…", finding: "Arc에서 그 트랜잭션을 찾는 중…", noTx: "Arc에 그런 트랜잭션이 (아직) 없어요.", block: "블록", from: "보낸 곳", to: "받는 곳", when: "시각", tag: "Arc의 모든 트랜잭션을 실시간 3D로", by: "커뮤니티 제작:", notOfficial: "Arc 공식 사이트가 아닙니다", connecting: "Arc에 연결하는 중…", live: "LIVE", replay: "지난 2분 되감기", quiet: "Arc가 조용한 순간 — 지난 2분을 다시 보여줍니다", tps: "초당 트랜잭션", blockTime: "블록 시간", usd10: "USDC 이동 · 10분", txs10: "트랜잭션 · 10분", okRate: "성공률", wallets: "활동 지갑", kinds: "날아가는 것들", kindsHint: "종류를 눌러 숨기거나 보이세요.", busiest: "가장 바쁜 컨트랙트 · 10분", follow: "지갑·컨트랙트 따라가기 또는 트랜잭션 찾기 — 0x… 붙여넣기", followBtn: "따라가기", share: "공유", src: "데이터: Arc 공개 RPC · 2초마다 갱신", usdc: "USDC 전송", swap: "스왑", bridge: "브리지 (CCTP)", token: "토큰 전송", nft: "NFT", deploy: "새 컨트랙트", approve: "승인", call: "컨트랙트 호출", failed: "실패", txsSeen: "본 트랜잭션", lastMin: "최근 2분", kindsOf: "종류", openExp: "탐색기에서 보기", copy: "주소 복사", copied: "복사됨", following: "따라가는 중", waiting: "이 주소의 다음 트랜잭션을 기다리는 중…", bad: "Arc RPC가 응답하지 않아요 — 다시 시도 중", demo: "DEMO — 만들어낸 데이터입니다 (실제 Arc 아님)", top: "Top", none: "아직 없음", contract: "컨트랙트", wallet: "지갑", noWebgl: "이 브라우저는 WebGL을 쓸 수 없어 3D를 그릴 수 없어요.", badAddr: "0x로 시작하는 40자리 주소를 넣어 주세요." },
+  zh: { warming: "正在唤醒数据 — 先显示保存的最近记录…", reading: "正在读取 Arc 最新区块…", finding: "正在 Arc 上查找该交易…", noTx: "Arc 上（还）没有这笔交易。", block: "区块", from: "发送方", to: "接收方", when: "时间", tag: "Arc 上的每一笔交易，实时 3D 呈现", by: "社区制作：", notOfficial: "非 Arc 官方网站", connecting: "正在连接 Arc…", live: "实时", replay: "回放最近 2 分钟", quiet: "Arc 此刻很安静 — 回放最近 2 分钟", tps: "每秒交易", blockTime: "出块时间", usd10: "USDC 流动 · 10 分钟", txs10: "交易 · 10 分钟", okRate: "成功率", wallets: "活跃钱包", kinds: "正在飞的", kindsHint: "点按类型以隐藏或显示。", busiest: "最繁忙合约 · 10 分钟", follow: "关注钱包/合约，或查找交易 — 粘贴 0x…", followBtn: "关注", share: "分享", src: "数据：Arc 公共 RPC · 每 2 秒更新", usdc: "USDC 转账", swap: "兑换", bridge: "跨链桥 (CCTP)", token: "代币转账", nft: "NFT", deploy: "新合约", approve: "授权", call: "合约调用", failed: "失败", txsSeen: "看到的交易", lastMin: "最近 2 分钟", kindsOf: "类型", openExp: "在浏览器中查看", copy: "复制地址", copied: "已复制", following: "正在关注", waiting: "等待此地址的下一笔交易…", bad: "Arc RPC 未响应 — 正在重试", demo: "DEMO — 虚构数据（不是真实的 Arc）", top: "排行", none: "暂无", contract: "合约", wallet: "钱包", noWebgl: "此浏览器无法使用 WebGL，无法绘制 3D。", badAddr: "请输入以 0x 开头的 40 位地址。" },
+  tr: { warming: "Akış uyanıyor — kayıtlı son dakikalar gösteriliyor…", reading: "Arc'ın son blokları okunuyor…", finding: "Bu işlem Arc'ta aranıyor…", noTx: "Arc'ta böyle bir işlem (henüz) yok.", block: "Blok", from: "Gönderen", to: "Alan", when: "Zaman", tag: "Arc'taki her işlem, canlı 3D", by: "Topluluk yapımı:", notOfficial: "resmi Arc sitesi değildir", connecting: "Arc'a bağlanılıyor…", live: "CANLI", replay: "Son 2 dakika geri sarılıyor", quiet: "Arc'ta sakin bir an — son 2 dakika tekrar", tps: "işlem / saniye", blockTime: "blok süresi", usd10: "taşınan USDC · 10 dk", txs10: "işlem · 10 dk", okRate: "başarılı", wallets: "aktif cüzdan", kinds: "Uçanlar", kindsHint: "Gizlemek / göstermek için bir türe dokunun.", busiest: "En yoğun kontratlar · 10 dk", follow: "Cüzdan / kontrat izle ya da işlem bul — 0x… yapıştır", followBtn: "İzle", share: "Paylaş", src: "Veri: Arc'ın açık RPC'si · 2 sn'de bir", usdc: "USDC transferi", swap: "Takas", bridge: "Köprü (CCTP)", token: "Token transferi", nft: "NFT", deploy: "Yeni kontrat", approve: "Onay", call: "Kontrat çağrısı", failed: "başarısız", txsSeen: "görülen işlem", lastMin: "son 2 dk", kindsOf: "türler", openExp: "Gezginde aç", copy: "Adresi kopyala", copied: "Kopyalandı", following: "İzleniyor", waiting: "Bu adresin bir sonraki işlemi bekleniyor…", bad: "Arc RPC yanıt vermedi — yeniden deneniyor", demo: "DEMO — uydurma veri (gerçek Arc değil)", top: "Top", none: "henüz yok", contract: "kontrat", wallet: "cüzdan", noWebgl: "Bu tarayıcı WebGL kullanamıyor; 3D çizilemez.", badAddr: "0x ile başlayan 40 haneli bir adres girin." },
 };
-const EN = { tag: "Every transaction on Arc, live in 3D", tps: "tx / second", blockTime: "block time", usd10: "USDC moved · 10 min", txs10: "transactions · 10 min", okRate: "succeeded", wallets: "active wallets", kinds: "What's flying", busiest: "Busiest contracts · 10 min", follow: "Follow a wallet or contract — paste 0x…", followBtn: "Follow", share: "Share", live: "LIVE", replay: "Replaying the last 2 minutes", quiet: "A quiet moment on Arc — replaying the last 2 minutes", usdc: "USDC transfer", swap: "Swap", bridge: "Bridge (CCTP)", token: "Token transfer", nft: "NFT", deploy: "New contract", approve: "Approval", call: "Contract call", failed: "failed", txsSeen: "transactions seen", lastMin: "last 2 min", kindsOf: "kinds", openExp: "Open in explorer", copy: "Copy address", copied: "Copied", following: "Following", waiting: "Waiting for this address's next transaction…", bad: "Arc's RPC didn't answer — retrying", demo: "DEMO — made-up data (not the real Arc)", top: "Top", none: "none yet", contract: "contract", wallet: "wallet", noWebgl: "This browser can't use WebGL, so the 3D can't be drawn.", badAddr: "Paste a 40-character address that starts with 0x.", connecting: "Connecting to Arc…" };
+const EN = { warming: "Waking up the feed — showing the last saved minutes…", reading: "Reading Arc's latest blocks…", finding: "Looking for that transaction on Arc…", noTx: "No such transaction on Arc (yet).", block: "Block", from: "From", to: "To", when: "When", tag: "Every transaction on Arc, live in 3D", tps: "tx / second", blockTime: "block time", usd10: "USDC moved · 10 min", txs10: "transactions · 10 min", okRate: "succeeded", wallets: "active wallets", kinds: "What's flying", busiest: "Busiest contracts · 10 min", follow: "Follow a wallet / contract, or find a tx — paste 0x…", followBtn: "Follow", share: "Share", live: "LIVE", replay: "Replaying the last 2 minutes", quiet: "A quiet moment on Arc — replaying the last 2 minutes", usdc: "USDC transfer", swap: "Swap", bridge: "Bridge (CCTP)", token: "Token transfer", nft: "NFT", deploy: "New contract", approve: "Approval", call: "Contract call", failed: "failed", txsSeen: "transactions seen", lastMin: "last 2 min", kindsOf: "kinds", openExp: "Open in explorer", copy: "Copy address", copied: "Copied", following: "Following", waiting: "Waiting for this address's next transaction…", bad: "Arc's RPC didn't answer — retrying", demo: "DEMO — made-up data (not the real Arc)", top: "Top", none: "none yet", contract: "contract", wallet: "wallet", noWebgl: "This browser can't use WebGL, so the 3D can't be drawn.", badAddr: "Paste a 40-character address that starts with 0x.", connecting: "Connecting to Arc…" };
 let LANG = (() => { try { const s = localStorage.getItem("arc.galaxy.lang") || localStorage.getItem("arcircle.lang"); if (s && (s === "en" || W[s])) return s; } catch {} const n = (navigator.language || "en").slice(0, 2); return W[n] ? n : "en"; })();
 const t = (k) => (LANG !== "en" && W[LANG] && W[LANG][k]) || EN[k] || k;
 function paintWords() {
@@ -118,8 +118,8 @@ let ringNext = 0;
 function pulse(big) { const m = rings[ringNext++ % rings.length]; m.userData.t = 0; m.userData.big = big; m.visible = true; }
 
 // ---------------------------------------------------------------- hubs & contracts
-const GROUPS = { circle: { name: "Circle", hue: 0.52, glow: "cyan" }, uniswap: { name: "Uniswap", hue: 0.88, glow: "violet" }, arcircle: { name: "ARCIRCLE", hue: 0.47, glow: "mint" }, launch: { name: "Launchpads", hue: 0.12, glow: "gold" }, infra: { name: "Smart accounts", hue: 0.62, glow: "cyan" }, other: { name: "Other contracts", hue: 0.72 } };
-const HUBS = {}; ["circle", "uniswap", "arcircle", "launch", "infra"].forEach((g, i) => { const th = i * (Math.PI * 2 / 5) + 0.6, r = 80; HUBS[g] = new THREE.Vector3(Math.cos(th) * r, 4, Math.sin(th) * r); });
+const GROUPS = { circle: { name: "Circle", hue: 0.52, glow: "cyan" }, uniswap: { name: "Uniswap", hue: 0.88, glow: "violet" }, arcircle: { name: "ARCIRCLE", hue: 0.47, glow: "mint" }, launch: { name: "Launchpads", hue: 0.12, glow: "gold" }, infra: { name: "Smart accounts", hue: 0.62, glow: "cyan" }, token: { name: "Tokens", hue: 0.08, glow: "gold" }, other: { name: "Other contracts", hue: 0.72 } };
+const HUBS = {}; ["circle", "uniswap", "arcircle", "launch", "infra", "token"].forEach((g, i) => { const th = i * (Math.PI * 2 / 6) + 0.6, r = 82; HUBS[g] = new THREE.Vector3(Math.cos(th) * r, 4, Math.sin(th) * r); });
 let LABELS = {};
 const NODE_MAX = PHONE ? 400 : 900;
 const nodes = new Map(); // addr → { i, pos, g, count, heat, name }
@@ -273,7 +273,7 @@ function paintLabels() {
   taken = [];
   for (const h of hubLabels) placeLabel(h.el, h.pos, 1);
   for (const f of flies) if (f.lb && f.lbPos) placeLabel(f.lb, f.lbPos, f.me ? 1 : 0);
-  for (const l of topLabels) placeLabel(l.el, l.n.pos, 0);
+  const far = orbit.d > 300; topLabels.forEach((l, i) => { if (far && i >= (PHONE ? 2 : 4)) { l.el.style.display = "none"; return; } placeLabel(l.el, l.n.pos, 0); });
 }
 
 // ---------------------------------------------------------------- the feed
@@ -293,8 +293,16 @@ async function poll() {
   }
   setTimeout(poll, document.hidden ? 8000 : failN ? Math.min(15000, 2000 * 2 ** failN) : POLL_MS);
 }
+function relabel() {
+  for (const n of nodes.values()) {
+    const L = LABELS[n.addr]; if (!L || (n.name === L[0] && n.g === L[1])) continue;
+    n.name = L[0];
+    if (n.g !== L[1]) { n.g = L[1]; n.pos = nodePos(n.addr, n.g); nAttr.position.setXYZ(n.i, n.pos.x, n.pos.y, n.pos.z); const col = new THREE.Color().setHSL((GROUPS[n.g] || GROUPS.other).hue, 0.85, 0.66); nAttr.color.setXYZ(n.i, col.r, col.g, col.b); nAttr.position.needsUpdate = nAttr.color.needsUpdate = true; }
+  }
+}
 function take(j) {
-  if (j.labels) Object.assign(LABELS, j.labels);
+  if (j.labels) { Object.assign(LABELS, j.labels); relabel(); }
+  if (j.warming && mode === "connect") splashSay(t("warming"));
   skew = (j.at || Date.now()) - Date.now();
   const first = mode === "connect";
   const rows = j.rows.filter((r) => !seen.has(r[0]));
@@ -316,7 +324,11 @@ function take(j) {
     replayPlan = queue.splice(0).map((r) => ({ r, at: nowS + (span > 0 ? ((r.when - t0) / span) * REPLAY_S * 1000 : 0) }));
     if (!DEMO) note(t("replay"), false, REPLAY_S * 1000);
   }
-  if (j.head && j.head !== head) { pulse(rows.length > 40); head = j.head; $("gx-block").textContent = "#" + head.toLocaleString("en-US"); }
+  if (j.head && j.head !== head) {
+    pulse(rows.length > 40); head = j.head; $("gx-block").textContent = "#" + head.toLocaleString("en-US");
+    // the busiest stars breathe with each block, even when it brought nothing
+    (j.top || []).slice(0, 4).forEach(([a], i) => { const n = nodes.get(a); if (n) setTimeout(() => { n.heat = Math.min(6, n.heat + 0.5); }, 120 * i); });
+  }
   lastStats = j.stats; lastTop = j.top || [];
   setLive(!j.stale); paintStats(); paintTop(); paintLegend();
   if (j.sampled) $("gx-live-t").title = "busy: a sample of the transactions is drawn";
@@ -396,8 +408,8 @@ function tapeShow(r) {
 let cardOf = null;
 const card = $("gx-card");
 function closeCard() { card.hidden = true; cardOf = null; document.body.classList.remove("carded"); paintTop(); }
-function cardShell(title, addr, body) {
-  card.innerHTML = `<button class="x" type="button" aria-label="Close">×</button><h3>${esc(title)}</h3><div class="ad">${esc(addr)}</div>${body}<div class="ln"><a href="${EXPLORER}/address/${addr}" target="_blank" rel="noopener">${esc(t("openExp"))} ↗</a><a href="#" data-copy="${addr}">${esc(t("copy"))}</a></div>`;
+function cardShell(title, addr, body, link) {
+  card.innerHTML = `<button class="x" type="button" aria-label="Close">×</button><h3>${esc(title)}</h3><div class="ad">${esc(addr)}</div>${body}<div class="ln"><a href="${link || `${EXPLORER}/address/${addr}`}" target="_blank" rel="noopener">${esc(t("openExp"))} ↗</a><a href="#" data-copy="${addr}">${esc(t("copy"))}</a></div>`;
   card.hidden = false; document.body.classList.add("carded");
 }
 card.addEventListener("click", (e) => {
@@ -421,8 +433,21 @@ function showFollow(a, quiet) {
   walletSeen(a, true);
   if (!quiet) { if (isNode) flyTo(nodes.get(a).pos, 70); else { const w = walletPos(a); flyTo(w.clone().multiplyScalar(0.55), 260); } }
 }
+async function findTx(h) {
+  note(t("finding"), false, 2500);
+  try {
+    const r = await fetch(`/api/social?arc=galaxy-tx&h=${h}`); if (!r.ok) throw new Error(r.status);
+    const j = await r.json(); if (j.labels) { Object.assign(LABELS, j.labels); relabel(); }
+    const row = j.row; seen.add(row[0]); played(row); launch(row, 0.45);
+    const to = row[3], usd = row[5];
+    cardOf = row[0];
+    cardShell(`${t(KINDS[row[4]])}${row[6] === 0 ? " · " + t("failed") : ""}`, row[0], `<dl><dt>${esc(t("block"))}</dt><dd>#${row[1].toLocaleString("en-US")}</dd><dt>${esc(t("from"))}</dt><dd>${esc(short(row[2]))}</dd><dt>${esc(t("to"))}</dt><dd>${esc(to ? nameOf(to) : (j.contract ? short(j.contract) : t("deploy")))}</dd>${usd ? `<dt>USDC</dt><dd>${fmtUsd(usd)}</dd>` : ""}<dt>${esc(t("when"))}</dt><dd>${new Date(row[8]).toLocaleString()}</dd></dl>`, `${EXPLORER}/tx/${row[0]}`);
+    flyTo(to && nodes.has(to) ? nodes.get(to).pos : walletPos(row[2]).multiplyScalar(0.6), 160);
+  } catch { note(t("noTx"), false, 3500); }
+}
 function doFollow() {
   const v = $("gx-q").value.trim().toLowerCase();
+  if (/^0x[0-9a-f]{64}$/.test(v)) { findTx(v); return; }
   if (!isAddr(v)) { note(t("badAddr"), false, 3000); return; }
   follow = v; try { history.replaceState(null, "", "?follow=" + v); } catch {}
   if (nodes.has(v) || LABELS[v]) showContract(v); else showFollow(v);
@@ -453,7 +478,7 @@ function note(text, sticky, ms = 4000) { const el = $("gx-note"); el.textContent
 let demoN = 9000000, demoT = Date.now() - 120e3;
 const demoW = Array.from({ length: 300 }, (_, i) => "0x" + (hash("w" + i, 1) * 1e16).toString(16).padStart(14, "0").slice(0, 14).padEnd(40, (i % 16).toString(16)));
 const demoC = [["0x3600000000000000000000000000000000000000", 0, 40], ["0x8366a39cc670b4001a1121b8f6a443a643e40951", 1, 18], ["0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", 2, 6], ["0x305da1b305249072b13b73ab394e02046c865d56", 1, 5], ["0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7", 3, 5], ["0x709e1b65c529567fbe1c79de278c2abba0086ff5", 4, 2], ...Array.from({ length: 60 }, (_, i) => ["0x" + (hash("c" + i, 3) * 1e16).toString(16).slice(0, 12).padEnd(40, "c"), [3, 7, 7, 6, 1][i % 5], 1 + (i % 4)])];
-const demoLab = { "0x3600000000000000000000000000000000000000": ["USDC", "circle"], "0x8366a39cc670b4001a1121b8f6a443a643e40951": ["Uniswap v4 PoolManager", "uniswap"], "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d": ["CCTP Token Messenger", "circle"], "0x305da1b305249072b13b73ab394e02046c865d56": ["ARCIRCLE Swap", "arcircle"], "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7": ["$ARCIRCLE", "arcircle"], "0x709e1b65c529567fbe1c79de278c2abba0086ff5": ["Crimson Celestial NFT", "arcircle"] };
+const demoLab = { [demoC[6][0]]: ["PEPE · Pepe", "token"], [demoC[7][0]]: ["WETH · Wrapped Ether", "token"], [demoC[8][0]]: ["EURC", "token"], "0x3600000000000000000000000000000000000000": ["USDC", "circle"], "0x8366a39cc670b4001a1121b8f6a443a643e40951": ["Uniswap v4 PoolManager", "uniswap"], "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d": ["CCTP Token Messenger", "circle"], "0x305da1b305249072b13b73ab394e02046c865d56": ["ARCIRCLE Swap", "arcircle"], "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7": ["$ARCIRCLE", "arcircle"], "0x709e1b65c529567fbe1c79de278c2abba0086ff5": ["Crimson Celestial NFT", "arcircle"] };
 let demoRows = [];
 function demoFeed() {
   const now = Date.now(); const tot = demoC.reduce((s, c) => s + c[2], 0);
@@ -492,6 +517,8 @@ function frame(now) {
 }
 paintWords();
 if (DEMO) note(t("demo"), true);
+function splashSay(x) { const e = document.querySelector("#gx-splash span"); if (e) e.textContent = x; }
+setTimeout(() => { if (mode === "connect") splashSay(t("reading")); }, 1200);
 { const sp = $("gx-splash"); if (sp) { const go = () => { sp.classList.add("out"); setTimeout(() => sp.remove(), 900); }; const w = setInterval(() => { if (mode !== "connect" || failN >= 2) { clearInterval(w); go(); } }, 200); setTimeout(() => { clearInterval(w); go(); }, 6000); } }
 const f0 = Q.get("follow"); if (isAddr(f0)) { $("gx-q").value = f0; setTimeout(doFollow, 2500); }
 requestAnimationFrame(frame);
