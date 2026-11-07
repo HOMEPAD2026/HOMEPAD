@@ -124,5 +124,13 @@ function memStore() {
   const tg = fs.readFileSync(new URL("../../api/arcia-tg.mjs", import.meta.url), "utf8"), so = fs.readFileSync(new URL("../../api/social.mjs", import.meta.url), "utf8");
   ok(/galaxyCollect\(/.test(tg) && /Promise\.all\(\[BB\.run/.test(tg), "the every-minute cron runs the keeper beside the buybot");
   ok(/arc"\) === "galaxy-daily"/.test(so) && /arc"\) === "galaxy-collect"/.test(so) && /CRON_SECRET/.test(so), "social: the reads + the keyed keeper");
+  // GXD2: the page's panel — lazy-loaded, every word in four languages, nothing posted from it
+  const gj = fs.readFileSync(new URL("../../galaxy.js", import.meta.url), "utf8"), gd = fs.readFileSync(new URL("../../galaxy-daily.js", import.meta.url), "utf8");
+  ok(/import\("\/galaxy-daily\.js"/.test(gj) && /id = "gx-daily"/.test(gj) && /NET === "mainnet" && !EMBED && !OBS/.test(gj), "📅 opens the panel (mainnet only, lazy)");
+  ok(!/method:\s*"POST"|arcia|sendMessage|twitter\.com\/intent/i.test(gd), "the panel never posts anything (the owner posts by hand)");
+  { const m = await import("../../galaxy-daily.js").catch(() => null); ok(!!(m && m.openDaily), "the module loads");
+    const src = gd.slice(gd.indexOf("const EN = {"), gd.indexOf("};", gd.indexOf("const EN = {")));
+    const keys = [...src.matchAll(/(\w+): "/g)].map((x) => x[1]);
+    for (const L of ["ko", "zh", "tr"]) { const blk = gd.slice(gd.indexOf(`  ${L}: {`), gd.indexOf("},", gd.indexOf(`  ${L}: {`))); const miss = keys.filter((k) => !new RegExp("[{ ]" + k + ": \"").test(blk)); ok(!miss.length, L + " has every word: " + miss.join(",")); } }
   console.log(`galaxydaily: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

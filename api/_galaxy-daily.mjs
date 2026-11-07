@@ -55,7 +55,7 @@ export function blank(d) {
   return {
     d, blocks: 0, txs: 0, fail: 0, known: 0, usd: 0, fee: 0, feeTxs: 0, auth: 0,
     kinds: new Array(8).fill(0),
-    hTx: new Array(24).fill(0), hUsd: new Array(24).fill(0), hFail: new Array(24).fill(0), hFee: new Array(24).fill(0),
+    hTx: new Array(24).fill(0), hUsd: new Array(24).fill(0), hFail: new Array(24).fill(0), hFee: new Array(24).fill(0), hB: new Array(24).fill(0), // hB: blocks read an hour (≈ 7,200 when the hour is whole)
     min: new Array(1440).fill(0),          // txs a minute → the peak minute, the hours' shape
     secs: 0,                               // seconds of the day covered by blocks read back to back
     first: 0, last: 0,                     // the first / last block read for the day
@@ -89,7 +89,7 @@ export function addBlock(day, b, rcs, classify, prev, opt = {}) {
     if (to && c.k !== 0 && c.k !== 5 && !(opt.skipTop && opt.skipTop(to))) day.top[to] = (day.top[to] || 0) + 1;
     from.push(lc(tx.from));
   }
-  day.blocks++; day.hTx[h] += txs.length; day.min[mi] += txs.length;
+  day.blocks++; day.hB[h]++; day.hTx[h] += txs.length; day.min[mi] += txs.length;
   if (!day.peakBlock || txs.length > day.peakBlock[0]) day.peakBlock = [txs.length, n, ts];
   if (!day.first || n < day.first) day.first = n;
   if (n > day.last) day.last = n;
@@ -199,7 +199,7 @@ export function makeDaily({ rpc, classify, key = "arcGalaxy", store = realStore,
     if (!doc || !doc.j) return null;
     const day = unpack(doc, d);
     const top = Object.entries(day.top).sort((a, b) => b[1] - a[1]).slice(0, 20);
-    return { ...summary(day), hTx: day.hTx, hUsd: day.hUsd, hFail: day.hFail, hFee: day.hFee, min: day.min, top, cIn: day.cIn, cOut: day.cOut, first: day.first, last: day.last };
+    return { ...summary(day), hTx: day.hTx, hUsd: day.hUsd, hFail: day.hFail, hFee: day.hFee, hB: day.hB, min: day.min, top, cIn: day.cIn, cOut: day.cOut, first: day.first, last: day.last };
   }
   return { collect, list, one, readBlocks };
 }
