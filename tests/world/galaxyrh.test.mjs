@@ -48,5 +48,10 @@ const pad = (h) => h.replace(/^0x/, "").padStart(64, "0");
   ok(o.stats.usd10m === 3 * (30000 + 2500), "value: 0.1 ETH at $3,000 + $25 USDG, three times = $975.00");
   ok(o.stats.fee10m === 6 * Math.round(50000 * 2e7 / 1e18 * 3000 * 1e6), "fees in µ$ at the ETH price");
   ok(o.rows.filter((r) => r[4] === K.usdc).length === 6, "both kinds of send are 'ETH / USDG transfer'");
+  // rates only over back-to-back blocks: a gap between reads isn't idle chain time
+  { const G2 = makeGalaxy({ rpc: async (body) => { const one = (q) => q.method === "eth_blockNumber" ? { id: q.id, result: hx(head2) } : q.method === "eth_getBlockByNumber" ? { id: q.id, result: blk(Number(q.params[0])) } : q.method === "eth_getBlockReceipts" ? { id: q.id, result: rcs(Number(q.params[0])) } : { id: q.id, result: "0x" }; return Array.isArray(body) ? body.map(one) : one(body); }, cls: (tx, rc) => classifyWith(M2, tx, rc), chain: 4663, key: "rhGap", backfill: 20, maxBlocks: 20, batch: 20, store: { get: async () => ({}), set: async () => {} }, now: () => clk });
+    var head2 = 200, clk = 1794050020000; await G2.live(); head2 = 900; clk += 2000; const o2 = await G2.live(); // blocks 181–200, then a jump to 881–900
+    ok(o2.stats.blockTime > 0.05 && o2.stats.blockTime < 0.2, "block time over back-to-back blocks ≈ 0.1 s, not the gap: " + o2.stats.blockTime);
+    ok(o2.stats.tps > 15 && o2.stats.tps < 30, "tx/s ≈ 20 (2 a block, 10 blocks a second) despite the gap: " + o2.stats.tps); }
   console.log(`galaxyrh: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

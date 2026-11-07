@@ -388,11 +388,16 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const labels = {};
     for (const r of rows) { const n = r[3] && nameOf(r[3]); if (n) labels[r[3]] = n; }
     for (const [a] of topList) { const n = nameOf(a); if (n) labels[a] = n; }
-    const bt = b.length > 1 ? span / (b.length - 1) : null;
+    // rates only over blocks read back to back: a feed that sleeps between viewers skips blocks, and the time across a gap
+    // isn't time the chain was idle (Robinhood Chain showed 3.8 s blocks for 0.1 s ones in production)
+    const runs = (arr) => { let sec = 0, tx = 0, usd = 0, pairs = 0; for (let i = 1; i < arr.length; i++) if (arr[i][0] === arr[i - 1][0] + 1) { sec += (arr[i][1] - arr[i - 1][1]) / 1000; tx += arr[i][2]; usd += arr[i][4]; pairs++; } return { sec, tx, usd, pairs }; };
+    const R = runs(b), R1 = runs(m1);
+    const bt = R.pairs ? R.sec / R.pairs : b.length > 1 ? span / (b.length - 1) : null;
     return {
       chain, head: st.head, at: t, receipts: st.receipts, sampled,
       stats: {
-        span, txs: total, tps: span > 0 ? total / span : null, tps1m: span1 > 0 ? tx1 / span1 : null,
+        span, txs: total, tps: R.sec > 0 ? R.tx / R.sec : span > 0 ? total / span : null, tps1m: R1.sec >= 5 ? R1.tx / R1.sec : span1 > 0 ? tx1 / span1 : null,
+        cover: R.sec, usdCover: R.usd,
         blockTime: bt, usd1m: m1.reduce((s, x) => s + x[4], 0), usd10m: b.reduce((s, x) => s + x[4], 0),
         failRate: known.length ? failed / known.length : null, kinds, wallets: new Set(st.rows.map((r) => r[2])).size,
         // GX7: fees paid in USDC (millionths of a dollar) and signed (EIP-3009) payments over the ten minutes; blocks read without receipts carry no fee

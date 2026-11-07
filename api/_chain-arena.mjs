@@ -103,7 +103,7 @@ export function fromGalaxy(g, chain) {
     chain, at: g.at, head: g.head, stale: !!g.stale,
     tps: s.tps1m != null ? s.tps1m : s.tps, blockTime: s.blockTime,
     feeUsd: s.feeTxs ? s.fee10m / s.feeTxs / 1e6 : null,
-    usdMin: s.span > 0 ? (s.usd10m / 100) / s.span * 60 : null,
+    usdMin: s.cover > 0 ? (s.usdCover / 100) / s.cover * 60 : s.span > 0 ? (s.usd10m / 100) / s.span * 60 : null, // over back-to-back blocks
     failRate: s.failRate, wallets: s.wallets, txs: s.txs, span: s.span,
   };
 }
