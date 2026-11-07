@@ -97,6 +97,10 @@
       "destination": "/agents.html"
     },
     {
+      "source": "/galaxy",
+      "destination": "/galaxy.html"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },
