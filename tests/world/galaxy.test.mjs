@@ -1,5 +1,5 @@
 // ARC GALAXY's feed (api/_arc-galaxy.mjs): classification of Arc transactions, the rolling window, the shared read
-import { classify, makeGalaxy, KINDS, USDC, LABELS, WINDOW_MS, MAX_BLOCKS } from "../../api/_arc-galaxy.mjs";
+import { classify, makeGalaxy, makeWatch, WATCH_WIN, KINDS, USDC, LABELS, WINDOW_MS, MAX_BLOCKS } from "../../api/_arc-galaxy.mjs";
 import fs from "node:fs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
 const K = Object.fromEntries(KINDS.map((k, i) => [k, i]));
@@ -182,6 +182,35 @@ ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync
   ok(pg.status === 200 && pg.html.includes('window.__GX = { focus: "' + CT + '" }') && pg.html.includes("/galaxy/c/" + CT), "the page opens on the star with its own link");
   const vj = JSON.parse(fs.readFileSync(new URL("../../vercel.json", import.meta.url), "utf8"));
   ok(vj.rewrites.some((x) => x.source === "/galaxy/c/:addr"), "rewrite /galaxy/c/:addr");
+}
+// GX12: "N watching now" — one count a browser a window, the busier of this window and the last, bad ids refused
+{
+  const docs = new Map(); let T = 1_000_000_000_000;
+  const commit = async (ws) => {
+    for (const w of ws) if (w.create && docs.has(w.create)) return { ok: false, conflict: true };
+    for (const w of ws) { if (w.create) docs.set(w.create, w.data); if (w.inc) { const d = docs.get(w.inc) || {}; for (const [k, n] of Object.entries(w.fields)) d[k] = (d[k] || 0) + n; docs.set(w.inc, d); } }
+    return { ok: true };
+  };
+  const get = async (ps) => Object.fromEntries(ps.map((p) => [p, docs.get(p) || null]));
+  const W = makeWatch({ commit, get, now: () => T, on: () => true, key: "gxT" });
+  ok((await W.ping("bad")).status === 400, "watch: a bad id is refused");
+  ok((await W.ping("aaaaaaaaaaaa")).watching === 1, "watch: the first viewer counts 1");
+  ok((await W.ping("aaaaaaaaaaaa")).watching === 1, "watch: the same browser again in the window doesn't add");
+  ok((await W.ping("bbbbbbbbbbbb")).watching === 2, "watch: a second browser makes 2");
+  T += WATCH_WIN; // next window: still 2 (the last window) until the new one passes it
+  ok((await W.ping("aaaaaaaaaaaa")).watching === 2, "watch: a new window shows the busier last one");
+  await W.ping("bbbbbbbbbbbb"); await W.ping("cccccccccccc");
+  ok((await W.count()) === 3, "watch: the new window passes the last");
+  T += 3 * WATCH_WIN;
+  ok((await W.count()) === 0, "watch: nobody pinged for minutes → 0");
+  const M = makeWatch({ now: () => T, on: () => false });
+  await M.ping("dddddddddddd"); await M.ping("eeeeeeeeeeee"); await M.ping("dddddddddddd");
+  ok((await M.count()) === 2, "watch: no store → this function's own last minute");
+  T += WATCH_WIN + 1; ok((await M.count()) === 0, "watch: no store → forgets after a minute");
+  const js = fs.readFileSync(new URL("../../galaxy.js", import.meta.url), "utf8"), html = fs.readFileSync(new URL("../../galaxy.html", import.meta.url), "utf8");
+  ok(/arc-galaxy-watch/.test(js) && /id="gx-watch"/.test(html), "watch: the page pings and has the chip");
+  ok(/navigator\.webdriver/.test(js), "watch: automated browsers don't count");
+  for (const l of ["ko", "zh", "tr"]) ok(new RegExp(`  ${l}: \\{[^\\n]*watching: "`).test(js), "watch: label in " + l);
 }
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

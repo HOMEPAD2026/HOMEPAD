@@ -356,7 +356,7 @@ export async function GET(req) {
   }
   // the home hub's Arc line: the feed's numbers only (no rows), cached longer
   if (url.searchParams.get("arc") === "galaxy-lite") {
-    try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy("mainnet"); return json(200, { head: g.head, chain: g.chain, stats: g.stats, stale: !!g.stale }, "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
+    try { const { galaxy, galaxyWatching } = await import("./_arc-galaxy.mjs"); const [g, watching] = await Promise.all([galaxy("mainnet"), galaxyWatching("mainnet").catch(() => 0)]); return json(200, { head: g.head, chain: g.chain, stats: g.stats, stale: !!g.stale, watching }, "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
     catch (err) { return json(502, { error: "couldn't read Arc right now" }, "public, max-age=5"); }
   }
   if (url.searchParams.get("arc") === "galaxy-day") {
@@ -825,6 +825,7 @@ export async function POST(req) {
       if (b.action === "refnote") return await v6().refNote(b, ip);
       return await v6().plan(b, ip);
     }
+    if (b.action === "arc-galaxy-watch") { const { galaxyWatch } = await import("./_arc-galaxy.mjs"); const r = await galaxyWatch(b.id, b.net === "testnet" ? "testnet" : "mainnet"); return json(r.status || 200, r); }
     if (b.action === "arc-galaxy-claim") { const { galaxyClaim } = await import("./_arc-galaxy.mjs"); const r = await galaxyClaim(b, recoverSigner, b.net === "testnet" ? "testnet" : "mainnet"); return json(r.status || 200, r); }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
