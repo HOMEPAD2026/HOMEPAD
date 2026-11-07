@@ -160,6 +160,33 @@ for (const [g, v] of Object.entries(HUBS)) {
   tryTex(`/images/galaxy/glow-${GROUPS[g].glow}.webp`, (tx) => { sp.material.map = tx; sp.material.needsUpdate = true; sp.scale.setScalar(34); });
 }
 
+// GX10: Meshy's art in the scene — a slowly turning sigil behind each family's hub, the stargate ring on every CCTP
+// gate, and one-shot effects (a supernova where a contract is born, a wormhole opening at a gate when USDC crosses it)
+const FXT = {}; const fxLoad = (k) => FXT[k] !== undefined ? FXT[k] : (FXT[k] = null, tryTex(`/images/galaxy/fx/${k}.webp`, (tx) => { FXT[k] = tx; }), null);
+const EMBLEM = { circle: "em-payments", uniswap: "em-swap", launch: "em-launchpad", infra: "em-accounts", token: "em-tokens", other: "em-infra" };
+const emblems = [];
+if (!LOW) for (const [g, v] of Object.entries(HUBS)) {
+  const k = EMBLEM[g]; if (!k) continue;
+  tryTex(`/images/galaxy/fx/${k}.webp`, (tx) => {
+    const col = new THREE.Color().setHSL(GROUPS[g].hue, 0.7, 0.42);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.2 }));
+    sp.position.copy(v); sp.scale.setScalar(PHONE ? 50 : 60); world.add(sp); emblems.push({ sp, spin: (0.05 + Math.random() * 0.05) * (Math.random() < 0.5 ? -1 : 1), base: 0.2 });
+  });
+}
+const fxs = []; let novaT = 0;
+function fx(k, pos, s0, s1, life, col, spin = 0) {
+  const tx = FXT[k] || fxLoad(k); if (!tx || REDUCED) return;
+  if (fxs.length > (PHONE ? 6 : 14)) { const o = fxs.shift(); world.remove(o.sp); o.sp.material.dispose(); }
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, color: col || 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+  sp.position.copy(pos); sp.scale.setScalar(s0); world.add(sp); fxs.push({ sp, s0, s1, life, t: 0, spin, peak: k === "supernova" ? 0.55 : 0.8 });
+}
+function stepFx(dt) {
+  for (const e of emblems) { e.sp.material.rotation += e.spin * dt; }
+  for (let i = fxs.length - 1; i >= 0; i--) { const f = fxs[i]; f.t += dt; const u = Math.min(1, f.t / f.life);
+    f.sp.scale.setScalar(f.s0 + (f.s1 - f.s0) * (1 - Math.pow(1 - u, 3))); f.sp.material.opacity = (u < 0.2 ? u / 0.2 : (1 - u) / 0.8) * f.peak; f.sp.material.rotation += f.spin * dt;
+    if (u >= 1) { world.remove(f.sp); f.sp.material.dispose(); fxs.splice(i, 1); } }
+}
+["supernova", "wormhole", "gate"].forEach(fxLoad);
 // ---------------------------------------------------------------- CCTP gates (GX2): the chains USDC comes from / goes to
 // CCTP domains (config-arc.js BRIDGE + Solana); a gate sits on a far ring, lights up when USDC crosses it
 const DOMAINS = { 0: ["Ethereum", 0x8a92b2], 1: ["Avalanche", 0xe84142], 2: ["OP Mainnet", 0xff0420], 3: ["Arbitrum", 0x28a0f0], 5: ["Solana", 0x9945ff], 6: ["Base", 0x3b82f6], 7: ["Polygon", 0x8247e5], 10: ["Unichain", 0xf50db4], 11: ["Linea", 0x61dfff], 13: ["Sonic", 0xfe9a4c], 14: ["World Chain", 0xc9ccd6], 15: ["Monad", 0x836ef9], 16: ["Sei", 0xc1272d], 19: ["HyperEVM", 0x50d2c1], 21: ["Ink", 0x7132f5] };
@@ -172,6 +199,8 @@ function gateOf(d) {
   const pos = new THREE.Vector3(Math.cos(th) * r, 26 + Math.sin(th * 3) * 18, Math.sin(th) * r);
   sp.position.copy(pos); sp.scale.setScalar(30); world.add(sp);
   g = { d, name: info[0], col, pos, sp, heat: 0, el: label("⇄ " + info[0], "gate") };
+  const ring = () => { if (!FXT.gate) return false; const rs = new THREE.Sprite(new THREE.SpriteMaterial({ map: FXT.gate, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 })); rs.position.copy(pos); rs.scale.setScalar(44); world.add(rs); g.ring = rs; return true; };
+  if (!LOW && !ring()) { const w = setInterval(() => { if (ring()) clearInterval(w); }, 800); setTimeout(() => clearInterval(w), 15000); }
   gates.set(d, g); return g;
 }
 // "+$1.2K" over a star when a transfer lands, and the whale banner
@@ -181,6 +210,17 @@ function pop(text, pos, col) {
   const el = label(text, "pop"); el.style.color = "#" + col.getHexString(); pops.push({ el, pos: pos.clone(), t: 0 });
 }
 let shake = 0;
+// GX10: a whale pulls the camera along for a moment (only while nobody is looking at something else), then home
+let whaleCamT = 0;
+function whaleCam(dest) {
+  if (REDUCED || OBS || cardOf || follow || ptrs.size || orbit.idle < 6 || Date.now() - whaleCamT < 25000 || !dest) return;
+  whaleCamT = Date.now(); orbit.want = { tgt: dest.clone(), d: 150 };
+  setTimeout(() => { if (!cardOf && !follow) goHome(); }, 6500);
+}
+// the core's colour follows how busy Arc is against its ten-minute average: calm blue → busy magenta
+let busyK = 0, busyWant = 0;
+const CORE_CALM = new THREE.Color(0xbfe9ff), CORE_BUSY = new THREE.Color(0xff9ce8);
+function busyTint(dt) { busyK += (busyWant - busyK) * Math.min(1, dt * 0.6); core.material.color.copy(CORE_CALM).lerp(CORE_BUSY, busyK); }
 function whale(row, gate) {
   const el = $("gx-whale") || (() => { const d = document.createElement("div"); d.id = "gx-whale"; d.className = "gx-whale"; document.body.appendChild(d); return d; })();
   const k = row[4], where = gate ? (row[9][0] === "i" ? ` · ${t("from")} ${gate.name}` : ` · ${t("to")} ${gate.name}`) : "";
@@ -255,10 +295,10 @@ function launch(row, speed = 1) {
   const big = usd >= 1e6; // ≥ $10,000
   const col = new THREE.Color(ok === 0 ? RED : row[11] ? AUTHC : KCOL[k]);
   const f = { slot: freeSlots.pop(), p0, p1, p2, t: 0, dur: (1.7 + hash(hash_, 6) * 1.1) / speed, col, size: (2.6 + Math.min(4.5, Math.log10(1 + usd / 100) * 1.1)) * (big ? 1.6 : 1) * (follow && (row[2] === follow || row[3] === follow) ? 1.8 : 1), node, row, big, me: follow && (row[2] === follow || row[3] === follow) };
-  if (gate) { f.dur *= 1.6; f.size *= 1.3; f.gate = gate; }
+  if (gate) { f.dur *= 1.6; f.size *= 1.3; f.gate = gate; fx("wormhole", gate.pos, 12, usd >= 1e7 ? 110 : 64, 1.8, gate.col, 2.4); }
   flies.push(f);
   spark(p0, col, f.size * (gate ? 3 : 1.4), gate ? 1.6 : 1.2);
-  if (usd >= 1e7 && speed >= 1) whale(row, gate);                      // ≥ $100,000
+  if (usd >= 1e7 && speed >= 1) { whale(row, gate); whaleCam(f.p2); }   // ≥ $100,000
   if (f.me || (big && flies.filter((x) => x.lb).length < (PHONE ? 2 : 5))) bigLabel(f);
   return true;
 }
@@ -322,7 +362,7 @@ const births = [];
 function birth(addr) {
   const n = nodeOf(addr); n.count++; n.heat = 0; n.born = 0.001;
   births.push({ n, t: 0 }); bornList.push({ a: addr, at: Date.now() }); if (bornList.length > 30) bornList.shift();
-  pulse(true); pop("✦ NEW " + short(addr), n.pos, new THREE.Color(0xffffff));
+  pulse(true); pop("✦ NEW " + short(addr), n.pos, new THREE.Color(0xffffff)); if (Date.now() - novaT > 1500) { novaT = Date.now(); fx("supernova", n.pos, 4, PHONE ? 30 : 40, 1.6, 0xbfe9ff, 0.6); }
 }
 function stepBirths(dt) {
   for (let i = births.length - 1; i >= 0; i--) { const b = births[i]; b.t += dt; const u = Math.min(1, b.t / 1.8);
@@ -542,6 +582,7 @@ function buckets(n, col) {
 function paintStats() {
   const s = lastStats; if (!s) return;
   const tps = s.tps1m != null ? s.tps1m : s.tps;
+  if (s.tps1m != null && s.tps) busyWant = Math.max(0, Math.min(1, (s.tps1m / s.tps - 1) * 1.5));
   roll($("s-tps"), tps, (v) => (v >= 10 ? v.toFixed(0) : v.toFixed(1)));
   if (s.tps1m != null && s.tps) { const d = (s.tps1m / s.tps - 1) * 100, lab = $("s-tps").nextElementSibling; let em = lab.querySelector("em"); if (!em) { em = document.createElement("em"); lab.appendChild(em); } em.className = d >= 0 ? "up" : "dn"; em.textContent = ` ${d >= 0 ? "▲" : "▼"}${Math.abs(d).toFixed(0)}%`; }
   roll($("s-usd"), (s.usd10m || 0), (v) => fmtUsd(v));
@@ -898,7 +939,8 @@ function frame(now) {
   placeCam();
   coreKick = Math.max(0, coreKick - dt * 1.4); core.scale.setScalar(70 + Math.sin(now / 900) * 3 + coreKick * 22);
   for (const m of rings) { if (!m.visible) continue; m.userData.t += dt; const u = m.userData.t / 2.4; if (u >= 1) { m.visible = false; continue; } const s = 8 + u * (m.userData.big ? 260 : 200); m.scale.set(s, s, s); m.material.opacity = (1 - u) * (1 - u) * (m.userData.big ? 0.55 : 0.32); }
-  for (const g of gates.values()) { g.heat = Math.max(0, g.heat - dt / 20); g.sp.material.opacity = 0.25 + g.heat * 0.75; g.sp.scale.setScalar(26 + g.heat * 22); }
+  for (const g of gates.values()) { g.heat = Math.max(0, g.heat - dt / 20); g.sp.material.opacity = 0.25 + g.heat * 0.75; g.sp.scale.setScalar(26 + g.heat * 22); if (g.ring) { g.ring.material.opacity = 0.35 + g.heat * 0.6; g.ring.material.rotation += dt * (0.15 + g.heat); g.ring.scale.setScalar(40 + g.heat * 16); } }
+  stepFx(dt); busyTint(dt);
   for (let i = pops.length - 1; i >= 0; i--) { pops[i].t += dt; if (pops[i].t > 1.6) { pops[i].el.remove(); pops.splice(i, 1); } }
   if (shake > 0) { shake = Math.max(0, shake - dt * 1.6); const a = shake * shake * 2.2; cam.position.x += (Math.random() - 0.5) * a; cam.position.y += (Math.random() - 0.5) * a; }
   feedTick(now); stepFlies(dt); stepLinks(dt); stepBirths(dt); hoverTick(dt);
