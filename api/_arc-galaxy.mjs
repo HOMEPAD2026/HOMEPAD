@@ -14,8 +14,8 @@ const K = Object.fromEntries(KINDS.map((k, i) => [k, i]));
 export const WINDOW_MS = 120e3;   // the rows sent: the last two minutes (the page replays them when it opens)
 export const KEEP_MS = 600e3;     // the block summaries and the counts behind the stats: ten minutes
 export const MAX_ROWS = 1800;     // more than that in the window → evenly sampled (sampled: true)
-export const MAX_BLOCKS = 48;     // blocks read in one call at most (a cold start reads the last BACKFILL)
-export const BACKFILL = 40;
+export const MAX_BLOCKS = 120;    // blocks read in one call at most (a cold start reads the last BACKFILL)
+export const BACKFILL = 100;      // ≈ 50 s of Arc (0.5 s blocks, measured 2026-11-07)
 export const MIN_GAP_MS = 900;    // calls closer than this share one read
 
 const lc = (a) => String(a || "").toLowerCase();
@@ -126,7 +126,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
     const body = [];
     ns.forEach((n, i) => { body.push({ jsonrpc: "2.0", id: 2 * i, method: "eth_getBlockByNumber", params: [hx(n), true] }); if (st.receipts) body.push({ jsonrpc: "2.0", id: 2 * i + 1, method: "eth_getBlockReceipts", params: [hx(n)] }); });
     const out = [];
-    for (let i = 0; i < body.length; i += 24) out.push(...(await rpc(body.slice(i, i + 24))));
+    for (let i = 0; i < body.length; i += 40) out.push(...(await rpc(body.slice(i, i + 40)))); // Arc's RPC takes 100 a batch
     const by = new Map(out.map((r) => [r.id, r]));
     const res = [];
     ns.forEach((n, i) => {

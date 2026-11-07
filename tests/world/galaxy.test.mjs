@@ -48,19 +48,19 @@ const rpc = async (body) => {
 };
 const g = makeGalaxy({ rpc, now: () => clock });
 let out = await g.live();
-ok(out.head === 1000 && out.blocks.length === 40 && out.rows.length === 120, "a cold start reads the last 40 blocks");
-ok(out.stats.kinds[K.usdc] === 40 && out.stats.kinds[K.deploy] === 40 && out.stats.kinds[K.call] === 40, "kinds counted");
+ok(out.head === 1000 && out.blocks.length === 100 && out.rows.length === 300, "a cold start reads the last BACKFILL blocks");
+ok(out.stats.kinds[K.usdc] === 100 && out.stats.kinds[K.deploy] === 100 && out.stats.kinds[K.call] === 100, "kinds counted");
 ok(Math.abs(out.stats.failRate - 1 / 3) < 1e-9, "a third failed");
-ok(out.stats.usd10m === 4000, "USDC moved: 40 × $1");
-ok(out.labels[USDC] && out.top[0][0] === C && out.top[0][1] === 40, "the busiest contract and the labels of what appears");
+ok(out.stats.usd10m === 10000, "USDC moved: 100 × $1");
+ok(out.labels[USDC] && out.top[0][0] === C && out.top[0][1] === 100, "the busiest contract and the labels of what appears");
 ok(out.stats.tps > 5.9 && out.stats.tps < 6.2, "≈ 6 tx/s from the block times");
 const before = calls; await g.live(); ok(calls === before, "a call within the gap shares the read");
 clock += 1000; head += 4; out = await g.live();
-ok(out.head === 1004 && out.blocks.length === 44 && out.rows.length === 132, "the next call reads only the 4 new blocks");
+ok(out.head === 1004 && out.blocks.length === 104 && out.rows.length === 312, "the next call reads only the 4 new blocks");
 // rows outside the window aren't sent, blocks older than ten minutes are let go
 clock += 2000; head += Math.ceil(WINDOW_MS / 500) + 10; out = await g.live();
 ok(out.rows.every((r) => r[8] >= out.at - WINDOW_MS - 60e3), "rows only from the window");
-ok(out.blocks.length <= MAX_BLOCKS + 44, "asleep too long → starts over with the last MAX_BLOCKS");
+ok(out.blocks.length <= MAX_BLOCKS + 104, "asleep too long → starts over with the last MAX_BLOCKS");
 // an RPC without eth_getBlockReceipts: status not known, nothing breaks
 receiptsOk = false;
 const g2 = makeGalaxy({ rpc, now: () => clock });
