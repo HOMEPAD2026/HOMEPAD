@@ -8,6 +8,7 @@
 //   kind: an index into KINDS; to: "" for a deployment; for a plain USDC send between wallets `to` is the receiver.
 // Nothing here writes or signs anything.
 import { rpc as arcRpc } from "./_arc.mjs";
+import * as fstore from "./_store.mjs";
 
 export const KINDS = ["usdc", "swap", "bridge", "token", "nft", "deploy", "approve", "call"];
 const K = Object.fromEntries(KINDS.map((k, i) => [k, i]));
@@ -39,6 +40,7 @@ export const GROUPS = {
   arcircle: { name: "ARCIRCLE", hue: 0.47 },
   launch: { name: "Launchpads", hue: 0.12 },
   infra: { name: "Smart accounts (4337)", hue: 0.62 },
+  token: { name: "Tokens", hue: 0.08 },
   other: { name: "Other contracts", hue: 0.72 },
 };
 export const LABELS = {
@@ -116,9 +118,46 @@ export function classify(tx, rc) {
 }
 
 const hx = (n) => "0x" + Number(n).toString(16);
+
+// ---------------------------------------------------------------- names (GX1)
+// A contract nobody labelled gets a name once: an ERC-20's symbol / name read from the chain (eth_call), else the
+// explorer's (Blockscout at explorer.arc.io: a verified contract's name or its token). Kept in the warm function and in
+// the store (arcGalaxyName/<address>, a week; a miss is kept a day so it isn't asked again every call).
+export const NAME_PER_READ = 8, NAME_TTL = 7 * 864e5, MISS_TTL = 864e5;
+export const EXPLORER_API = "https://explorer.arc.io";
+export function decodeStr(hex) {
+  const h = String(hex || "").replace(/^0x/, "");
+  if (!h || /^0*$/.test(h)) return "";
+  let bytes;
+  if (h.length >= 128) { // abi-encoded string: offset, length, data
+    const len = parseInt(h.slice(64, 128), 16);
+    if (!(len > 0 && len < 200)) return "";
+    bytes = h.slice(128, 128 + len * 2);
+  } else bytes = h.slice(0, 64).replace(/(00)+$/, ""); // bytes32
+  let out = "";
+  for (let i = 0; i + 1 < bytes.length; i += 2) out += String.fromCharCode(parseInt(bytes.slice(i, i + 2), 16));
+  try { out = decodeURIComponent(escape(out)); } catch { /* keep as is */ }
+  return out.replace(/[^\x20-\x7e\u00a0-\uffff]/g, "").trim().slice(0, 40);
+}
+export function tokenLabel(sym, name) {
+  sym = String(sym || "").trim(); name = String(name || "").trim();
+  if (!sym && !name) return null;
+  if (sym && name && name.toLowerCase() !== sym.toLowerCase() && (sym + " · " + name).length <= 30) return `${sym} · ${name}`;
+  return (sym || name).slice(0, 30);
+}
+async function fetchJson(url, ms = 3500) {
+  const ctl = typeof AbortController !== "undefined" ? new AbortController() : null; const t = ctl ? setTimeout(() => ctl.abort(), ms) : null;
+  try { const r = await fetch(url, { signal: ctl ? ctl.signal : undefined, headers: { accept: "application/json" } }); return r.ok ? await r.json() : null; }
+  catch { return null; } finally { if (t) clearTimeout(t); }
+}
+const storeOn = () => { try { return fstore.storeEnabled(); } catch { return false; } };
+export const defaultStore = {
+  async get(paths) { if (!storeOn()) return {}; try { return await fstore.getDocs(paths); } catch { return {}; } },
+  async set(path, data) { if (!storeOn()) return; try { await fstore.setDoc(path, data); } catch { /* best effort */ } },
+};
 /// makeGalaxy({ rpc, now }) — rpc(body) is api/_arc.mjs's raw JSON-RPC (single or batch, with failover)
-export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
-  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null };
+export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = (a) => fetchJson(`${EXPLORER_API}/api/v2/addresses/${a}`), snapEvery = 45e3 } = {}) {
+  const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [] };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
   async function readBlocks(from, to) {
@@ -159,6 +198,62 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
     if (i) st.rows.splice(0, i);
   }
 
+  // names: what the store already knows, then the chain, then the explorer
+  const nameOf = (a) => { const n = LABELS[a] ? { n: LABELS[a][0], g: LABELS[a][1], at: Infinity } : st.names.get(a); return n && n.n ? [n.n, n.g] : null; };
+  async function resolveNames(addrs, t) {
+    const want = addrs.filter((a) => a && !LABELS[a] && !(st.names.get(a) && t - st.names.get(a).at < (st.names.get(a).n ? NAME_TTL : MISS_TTL)));
+    if (!want.length) return;
+    const fromStore = await store.get(want.slice(0, 40).map((a) => "arcGalaxyName/" + a)).catch(() => ({}));
+    for (const a of want) { const d = fromStore["arcGalaxyName/" + a]; if (d && t - (d.at || 0) < (d.n ? NAME_TTL : MISS_TTL)) st.names.set(a, { n: d.n || "", g: d.g || "other", at: d.at }); }
+    const left = want.filter((a) => !st.names.has(a) || t - st.names.get(a).at >= (st.names.get(a).n ? NAME_TTL : MISS_TTL)).slice(0, NAME_PER_READ);
+    if (!left.length) return;
+    const body = [];
+    left.forEach((a, i) => { body.push({ jsonrpc: "2.0", id: 3 * i, method: "eth_call", params: [{ to: a, data: "0x95d89b41" }, "latest"] }); body.push({ jsonrpc: "2.0", id: 3 * i + 1, method: "eth_call", params: [{ to: a, data: "0x06fdde03" }, "latest"] }); body.push({ jsonrpc: "2.0", id: 3 * i + 2, method: "eth_call", params: [{ to: a, data: "0x313ce567" }, "latest"] }); });
+    let res = []; try { res = await rpc(body); } catch { res = []; }
+    const by = new Map((Array.isArray(res) ? res : []).filter(Boolean).map((r) => [r.id, r]));
+    await Promise.all(left.map(async (a, i) => {
+      const sym = by.get(3 * i) && by.get(3 * i).result, nm = by.get(3 * i + 1) && by.get(3 * i + 1).result, dec = by.get(3 * i + 2) && by.get(3 * i + 2).result;
+      let lab = dec && dec !== "0x" && sym && sym !== "0x" ? tokenLabel(decodeStr(sym), decodeStr(nm)) : null, g = lab ? "token" : "other";
+      if (!lab) {
+        const j = await explorer(a).catch(() => null);
+        if (j && typeof j === "object") {
+          if (j.token && (j.token.symbol || j.token.name)) { lab = tokenLabel(j.token.symbol, j.token.name); g = "token"; }
+          else if (j.name) lab = String(j.name).slice(0, 30);
+        }
+      }
+      const rec = { n: lab || "", g, at: t };
+      st.names.set(a, rec);
+      store.set("arcGalaxyName/" + a, rec);
+    }));
+    if (st.names.size > 3000) st.names.delete(st.names.keys().next().value);
+  }
+  // the snapshot: the last rows + ten minutes of blocks + the day's minutes, so a cold start opens with a full replay
+  async function loadSnap(t) {
+    st.loaded = true;
+    const d = (await store.get(["arcGalaxy/snap"]).catch(() => ({})))["arcGalaxy/snap"];
+    if (!d || !d.j) return;
+    try {
+      const j = JSON.parse(d.j);
+      if (Array.isArray(j.day)) st.day = j.day.filter((m) => m[0] > t - 864e5);
+      if (!(t - (j.at || 0) < 10 * 60e3) || !Array.isArray(j.rows)) return;
+      if (j.names) for (const [a, n, g] of j.names) if (!st.names.has(a)) st.names.set(a, { n, g, at: t });
+      st.rows = j.rows; st.blocks = j.blocks || []; st.head = j.head || 0; st.out = shape(t); st.out.warming = true;
+    } catch { /* start fresh */ }
+  }
+  function addDay() {
+    const by = new Map(st.day.map((m) => [m[0], m]));
+    for (const b of st.blocks) { const k = Math.floor(b[1] / 60e3) * 60e3; const m = by.get(k) || [k, 0, 0, 0, new Set()]; if (!(m[4] instanceof Set)) m[4] = new Set(); if (!m[4].has(b[0])) { m[4].add(b[0]); m[1] += b[2]; m[2] += b[4]; m[3] += b[3]; } by.set(k, m); }
+    st.day = [...by.values()].sort((x, y) => x[0] - y[0]).slice(-1440);
+  }
+  const dayOut = () => st.day.map((m) => [m[0], m[1], m[2], m[3]]);
+  function saveSnap(t) {
+    if (t - st.snapAt < snapEvery) return;
+    st.snapAt = t;
+    const names = [...st.names.entries()].filter(([, v]) => v.n).slice(-300).map(([a, v]) => [a, v.n, v.g]);
+    const rows = st.rows.slice(-900), j = JSON.stringify({ at: t, head: st.head, rows, blocks: st.blocks, day: dayOut(), names });
+    store.set("arcGalaxy/snap", { j, at: t });
+  }
+
   function shape(t) {
     const b = st.blocks, last = b[b.length - 1];
     const span = b.length > 1 ? (b[b.length - 1][1] - b[0][1]) / 1000 : 0;
@@ -174,8 +269,8 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
     let rows = st.rows.filter((r) => r[8] >= winFrom), sampled = false;
     if (rows.length > MAX_ROWS) { const step = rows.length / MAX_ROWS; rows = Array.from({ length: MAX_ROWS }, (_, i) => rows[Math.floor(i * step)]); sampled = true; }
     const labels = {};
-    for (const r of rows) if (LABELS[r[3]]) labels[r[3]] = LABELS[r[3]];
-    for (const [a] of topList) if (LABELS[a]) labels[a] = LABELS[a];
+    for (const r of rows) { const n = r[3] && nameOf(r[3]); if (n) labels[r[3]] = n; }
+    for (const [a] of topList) { const n = nameOf(a); if (n) labels[a] = n; }
     const bt = b.length > 1 ? span / (b.length - 1) : null;
     return {
       chain: 5042, head: st.head, at: t, receipts: st.receipts, sampled,
@@ -194,9 +289,13 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
     const t = now();
     const head = Number(await call("eth_blockNumber", []));
     let from = st.head ? st.head + 1 : head - BACKFILL + 1;
-    if (head - from + 1 > MAX_BLOCKS) { from = head - MAX_BLOCKS + 1; st.rows = []; st.blocks = []; } // asleep too long: start over
+    if (head - from + 1 > MAX_BLOCKS) from = head - MAX_BLOCKS + 1; // asleep too long: skip the gap (the older rows age out)
     if (from <= head) { for (const x of await readBlocks(from, head)) add(x); st.head = head; }
     trim(Math.max(t, st.blocks.length ? st.blocks[st.blocks.length - 1][1] : 0));
+    // name what's busy or just flew (the busiest first)
+    const cnt = new Map(); for (const r of st.rows) if (r[3] && r[4] !== K.usdc) cnt.set(r[3], (cnt.get(r[3]) || 0) + 1);
+    await Promise.race([resolveNames([...cnt.entries()].sort((x, y) => y[1] - x[1]).slice(0, 40).map((x) => x[0]), t), new Promise((r) => setTimeout(r, 2500))]).catch(() => {});
+    addDay(); saveSnap(t);
     st.err = null; st.readAt = t; st.out = shape(t);
     return st.out;
   }
@@ -204,13 +303,35 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now() } = {}) {
   /// the feed; calls within MIN_GAP_MS of the last read (or while one runs) get the same answer
   async function live() {
     const t = now();
-    if (st.out && t - st.readAt < MIN_GAP_MS) return st.out;
-    if (st.busy) return st.busy;
+    if (!st.loaded) await loadSnap(t).catch(() => {});
+    if (st.out && !st.out.warming && t - st.readAt < MIN_GAP_MS) return st.out;
+    if (st.busy) return st.out && st.out.warming ? st.out : st.busy;
     st.busy = refresh().catch((e) => { st.err = String(e && e.message || e).slice(0, 120); if (st.out) return { ...st.out, err: st.err, stale: true }; throw e; }).finally(() => { st.busy = null; });
+    // a cold start with a snapshot answers at once (warming) when the first read takes longer than 2.5 s
+    if (st.out && st.out.warming) return Promise.race([st.busy, new Promise((r) => setTimeout(() => r(st.out), 2500))]);
     return st.busy;
   }
-  return { live, state: st };
+  /// one transaction by hash (the page's search): the same row as the feed's, or null
+  async function tx(h) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(String(h || ""))) return null;
+    const out = await rpc([{ jsonrpc: "2.0", id: 1, method: "eth_getTransactionByHash", params: [h] }, { jsonrpc: "2.0", id: 2, method: "eth_getTransactionReceipt", params: [h] }]);
+    const by = new Map((Array.isArray(out) ? out : []).filter(Boolean).map((r) => [r.id, r.result]));
+    const t = by.get(1), rc = by.get(2);
+    if (!t || !t.blockNumber) return null;
+    const c = classify(t, rc || null), n = Number(t.blockNumber);
+    const b = await rpc({ jsonrpc: "2.0", id: 3, method: "eth_getBlockByNumber", params: [hx(n), false] }).catch(() => null);
+    const ts = b && b.result ? Number(b.result.timestamp) * 1000 : now();
+    const to = lc(t.to || "");
+    await resolveNames([to].filter(Boolean), now()).catch(() => {});
+    const labels = {}; const nm = to && nameOf(to); if (nm) labels[to] = nm;
+    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
+  }
+  /// the last 24 hours, a minute at a time: [minute, txs, usd cents, failed] (only minutes the feed read)
+  async function day() { if (!st.loaded) await loadSnap(now()).catch(() => {}); return { at: now(), minutes: dayOut() }; }
+  return { live, day, tx, state: st, nameOf };
 }
 
 let one = null;
 export const galaxy = () => (one || (one = makeGalaxy())).live();
+export const galaxyDay = () => (one || (one = makeGalaxy())).day();
+export const galaxyTx = (h) => (one || (one = makeGalaxy())).tx(h);

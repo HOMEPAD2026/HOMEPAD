@@ -61,6 +61,7 @@
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?arc=galaxy                  ARC GALAXY: the whole chain's last two minutes of transactions, live (api/_arc-galaxy.mjs)
+//   GET  /api/social?arc=galaxy-day · ?arc=galaxy-tx&h=0x…   ARC GALAXY: the last 24 h by the minute · one transaction
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders, burned on Robinhood Chain; (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -347,6 +348,14 @@ export async function GET(req) {
   if (url.searchParams.get("arc") === "galaxy") {
     try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
     catch (err) { console.error("arc galaxy", err && err.message || err); return json(502, { error: "couldn't read Arc right now" }, "public, max-age=2"); }
+  }
+  if (url.searchParams.get("arc") === "galaxy-day") {
+    try { const { galaxyDay } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyDay(), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
+    catch (err) { return json(502, { error: "couldn't read the day" }, "public, max-age=10"); }
+  }
+  if (url.searchParams.get("arc") === "galaxy-tx") {
+    try { const { galaxyTx } = await import("./_arc-galaxy.mjs"); const r = await galaxyTx(url.searchParams.get("h")); return r ? json(200, r, "public, max-age=60, s-maxage=3600") : json(404, { error: "no such transaction on Arc" }, "public, max-age=10"); }
+    catch (err) { return json(502, { error: "couldn't read Arc right now" }, "public, max-age=5"); }
   }
   // $ARCIRCLE supply for CoinGecko / CoinMarketCap (api/_supply.mjs): JSON, or one plain number with &q=total|circulating|max|burned
   if (url.searchParams.get("supply") === "arcircle") {
