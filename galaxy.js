@@ -183,8 +183,10 @@ function whale(row, gate) {
   const el = $("gx-whale") || (() => { const d = document.createElement("div"); d.id = "gx-whale"; d.className = "gx-whale"; document.body.appendChild(d); return d; })();
   const k = row[4], where = gate ? (row[9][0] === "i" ? ` · ${t("from")} ${gate.name}` : ` · ${t("to")} ${gate.name}`) : "";
   el.innerHTML = `<b>🐋 ${fmtUsd(row[5])} USDC</b><span>${esc(t(KINDS[k]))}${esc(where)}</span>`;
-  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on"); document.body.classList.add("whaling");
-  clearTimeout(el._t); el._t = setTimeout(() => { el.classList.remove("on"); document.body.classList.remove("whaling"); }, 5200);
+  el.classList.remove("on", "mini"); void el.offsetWidth; el.classList.add("on"); document.body.classList.add("whaling");
+  clearTimeout(el._t); clearTimeout(el._m);
+  if (PHONE) el._m = setTimeout(() => el.classList.add("mini"), 2600); // GX6: on a phone it folds to a chip so the galaxy shows
+  el._t = setTimeout(() => { el.classList.remove("on", "mini"); document.body.classList.remove("whaling"); }, 5200);
   shake = Math.max(shake, 0.9);
 }
 

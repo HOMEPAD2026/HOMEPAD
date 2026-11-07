@@ -111,5 +111,19 @@ ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync
   const d = await t1.day();
   ok(Array.isArray(d.minutes) && d.minutes.length > 0 && d.minutes.every((m) => m.length === 4), "the day's minutes");
 }
+// GX6: a contract's kind from its code
+{
+  const G = await import("../../api/_arc-galaxy.mjs");
+  const impl = "ab".repeat(20);
+  const clone = "0x363d3d373d3d3d363d73" + impl + "5af43d82803e903d91602b57fd5bf3";
+  ok(JSON.stringify(G.codeKind(clone, "0x" + "0".repeat(64))) === JSON.stringify({ kind: "clone", impl: "0x" + impl }), "an EIP-1167 clone and its implementation");
+  ok(G.codeKind("0x6080604052" + "00".repeat(300), "0x" + "0".repeat(24) + "cd".repeat(20)).kind === "proxy", "an EIP-1967 proxy from its slot");
+  ok(G.codeKind("0x608060405273ffff" + "a619486e" + "00".repeat(100), "0x" + "0".repeat(64)).kind === "safe", "a Safe proxy");
+  ok(G.codeKind("0x6080604052" + "11".repeat(500), "0x" + "0".repeat(64)) === null, "plain code: no guess");
+  ok(G.codeKind("0x", null) === null, "no code: nothing");
+  ok(G.kindLabel({ kind: "clone", impl: "0x" + impl }, null).n === "Clone · 0xabab…abab", "clone label with a short implementation");
+  ok(G.kindLabel({ kind: "proxy", impl: "0x" + impl }, ["Uniswap v4 PoolManager", "uniswap"]).g === "uniswap", "a proxy of a known contract joins its family");
+  ok(G.kindLabel({ kind: "safe" }).n === "Safe wallet" && G.kindLabel({ kind: "safe" }).g === "infra", "Safe wallets join smart accounts");
+}
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
