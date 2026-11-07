@@ -1,0 +1,244 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>ARCIRCLE banner</title>
+<!-- The ARCIRCLE header banner (1500×500) and its motion graphic. One canvas, drawn from a time t:
+     ?t=<sec> paints that moment; window.draw(t, intro) is what tools/banner/render.mjs calls frame by frame.
+     Art: Meshy (the glass ∞, the floating worlds from raw/hub on claude/meshy-hub, the hub's glass icons, the ARCL coin). -->
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>html,body{margin:0;background:#050b22}canvas{display:block}</style>
+</head><body>
+<canvas id="c"></canvas>
+<script>
+const Q = new URLSearchParams(location.search);
+const S = +(Q.get("scale") || 1), W = 1500, H = 500;
+const cv = document.getElementById("c"); cv.width = W * S; cv.height = H * S; cv.style.width = W + "px"; cv.style.height = H + "px";
+const x = cv.getContext("2d");
+const LOOP = 8; // every looping motion has a period that divides this
+const TAU = Math.PI * 2;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = (u) => 1 - Math.pow(1 - clamp(u), 3);
+const back = (u) => { u = clamp(u); const c = 1.6; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
+const wave = (t, per, ph = 0) => Math.sin(TAU * (t / per + ph));
+
+const IMG = {};
+const SRC = {
+  mark: "/images/brand/mark-v2.png", sky: "/images/galaxy/sky.webp",
+  town: "parts/town.png", galaxy: "parts/galaxy.png", bricks: "parts/bricks.png", stage: "parts/stage.png", rocket: "parts/rocket.png",
+  coin: "/images/arcl2-256.webp", agent: "/images/hub/ic-agents.webp",
+};
+// deterministic stars
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const STARS = Array.from({ length: 320 }, () => ({ x: rnd() * W, y: rnd() * H, r: 0.35 + Math.pow(rnd(), 3) * 1.6, a: 0.25 + rnd() * 0.75, k: 1 + Math.floor(rnd() * 3), p: rnd(), hue: rnd() }));
+
+// the emblem and the worlds round it
+const C = { x: 1012, y: 236 }, EMW = 432;
+const WORLDS = [
+  { k: "town",   label: "GAME WORLD",  x: 712,  y: 116, w: 178, bob: 6, ph: 0.0, cp: [820, 120] },
+  { k: "bricks", label: "CREATOR HUB", x: 716,  y: 372, w: 200, bob: 7, ph: 0.35, cp: [830, 400] },
+  { k: "galaxy", label: "ARC GALAXY",  x: 1322, y: 96,  w: 214, bob: 4, ph: 0.6, cp: [1210, 90], spin: true },
+  { k: "stage",  label: "ARCIA",       x: 1320, y: 368, w: 186, bob: 6, ph: 0.15, cp: [1220, 400] },
+  { k: "rocket", label: "PLATFORM",    x: 1452, y: 232, w: 58,  bob: 9, ph: 0.8, cp: [1330, 240] },
+  { k: "coin",   label: "ARCL",        x: 884,  y: 424, w: 54,  bob: 4, ph: 0.5, cp: [930, 380], coin: true },
+  { k: "agent",  label: "AI AGENTS",   x: 1146, y: 424, w: 58,  bob: 4, ph: 0.9, cp: [1110, 380] },
+];
+
+function quad(p0, p1, p2, u) { const a = 1 - u; return [a * a * p0[0] + 2 * a * u * p1[0] + u * u * p2[0], a * a * p0[1] + 2 * a * u * p1[1] + u * u * p2[1]]; }
+
+function bg(t, k) {
+  x.fillStyle = "#050b22"; x.fillRect(0, 0, W, H);
+  const sky = IMG.sky;
+  if (sky) { // Meshy's nebula, drifting
+    x.save(); x.globalAlpha = 0.42 * k; const sw = W * 1.25, sh = sw / 2, ox = -60 + wave(t, LOOP) * 18;
+    x.drawImage(sky, ox, (H - sh) / 2 - 40, sw, sh); x.restore();
+  }
+  const g = (cx, cy, r, col) => { const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r); gr.addColorStop(0, col); gr.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = gr; x.fillRect(0, 0, W, H); };
+  x.globalCompositeOperation = "lighter";
+  g(C.x, C.y, 430, `rgba(40,120,255,${0.3 * k})`);
+  g(C.x - 230, C.y + 90, 300, `rgba(150,70,255,${0.16 * k})`);
+  g(C.x + 260, C.y - 70, 320, `rgba(40,230,170,${0.13 * k})`);
+  x.globalCompositeOperation = "source-over";
+  // darker left for the words
+  const lg = x.createLinearGradient(0, 0, 660, 0); lg.addColorStop(0, "rgba(3,6,22,0.88)"); lg.addColorStop(0.6, "rgba(3,6,22,0.55)"); lg.addColorStop(1, "rgba(3,6,22,0)");
+  x.fillStyle = lg; x.fillRect(0, 0, 660, H);
+  // stars
+  for (const s of STARS) {
+    const tw = 0.55 + 0.45 * wave(t, LOOP / s.k, s.p);
+    x.globalAlpha = s.a * tw * k; x.fillStyle = s.hue < 0.2 ? "#bff9ff" : s.hue > 0.9 ? "#d9c6ff" : "#ffffff";
+    const sx = (s.x + wave(t, LOOP, s.p) * s.r * 2) % W;
+    x.beginPath(); x.arc(sx, s.y, s.r, 0, TAU); x.fill();
+    if (s.r > 1.5) { x.globalAlpha *= 0.35; x.fillRect(sx - s.r * 3, s.y - 0.4, s.r * 6, 0.8); x.fillRect(sx - 0.4, s.y - s.r * 3, 0.8, s.r * 6); }
+  }
+  x.globalAlpha = 1;
+}
+
+function orbit(t, k) {
+  x.save(); x.translate(C.x, C.y + 8); x.rotate(-0.07);
+  x.globalAlpha = 0.22 * k; x.strokeStyle = "#8fe9ff"; x.lineWidth = 1.2; x.setLineDash([2, 7]);
+  x.beginPath(); x.ellipse(0, 0, 400, 168, 0, 0, TAU); x.stroke();
+  x.setLineDash([]); x.globalAlpha = 0.12 * k; x.beginPath(); x.ellipse(0, 0, 300, 120, 0, 0, TAU); x.stroke();
+  x.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 4; i++) { // lights riding the ring
+    const a = TAU * (t / LOOP + i / 4), px = Math.cos(a) * 400, py = Math.sin(a) * 168;
+    const gr = x.createRadialGradient(px, py, 0, px, py, 14); gr.addColorStop(0, `rgba(160,255,240,${0.9 * k})`); gr.addColorStop(1, "rgba(0,0,0,0)");
+    x.globalAlpha = 1; x.fillStyle = gr; x.fillRect(px - 14, py - 14, 28, 28);
+  }
+  x.restore();
+}
+
+function beams(t, k, intro) {
+  x.save(); x.globalCompositeOperation = "lighter";
+  WORLDS.forEach((w, i) => {
+    const pr = intro == null ? 1 : ease((intro - 2.15 - i * 0.1) / 0.7);
+    if (pr <= 0) return;
+    const p0 = [w.x, w.y + (w.bobY || 0)], p2 = [C.x + (w.x < C.x ? -60 : 60), C.y + (w.y < C.y ? -20 : 30)];
+    const n = 40, m = Math.max(2, Math.round(n * pr));
+    const grd = x.createLinearGradient(p0[0], p0[1], p2[0], p2[1]); grd.addColorStop(0, "rgba(120,235,255,0.05)"); grd.addColorStop(0.5, `rgba(120,235,255,${0.42 * k})`); grd.addColorStop(1, `rgba(150,255,220,${0.15 * k})`);
+    x.strokeStyle = grd; x.lineWidth = 1.6; x.shadowColor = "rgba(90,220,255,0.9)"; x.shadowBlur = 8;
+    x.beginPath(); for (let j = 0; j <= m; j++) { const [qx, qy] = quad(p0, w.cp, p2, j / n); j ? x.lineTo(qx, qy) : x.moveTo(qx, qy); } x.stroke();
+    x.shadowBlur = 0;
+    if (pr >= 1) for (let q = 0; q < 2; q++) { // energy running into the core
+      const u = (t / (LOOP / 2) + i * 0.137 + q * 0.5) % 1; const [px, py] = quad(p0, w.cp, p2, u);
+      const a = Math.sin(Math.PI * u) * k, gr = x.createRadialGradient(px, py, 0, px, py, 9);
+      gr.addColorStop(0, `rgba(220,255,250,${a})`); gr.addColorStop(0.4, `rgba(90,240,210,${0.6 * a})`); gr.addColorStop(1, "rgba(0,0,0,0)");
+      x.fillStyle = gr; x.fillRect(px - 9, py - 9, 18, 18);
+    }
+  });
+  x.restore();
+}
+
+const off = document.createElement("canvas"), ox = off.getContext("2d");
+function emblem(t, k, intro) {
+  const im = IMG.mark; if (!im) return;
+  let sc = 1 + 0.012 * wave(t, LOOP / 2), a = k, cx = C.x;
+  if (intro != null) { const u = (intro - 0.5) / 1.0, m = ease((intro - 1.45) / 0.9); sc *= (0.55 + 0.45 * back(u)) * (1.22 - 0.22 * m); a *= clamp(u * 2.2); cx = 750 + (C.x - 750) * m; }
+  if (a <= 0) return;
+  const w = EMW * sc, h = w * im.height / im.width, X0 = cx - w / 2, Y0 = C.y - h / 2 + 2 * wave(t, LOOP, 0.25);
+  // glow behind
+  x.save(); x.globalCompositeOperation = "lighter";
+  const gr = x.createRadialGradient(cx, C.y, 0, cx, C.y, w * 0.62); gr.addColorStop(0, `rgba(90,200,255,${0.32 * a})`); gr.addColorStop(0.55, `rgba(60,120,255,${0.12 * a})`); gr.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = gr; x.fillRect(cx - w, C.y - w, w * 2, w * 2); x.restore();
+  x.save(); x.globalAlpha = a; x.drawImage(im, X0, Y0, w, h); x.restore();
+  // a light sweeping across the glass every 4 s
+  const u = ((t % (LOOP / 2)) / (LOOP / 2)) * 1.8 - 0.4;
+  if (u > -0.3 && u < 1.3) {
+    off.width = Math.ceil(w); off.height = Math.ceil(h);
+    ox.clearRect(0, 0, off.width, off.height); ox.drawImage(im, 0, 0, w, h);
+    ox.globalCompositeOperation = "source-atop";
+    const sx = u * w, lg = ox.createLinearGradient(sx - 70, 0, sx + 70, h * 0.25);
+    lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(0.5, "rgba(255,255,255,0.55)"); lg.addColorStop(1, "rgba(255,255,255,0)");
+    ox.fillStyle = lg; ox.fillRect(0, 0, w, h); ox.globalCompositeOperation = "source-over";
+    x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = 0.8 * a; x.drawImage(off, X0, Y0); x.restore();
+  }
+  // the birth flash of the intro
+  if (intro != null && intro > 0.7 && intro < 2.1) {
+    const v = (intro - 0.7) / 1.4, R = 40 + v * 520;
+    x.save(); x.globalCompositeOperation = "lighter"; x.globalAlpha = (1 - v) * 0.9;
+    x.strokeStyle = "#bff6ff"; x.lineWidth = 3 * (1 - v) + 0.5; x.beginPath(); x.ellipse(cx, C.y, R, R * 0.42, 0, 0, TAU); x.stroke();
+    const fg = x.createRadialGradient(cx, C.y, 0, cx, C.y, 260); fg.addColorStop(0, `rgba(255,255,255,${Math.max(0, 0.8 - v * 1.6)})`); fg.addColorStop(1, "rgba(0,0,0,0)");
+    x.globalAlpha = 1; x.fillStyle = fg; x.fillRect(cx - 260, C.y - 260, 520, 520); x.restore();
+  }
+}
+
+function worlds(t, k, intro) {
+  WORLDS.forEach((w, i) => {
+    const im = IMG[w.k]; if (!im) return;
+    let a = k, sc = 1;
+    if (intro != null) { const u = (intro - 2.3 - i * 0.12) / 0.6; a *= clamp(u * 1.5); sc = 0.4 + 0.6 * back(u); }
+    if (a <= 0) return;
+    const by = w.bobY;
+    const ww = w.w * sc, hh = ww * im.height / im.width;
+    x.save(); x.globalAlpha = a; x.translate(w.x, w.y + by);
+    if (w.coin) x.scale(Math.max(0.12, Math.abs(Math.cos(TAU * t / (LOOP / 2)))), 1);
+    if (w.k === "rocket") x.rotate(0.05 * wave(t, LOOP / 2));
+    if (w.spin) { // the spiral turns slowly in place
+      x.save(); x.scale(1, 0.62); x.rotate(TAU * t / LOOP * 0.5); x.scale(1, 1 / 0.62); x.drawImage(im, -ww / 2, -hh / 2, ww, hh); x.restore();
+    } else x.drawImage(im, -ww / 2, -hh / 2, ww, hh);
+    x.restore();
+    if (w.k === "rocket") { // exhaust
+      x.save(); x.globalCompositeOperation = "lighter";
+      for (let j = 0; j < 14; j++) { const u = ((t * 1.5 + j / 14) % 1), px = w.x + Math.sin(j * 7.3 + t) * 2, py = w.y + by + hh * 0.42 + u * 70;
+        x.globalAlpha = (1 - u) * 0.55 * a; x.fillStyle = j % 2 ? "#8ff3ff" : "#ffffff"; x.beginPath(); x.arc(px, py, (1 - u) * 4 + 1, 0, TAU); x.fill(); }
+      x.restore();
+    }
+    // label
+    const ly = w.y + by + hh / 2 + (w.k === "galaxy" ? -4 : w.k === "stage" ? -6 : 12);
+    x.save(); x.globalAlpha = a * 0.95; x.font = "700 11.5px Sora"; x.textAlign = "center"; x.textBaseline = "middle";
+    const tw = x.measureText(w.label).width + 18 + w.label.length * 1.5;
+    x.fillStyle = "rgba(6,14,40,0.72)"; x.strokeStyle = "rgba(120,230,255,0.45)"; x.lineWidth = 1;
+    rr(w.x - tw / 2, ly - 10, tw, 20, 10); x.fill(); x.stroke();
+    x.fillStyle = "#dff9ff"; x.letterSpacing = "1.5px"; x.fillText(w.label, w.x + 0.75, ly + 0.5); x.letterSpacing = "0px";
+    x.restore();
+  });
+}
+function rr(X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+
+function comet(t, k) { // one shooting star a loop
+  const u = (t % LOOP - 5.2) / 1.1; if (u < 0 || u > 1) return;
+  const sx = 1180 - u * 520, sy = 20 + u * 110;
+  x.save(); x.globalCompositeOperation = "lighter"; const lg = x.createLinearGradient(sx, sy, sx + 150, sy - 32);
+  lg.addColorStop(0, `rgba(255,255,255,${(1 - Math.abs(u - 0.5) * 2) * k})`); lg.addColorStop(1, "rgba(120,220,255,0)");
+  x.strokeStyle = lg; x.lineWidth = 2; x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx + 150, sy - 32); x.stroke(); x.restore();
+}
+
+function words(t, k, intro) {
+  const L = 72;
+  const at = (s, d = 0.5) => intro == null ? 1 : ease((intro - s) / d);
+  // the tag
+  let a = at(2.5) * k;
+  if (a > 0) {
+    x.save(); x.globalAlpha = a; x.font = "600 13px Sora"; x.textBaseline = "middle"; x.letterSpacing = "1.2px";
+    const txt = "COMMUNITY-BUILT ON CIRCLE'S ARC", tw = x.measureText(txt).width;
+    x.fillStyle = "rgba(10,30,50,0.7)"; x.strokeStyle = "rgba(95,255,190,0.55)"; x.lineWidth = 1; rr(L, 44, tw + 40, 28, 14); x.fill(); x.stroke();
+    x.fillStyle = "#5fffbe"; x.beginPath(); x.arc(L + 16, 58, 3.6, 0, TAU); x.fill();
+    x.fillStyle = "#cffff0"; x.fillText(txt, L + 28, 58.5); x.restore();
+  }
+  // ARCIRCLE, letter by letter
+  x.save(); x.font = "900 116px 'Big Shoulders Display'"; x.textBaseline = "alphabetic"; x.letterSpacing = "2px";
+  const word = "ARCIRCLE"; let cx = L - 3;
+  const gr = x.createLinearGradient(L, 88, L, 180); gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.62, "#e6f6ff"); gr.addColorStop(1, "#8fdcff");
+  for (let i = 0; i < word.length; i++) {
+    const ch = word[i], u = at(2.65 + i * 0.055, 0.45), w = x.measureText(ch).width + 2;
+    if (u > 0) { x.globalAlpha = u * k; x.fillStyle = gr; x.shadowColor = "rgba(80,200,255,0.45)"; x.shadowBlur = 22; x.fillText(ch, cx, 180 + (1 - u) * 26); }
+    cx += w;
+  }
+  x.restore();
+  // the line under it
+  a = at(3.2, 0.6) * k;
+  if (a > 0) {
+    x.save(); x.font = "800 40px 'Big Shoulders Display'"; x.letterSpacing = "1.5px"; x.textBaseline = "alphabetic";
+    const txt = "ONE UNIVERSE. EVERY WORLD ON ARC.", tw = x.measureText(txt).width;
+    const lg = x.createLinearGradient(L, 0, L + tw, 0); lg.addColorStop(0, "#43e6ff"); lg.addColorStop(1, "#5dffb0");
+    x.beginPath(); x.rect(L - 4, 186, (tw + 10) * a, 56); x.clip();
+    x.fillStyle = lg; x.fillText(txt, L, 226); x.restore();
+  }
+  a = at(3.55) * k;
+  if (a > 0) {
+    x.save(); x.globalAlpha = a; x.font = "500 16.5px Sora"; x.fillStyle = "#b9c8ea"; x.textBaseline = "alphabetic";
+    x.fillText("Play games · Launch coins · Build your own game", L, 258);
+    x.fillText("Chat with ARCIA · Watch the whole Arc chain live", L, 281); x.restore();
+  }
+  a = at(3.85) * k;
+  if (a > 0) { // the address
+    x.save(); x.globalAlpha = a; const y0 = 296;
+    const pg = x.createLinearGradient(L, 0, L + 170, 0); pg.addColorStop(0, "#43e6ff"); pg.addColorStop(1, "#5dffb0");
+    x.shadowColor = "rgba(67,230,255,0.55)"; x.shadowBlur = 18 + 8 * wave(t, LOOP / 4); x.fillStyle = pg; rr(L, y0, 172, 38, 19); x.fill(); x.shadowBlur = 0;
+    x.font = "700 17px Sora"; x.fillStyle = "#04142a"; x.textBaseline = "middle"; x.fillText("arcircle.app", L + 22, y0 + 19.5);
+    x.font = "600 13px 'JetBrains Mono'"; x.fillStyle = "#9fe9ff"; x.fillText("@ARCIRCLEonArc", L + 190, y0 + 19.5);
+    x.restore();
+  }
+}
+
+function draw(t, intro) {
+  x.setTransform(S, 0, 0, S, 0, 0);
+  const k = intro == null ? 1 : ease(intro / 1.2);
+  WORLDS.forEach((w, i) => { w.bobY = w.bob * wave(t, LOOP / (i % 2 ? 2 : 1), w.ph); });
+  bg(t, k); orbit(t, intro == null ? 1 : ease((intro - 2.1) / 1)); comet(t, k);
+  beams(t, 1, intro); emblem(t, 1, intro); worlds(t, 1, intro); words(t, 1, intro);
+}
+window.draw = draw;
+window.ready = Promise.all([
+  ...Object.entries(SRC).map(([k, s]) => new Promise((ok) => { const im = new Image(); im.onload = () => { IMG[k] = im; ok(); }; im.onerror = ok; im.src = s; })),
+  document.fonts.load("900 116px 'Big Shoulders Display'"), document.fonts.load("800 40px 'Big Shoulders Display'"), document.fonts.load("700 17px Sora"), document.fonts.load("500 16px Sora"), document.fonts.load("600 13px Sora"), document.fonts.load("600 13px 'JetBrains Mono'"),
+]).then(() => { const t = +(Q.get("t") || 0); const iq = Q.get("intro"); draw(t, iq != null ? +iq : null); if (Q.get("play")) { const t0 = performance.now(); const f = () => { const s = (performance.now() - t0) / 1000; draw(s, s < 5 ? s : null); requestAnimationFrame(f); }; f(); } });
+</script>
+</body></html>
