@@ -476,7 +476,7 @@ function roll(el, v, fmt) {
 }
 function sparkline(id, vals, col) {
   const box = $(id).parentElement; let sv = box.querySelector("svg.sp");
-  if (!sv) { sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", "sp"); sv.setAttribute("viewBox", "0 0 100 24"); sv.setAttribute("preserveAspectRatio", "none"); box.appendChild(sv); }
+  if (!sv) { sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", "sp"); sv.setAttribute("viewBox", "0 0 100 24"); sv.setAttribute("preserveAspectRatio", "none"); box.appendChild(sv); box.classList.add("sp"); }
   if (vals.length < 2) { sv.innerHTML = ""; return; }
   const mx = Math.max(...vals, 1e-9), pts = vals.map((v, i) => `${(i / (vals.length - 1)) * 100},${22 - (v / mx) * 20}`).join(" ");
   sv.innerHTML = `<polyline points="0,24 ${pts} 100,24" fill="${col}22" stroke="none"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`;
@@ -536,7 +536,7 @@ const tape = $("gx-tape"); let tapeBuf = [];
 // new contracts, failures, the followed address), so it stays readable on a busy chain
 const tapeScore = (r) => (follow && (r[2] === follow || r[3] === follow) ? 1e15 : 0) + r[5] + [0, 2e4, 6e4, 0, 3e4, 8e4, 0, 0][r[4]] + (r[6] === 0 ? 4e4 : 0) + Math.random();
 function tapeAdd(r) { tapeBuf.push(r); if (tapeBuf.length > 400) tapeBuf.splice(0, 200); }
-setInterval(() => { if (!tapeBuf.length || document.hidden) return; let b = tapeBuf[0]; for (const r of tapeBuf) if (tapeScore(r) > tapeScore(b)) b = r; tapeBuf = []; tapeShow(b); }, 400);
+setInterval(() => { if (!tapeBuf.length || document.hidden) return; let b = tapeBuf[0]; for (const r of tapeBuf) if (tapeScore(r) > tapeScore(b)) b = r; tapeBuf = []; tapeShow(b); }, 900);
 function tapeShow(r) {
   const [h, , from, to, k, usd, ok] = r;
   const a = document.createElement("a");
@@ -635,7 +635,9 @@ if (OBS) { document.body.classList.add("gx-obs"); orbit.idle = 20; }
   const h = $("gx-topc").querySelector("h2");
   const tb = document.createElement("div"); tb.className = "gx-rtabs"; tb.innerHTML = [["c", "tabContracts"], ["w", "tabWallets"], ["t", "tabTokens"], ["n", "tabNew"]].map(([k, w]) => `<button type="button" data-rt="${k}" class="${k === rankTab ? "on" : ""}" data-i="${w}">${esc(t(w))}</button>`).join("");
   h.after(tb);
-  tb.addEventListener("click", (e) => { const b = e.target.closest("[data-rt]"); if (!b) return; rankTab = b.dataset.rt; tb.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); paintTop(); });
+  const h2 = h;
+  const titleTop = () => { if (!h2) return; if (rankTab === "c") { h2.dataset.i = "busiest"; h2.textContent = t("busiest"); } else { delete h2.dataset.i; h2.textContent = `${t("top")} · ${t({ w: "tabWallets", t: "tabTokens", n: "tabNew" }[rankTab])}`; } };
+  tb.addEventListener("click", (e) => { const b = e.target.closest("[data-rt]"); if (!b) return; rankTab = b.dataset.rt; tb.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); titleTop(); paintTop(); });
   setInterval(() => { if (rankTab !== "c" && !document.hidden) paintTop(); }, 3000);
 }
 { // GX5: phones — one row of tabs picks what the bottom shows (Live tape · Top · Kinds · Follow)
