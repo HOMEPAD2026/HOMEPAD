@@ -60,6 +60,7 @@
 //   GET  /api/social?liqsafe=<token>             Liquidity Manager: scanner verdict + trade/tax checks
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
+//   GET  /api/social?arc=galaxy                  ARC GALAXY: the whole chain's last two minutes of transactions, live (api/_arc-galaxy.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders, burned on Robinhood Chain; (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -341,6 +342,11 @@ export async function GET(req) {
       const [m, b] = await Promise.all([arciaCoin(url.origin).catch(() => null), arciaBurned().catch(() => null)]);
       return json(200, { ...(m || {}), burned: b ? b.burned : null, burnedPct: b ? b.pct : null, supply: b ? b.supply : null }, "public, max-age=20, s-maxage=30, stale-while-revalidate=300");
     } catch (err) { return json(502, { error: "couldn't read $ARCIA right now" }); }
+  }
+  // ARC GALAXY (arcircle.app/galaxy): every Arc transaction of the last two minutes + ten minutes of block stats (api/_arc-galaxy.mjs)
+  if (url.searchParams.get("arc") === "galaxy") {
+    try { const { galaxy } = await import("./_arc-galaxy.mjs"); const g = await galaxy(); return json(200, g, g.stale ? "public, max-age=2, s-maxage=2" : "public, max-age=1, s-maxage=2, stale-while-revalidate=8"); }
+    catch (err) { console.error("arc galaxy", err && err.message || err); return json(502, { error: "couldn't read Arc right now" }, "public, max-age=2"); }
   }
   // $ARCIRCLE supply for CoinGecko / CoinMarketCap (api/_supply.mjs): JSON, or one plain number with &q=total|circulating|max|burned
   if (url.searchParams.get("supply") === "arcircle") {

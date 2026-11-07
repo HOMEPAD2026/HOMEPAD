@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ARC GALAXY — every Arc transaction, live in 3D</title>
+<meta name="description" content="Watch the Arc chain breathe: every transaction on Arc — USDC payments, swaps, CCTP bridges, deployments — flying through a live 3D galaxy. Community-built by ARCIRCLE.">
+<meta property="og:title" content="ARC GALAXY — every Arc transaction, live in 3D">
+<meta property="og:description" content="USDC payments, swaps, bridges and new contracts on Arc, as they happen. Paste a wallet to follow it.">
+<meta property="og:image" content="https://www.arcircle.app/images/galaxy/key-1200x630.webp">
+<meta property="og:url" content="https://www.arcircle.app/galaxy">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#02040c">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-v2-32.png">
+<link rel="apple-touch-icon" href="/images/brand/apple-touch-icon-v2.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,800&family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/galaxy.css?v=1">
+<link rel="modulepreload" href="/vendor/three/three-0.186.1.module.min.js">
+</head>
+<body class="gx">
+<div class="gx-splash" id="gx-splash" aria-hidden="true"><img src="/images/galaxy/key-wide.webp" alt=""><div><b>ARC <i>GALAXY</i></b><span>Every transaction on Arc, live in 3D</span></div></div>
+<canvas id="gx-c" aria-label="A live 3D view of Arc's transactions"></canvas>
+<div id="gx-labels" aria-hidden="true"></div>
+
+<header class="gx-top">
+  <div class="gx-brand">
+    <h1><span class="gx-b1">ARC</span> <span class="gx-b2">GALAXY</span></h1>
+    <p data-i="tag">Every transaction on Arc, live in 3D</p>
+    <p class="gx-by"><span data-i="by">Community-built by</span> <a href="/game" target="_blank" rel="noopener">ARCIRCLE</a> · <span data-i="notOfficial">not an official Arc site</span></p>
+  </div>
+  <div class="gx-live" id="gx-live"><i></i><span id="gx-live-t" data-i="connecting">Connecting to Arc…</span><b id="gx-block"></b></div>
+</header>
+
+<section class="gx-stats" id="gx-stats" aria-label="Live numbers">
+  <div class="gx-st"><b id="s-tps">–</b><span data-i="tps">tx / second</span></div>
+  <div class="gx-st"><b id="s-bt">–</b><span data-i="blockTime">block time</span></div>
+  <div class="gx-st gold"><b id="s-usd">–</b><span data-i="usd10">USDC moved · 10 min</span></div>
+  <div class="gx-st"><b id="s-txs">–</b><span data-i="txs10">transactions · 10 min</span></div>
+  <div class="gx-st"><b id="s-ok">–</b><span data-i="okRate">succeeded</span></div>
+  <div class="gx-st"><b id="s-w">–</b><span data-i="wallets">active wallets</span></div>
+</section>
+
+<aside class="gx-side gx-legend" id="gx-legend" aria-label="Kinds of transactions">
+  <h2 data-i="kinds">What's flying</h2>
+  <ul id="gx-kinds"></ul>
+  <p class="gx-hint" data-i="kindsHint">Tap a kind to hide or show it.</p>
+</aside>
+
+<aside class="gx-side gx-topc" id="gx-topc" aria-label="Busiest contracts">
+  <h2 data-i="busiest">Busiest contracts · 10 min</h2>
+  <ol id="gx-top"></ol>
+</aside>
+
+<div class="gx-search">
+  <input id="gx-q" type="search" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Follow a wallet or contract — paste 0x…" data-iph="follow">
+  <button type="button" id="gx-qgo" data-i="followBtn">Follow</button>
+</div>
+
+<div class="gx-card" id="gx-card" hidden></div>
+
+<footer class="gx-bottom">
+  <div class="gx-tape" id="gx-tape" aria-live="off"></div>
+  <div class="gx-tools">
+    <button type="button" id="gx-spin" title="Pause the spin" aria-label="Pause the spin">⏸</button>
+    <button type="button" id="gx-home" title="Back to the whole galaxy" aria-label="Back to the whole galaxy">⟲</button>
+    <button type="button" id="gx-full" title="Full screen" aria-label="Full screen">⛶</button>
+    <button type="button" id="gx-share" data-i="share">Share</button>
+    <select id="gx-lang" aria-label="Language"><option value="en">EN</option><option value="ko">한국어</option><option value="zh">中文</option><option value="tr">TR</option></select>
+  </div>
+  <p class="gx-src"><span data-i="src">Data: Arc's public RPC · updated every 2 s</span> · <a href="https://arc.etherscan.io" target="_blank" rel="noopener">Arc explorer</a> · <a href="/game" target="_blank" rel="noopener">Play ARCIRCLE WORLD</a></p>
+</footer>
+
+<div class="gx-note" id="gx-note" hidden></div>
+<noscript><p class="gx-nojs">ARC GALAXY needs JavaScript and WebGL.</p></noscript>
+<script type="module" src="/galaxy.js?v=1"></script>
+</body>
+</html>
