@@ -21,11 +21,11 @@ const POLL_MS = 2000, LAG_MS = 4500, REPLAY_S = 12;
 
 // ---------------------------------------------------------------- words (en / ko / zh / tr)
 const W = {
-  ko: { play: "ARCIRCLE 플레이", saved: "스냅샷 저장 완료 — #ArcGalaxy 와 함께 올려 보세요", openFull: "ARC GALAXY 크게 보기", warming: "피드를 깨우는 중 — 저장된 최근 기록부터 보여줍니다…", reading: "Arc의 최신 블록을 읽는 중…", finding: "Arc에서 그 트랜잭션을 찾는 중…", noTx: "Arc에 그런 트랜잭션이 (아직) 없어요.", block: "블록", from: "보낸 곳", to: "받는 곳", when: "시각", tag: "Arc의 모든 트랜잭션을 실시간 3D로", by: "커뮤니티 제작:", notOfficial: "Arc 공식 사이트가 아닙니다", connecting: "Arc에 연결하는 중…", live: "LIVE", replay: "지난 2분 되감기", quiet: "Arc가 조용한 순간 — 지난 2분을 다시 보여줍니다", tps: "초당 트랜잭션", blockTime: "블록 시간", usd10: "USDC 이동 · 10분", txs10: "트랜잭션 · 10분", okRate: "성공률", wallets: "활동 지갑", kinds: "날아가는 것들", kindsHint: "종류를 눌러 숨기거나 보이세요.", busiest: "가장 바쁜 컨트랙트 · 10분", follow: "지갑·컨트랙트 따라가기 또는 트랜잭션 찾기 — 0x… 붙여넣기", followBtn: "따라가기", share: "공유", src: "데이터: Arc 공개 RPC · 2초마다 갱신", usdc: "USDC 전송", swap: "스왑", bridge: "브리지 (CCTP)", token: "토큰 전송", nft: "NFT", deploy: "새 컨트랙트", approve: "승인", call: "컨트랙트 호출", failed: "실패", txsSeen: "본 트랜잭션", lastMin: "최근 2분", kindsOf: "종류", openExp: "탐색기에서 보기", copy: "주소 복사", copied: "복사됨", following: "따라가는 중", waiting: "이 주소의 다음 트랜잭션을 기다리는 중…", bad: "Arc RPC가 응답하지 않아요 — 다시 시도 중", demo: "DEMO — 만들어낸 데이터입니다 (실제 Arc 아님)", top: "Top", none: "아직 없음", contract: "컨트랙트", wallet: "지갑", noWebgl: "이 브라우저는 WebGL을 쓸 수 없어 3D를 그릴 수 없어요.", badAddr: "0x로 시작하는 40자리 주소를 넣어 주세요." },
-  zh: { play: "玩 ARCIRCLE", saved: "快照已保存 — 带上 #ArcGalaxy 分享吧", openFull: "打开 ARC GALAXY", warming: "正在唤醒数据 — 先显示保存的最近记录…", reading: "正在读取 Arc 最新区块…", finding: "正在 Arc 上查找该交易…", noTx: "Arc 上（还）没有这笔交易。", block: "区块", from: "发送方", to: "接收方", when: "时间", tag: "Arc 上的每一笔交易，实时 3D 呈现", by: "社区制作：", notOfficial: "非 Arc 官方网站", connecting: "正在连接 Arc…", live: "实时", replay: "回放最近 2 分钟", quiet: "Arc 此刻很安静 — 回放最近 2 分钟", tps: "每秒交易", blockTime: "出块时间", usd10: "USDC 流动 · 10 分钟", txs10: "交易 · 10 分钟", okRate: "成功率", wallets: "活跃钱包", kinds: "正在飞的", kindsHint: "点按类型以隐藏或显示。", busiest: "最繁忙合约 · 10 分钟", follow: "关注钱包/合约，或查找交易 — 粘贴 0x…", followBtn: "关注", share: "分享", src: "数据：Arc 公共 RPC · 每 2 秒更新", usdc: "USDC 转账", swap: "兑换", bridge: "跨链桥 (CCTP)", token: "代币转账", nft: "NFT", deploy: "新合约", approve: "授权", call: "合约调用", failed: "失败", txsSeen: "看到的交易", lastMin: "最近 2 分钟", kindsOf: "类型", openExp: "在浏览器中查看", copy: "复制地址", copied: "已复制", following: "正在关注", waiting: "等待此地址的下一笔交易…", bad: "Arc RPC 未响应 — 正在重试", demo: "DEMO — 虚构数据（不是真实的 Arc）", top: "排行", none: "暂无", contract: "合约", wallet: "钱包", noWebgl: "此浏览器无法使用 WebGL，无法绘制 3D。", badAddr: "请输入以 0x 开头的 40 位地址。" },
-  tr: { play: "ARCIRCLE oyna", saved: "Görüntü kaydedildi — #ArcGalaxy ile paylaş", openFull: "ARC GALAXY'yi aç", warming: "Akış uyanıyor — kayıtlı son dakikalar gösteriliyor…", reading: "Arc'ın son blokları okunuyor…", finding: "Bu işlem Arc'ta aranıyor…", noTx: "Arc'ta böyle bir işlem (henüz) yok.", block: "Blok", from: "Gönderen", to: "Alan", when: "Zaman", tag: "Arc'taki her işlem, canlı 3D", by: "Topluluk yapımı:", notOfficial: "resmi Arc sitesi değildir", connecting: "Arc'a bağlanılıyor…", live: "CANLI", replay: "Son 2 dakika geri sarılıyor", quiet: "Arc'ta sakin bir an — son 2 dakika tekrar", tps: "işlem / saniye", blockTime: "blok süresi", usd10: "taşınan USDC · 10 dk", txs10: "işlem · 10 dk", okRate: "başarılı", wallets: "aktif cüzdan", kinds: "Uçanlar", kindsHint: "Gizlemek / göstermek için bir türe dokunun.", busiest: "En yoğun kontratlar · 10 dk", follow: "Cüzdan / kontrat izle ya da işlem bul — 0x… yapıştır", followBtn: "İzle", share: "Paylaş", src: "Veri: Arc'ın açık RPC'si · 2 sn'de bir", usdc: "USDC transferi", swap: "Takas", bridge: "Köprü (CCTP)", token: "Token transferi", nft: "NFT", deploy: "Yeni kontrat", approve: "Onay", call: "Kontrat çağrısı", failed: "başarısız", txsSeen: "görülen işlem", lastMin: "son 2 dk", kindsOf: "türler", openExp: "Gezginde aç", copy: "Adresi kopyala", copied: "Kopyalandı", following: "İzleniyor", waiting: "Bu adresin bir sonraki işlemi bekleniyor…", bad: "Arc RPC yanıt vermedi — yeniden deneniyor", demo: "DEMO — uydurma veri (gerçek Arc değil)", top: "Top", none: "henüz yok", contract: "kontrat", wallet: "cüzdan", noWebgl: "Bu tarayıcı WebGL kullanamıyor; 3D çizilemez.", badAddr: "0x ile başlayan 40 haneli bir adres girin." },
+  ko: { tabKinds: "종류", tabContracts: "컨트랙트", tabWallets: "지갑", tabTokens: "토큰", tabNew: "신규", tabLive: "실시간", noNew: "아직 새 컨트랙트가 없어요", day24: "최근 24시간", peak: "가장 바쁜 1분", play: "ARCIRCLE 플레이", saved: "스냅샷 저장 완료 — #ArcGalaxy 와 함께 올려 보세요", openFull: "ARC GALAXY 크게 보기", warming: "피드를 깨우는 중 — 저장된 최근 기록부터 보여줍니다…", reading: "Arc의 최신 블록을 읽는 중…", finding: "Arc에서 그 트랜잭션을 찾는 중…", noTx: "Arc에 그런 트랜잭션이 (아직) 없어요.", block: "블록", from: "보낸 곳", to: "받는 곳", when: "시각", tag: "Arc의 모든 트랜잭션을 실시간 3D로", by: "커뮤니티 제작:", notOfficial: "Arc 공식 사이트가 아닙니다", connecting: "Arc에 연결하는 중…", live: "LIVE", replay: "지난 2분 되감기", quiet: "Arc가 조용한 순간 — 지난 2분을 다시 보여줍니다", tps: "초당 트랜잭션", blockTime: "블록 시간", usd10: "USDC 이동 · 10분", txs10: "트랜잭션 · 10분", okRate: "성공률", wallets: "활동 지갑", kinds: "날아가는 것들", kindsHint: "종류를 눌러 숨기거나 보이세요.", busiest: "가장 바쁜 컨트랙트 · 10분", follow: "지갑·컨트랙트 따라가기 또는 트랜잭션 찾기 — 0x… 붙여넣기", followBtn: "따라가기", share: "공유", src: "데이터: Arc 공개 RPC · 2초마다 갱신", usdc: "USDC 전송", swap: "스왑", bridge: "브리지 (CCTP)", token: "토큰 전송", nft: "NFT", deploy: "새 컨트랙트", approve: "승인", call: "컨트랙트 호출", failed: "실패", txsSeen: "본 트랜잭션", lastMin: "최근 2분", kindsOf: "종류", openExp: "탐색기에서 보기", copy: "주소 복사", copied: "복사됨", following: "따라가는 중", waiting: "이 주소의 다음 트랜잭션을 기다리는 중…", bad: "Arc RPC가 응답하지 않아요 — 다시 시도 중", demo: "DEMO — 만들어낸 데이터입니다 (실제 Arc 아님)", top: "Top", none: "아직 없음", contract: "컨트랙트", wallet: "지갑", noWebgl: "이 브라우저는 WebGL을 쓸 수 없어 3D를 그릴 수 없어요.", badAddr: "0x로 시작하는 40자리 주소를 넣어 주세요." },
+  zh: { tabKinds: "类型", tabContracts: "合约", tabWallets: "钱包", tabTokens: "代币", tabNew: "新", tabLive: "实时", noNew: "暂无新合约", day24: "最近 24 小时", peak: "最忙的一分钟", play: "玩 ARCIRCLE", saved: "快照已保存 — 带上 #ArcGalaxy 分享吧", openFull: "打开 ARC GALAXY", warming: "正在唤醒数据 — 先显示保存的最近记录…", reading: "正在读取 Arc 最新区块…", finding: "正在 Arc 上查找该交易…", noTx: "Arc 上（还）没有这笔交易。", block: "区块", from: "发送方", to: "接收方", when: "时间", tag: "Arc 上的每一笔交易，实时 3D 呈现", by: "社区制作：", notOfficial: "非 Arc 官方网站", connecting: "正在连接 Arc…", live: "实时", replay: "回放最近 2 分钟", quiet: "Arc 此刻很安静 — 回放最近 2 分钟", tps: "每秒交易", blockTime: "出块时间", usd10: "USDC 流动 · 10 分钟", txs10: "交易 · 10 分钟", okRate: "成功率", wallets: "活跃钱包", kinds: "正在飞的", kindsHint: "点按类型以隐藏或显示。", busiest: "最繁忙合约 · 10 分钟", follow: "关注钱包/合约，或查找交易 — 粘贴 0x…", followBtn: "关注", share: "分享", src: "数据：Arc 公共 RPC · 每 2 秒更新", usdc: "USDC 转账", swap: "兑换", bridge: "跨链桥 (CCTP)", token: "代币转账", nft: "NFT", deploy: "新合约", approve: "授权", call: "合约调用", failed: "失败", txsSeen: "看到的交易", lastMin: "最近 2 分钟", kindsOf: "类型", openExp: "在浏览器中查看", copy: "复制地址", copied: "已复制", following: "正在关注", waiting: "等待此地址的下一笔交易…", bad: "Arc RPC 未响应 — 正在重试", demo: "DEMO — 虚构数据（不是真实的 Arc）", top: "排行", none: "暂无", contract: "合约", wallet: "钱包", noWebgl: "此浏览器无法使用 WebGL，无法绘制 3D。", badAddr: "请输入以 0x 开头的 40 位地址。" },
+  tr: { tabKinds: "Türler", tabContracts: "Kontratlar", tabWallets: "Cüzdanlar", tabTokens: "Tokenler", tabNew: "Yeni", tabLive: "Canlı", noNew: "Henüz yeni kontrat yok", day24: "Son 24 saat", peak: "en yoğun dakika", play: "ARCIRCLE oyna", saved: "Görüntü kaydedildi — #ArcGalaxy ile paylaş", openFull: "ARC GALAXY'yi aç", warming: "Akış uyanıyor — kayıtlı son dakikalar gösteriliyor…", reading: "Arc'ın son blokları okunuyor…", finding: "Bu işlem Arc'ta aranıyor…", noTx: "Arc'ta böyle bir işlem (henüz) yok.", block: "Blok", from: "Gönderen", to: "Alan", when: "Zaman", tag: "Arc'taki her işlem, canlı 3D", by: "Topluluk yapımı:", notOfficial: "resmi Arc sitesi değildir", connecting: "Arc'a bağlanılıyor…", live: "CANLI", replay: "Son 2 dakika geri sarılıyor", quiet: "Arc'ta sakin bir an — son 2 dakika tekrar", tps: "işlem / saniye", blockTime: "blok süresi", usd10: "taşınan USDC · 10 dk", txs10: "işlem · 10 dk", okRate: "başarılı", wallets: "aktif cüzdan", kinds: "Uçanlar", kindsHint: "Gizlemek / göstermek için bir türe dokunun.", busiest: "En yoğun kontratlar · 10 dk", follow: "Cüzdan / kontrat izle ya da işlem bul — 0x… yapıştır", followBtn: "İzle", share: "Paylaş", src: "Veri: Arc'ın açık RPC'si · 2 sn'de bir", usdc: "USDC transferi", swap: "Takas", bridge: "Köprü (CCTP)", token: "Token transferi", nft: "NFT", deploy: "Yeni kontrat", approve: "Onay", call: "Kontrat çağrısı", failed: "başarısız", txsSeen: "görülen işlem", lastMin: "son 2 dk", kindsOf: "türler", openExp: "Gezginde aç", copy: "Adresi kopyala", copied: "Kopyalandı", following: "İzleniyor", waiting: "Bu adresin bir sonraki işlemi bekleniyor…", bad: "Arc RPC yanıt vermedi — yeniden deneniyor", demo: "DEMO — uydurma veri (gerçek Arc değil)", top: "Top", none: "henüz yok", contract: "kontrat", wallet: "cüzdan", noWebgl: "Bu tarayıcı WebGL kullanamıyor; 3D çizilemez.", badAddr: "0x ile başlayan 40 haneli bir adres girin." },
 };
-const EN = { play: "Play ARCIRCLE", saved: "Snapshot saved — post it with #ArcGalaxy", openFull: "Open ARC GALAXY", warming: "Waking up the feed — showing the last saved minutes…", reading: "Reading Arc's latest blocks…", finding: "Looking for that transaction on Arc…", noTx: "No such transaction on Arc (yet).", block: "Block", from: "From", to: "To", when: "When", tag: "Every transaction on Arc, live in 3D", tps: "tx / second", blockTime: "block time", usd10: "USDC moved · 10 min", txs10: "transactions · 10 min", okRate: "succeeded", wallets: "active wallets", kinds: "What's flying", busiest: "Busiest contracts · 10 min", follow: "Follow a wallet / contract, or find a tx — paste 0x…", followBtn: "Follow", share: "Share", live: "LIVE", replay: "Replaying the last 2 minutes", quiet: "A quiet moment on Arc — replaying the last 2 minutes", usdc: "USDC transfer", swap: "Swap", bridge: "Bridge (CCTP)", token: "Token transfer", nft: "NFT", deploy: "New contract", approve: "Approval", call: "Contract call", failed: "failed", txsSeen: "transactions seen", lastMin: "last 2 min", kindsOf: "kinds", openExp: "Open in explorer", copy: "Copy address", copied: "Copied", following: "Following", waiting: "Waiting for this address's next transaction…", bad: "Arc's RPC didn't answer — retrying", demo: "DEMO — made-up data (not the real Arc)", top: "Top", none: "none yet", contract: "contract", wallet: "wallet", noWebgl: "This browser can't use WebGL, so the 3D can't be drawn.", badAddr: "Paste a 40-character address that starts with 0x.", connecting: "Connecting to Arc…" };
+const EN = { tabKinds: "Kinds", tabContracts: "Contracts", tabWallets: "Wallets", tabTokens: "Tokens", tabNew: "New", tabLive: "Live", noNew: "No new contracts yet", day24: "Last 24 h", peak: "busiest minute", play: "Play ARCIRCLE", saved: "Snapshot saved — post it with #ArcGalaxy", openFull: "Open ARC GALAXY", warming: "Waking up the feed — showing the last saved minutes…", reading: "Reading Arc's latest blocks…", finding: "Looking for that transaction on Arc…", noTx: "No such transaction on Arc (yet).", block: "Block", from: "From", to: "To", when: "When", tag: "Every transaction on Arc, live in 3D", tps: "tx / second", blockTime: "block time", usd10: "USDC moved · 10 min", txs10: "transactions · 10 min", okRate: "succeeded", wallets: "active wallets", kinds: "What's flying", busiest: "Busiest contracts · 10 min", follow: "Follow a wallet / contract, or find a tx — paste 0x…", followBtn: "Follow", share: "Share", live: "LIVE", replay: "Replaying the last 2 minutes", quiet: "A quiet moment on Arc — replaying the last 2 minutes", usdc: "USDC transfer", swap: "Swap", bridge: "Bridge (CCTP)", token: "Token transfer", nft: "NFT", deploy: "New contract", approve: "Approval", call: "Contract call", failed: "failed", txsSeen: "transactions seen", lastMin: "last 2 min", kindsOf: "kinds", openExp: "Open in explorer", copy: "Copy address", copied: "Copied", following: "Following", waiting: "Waiting for this address's next transaction…", bad: "Arc's RPC didn't answer — retrying", demo: "DEMO — made-up data (not the real Arc)", top: "Top", none: "none yet", contract: "contract", wallet: "wallet", noWebgl: "This browser can't use WebGL, so the 3D can't be drawn.", badAddr: "Paste a 40-character address that starts with 0x.", connecting: "Connecting to Arc…" };
 let LANG = (() => { try { const s = localStorage.getItem("arc.galaxy.lang") || localStorage.getItem("arcircle.lang"); if (s && (s === "en" || W[s])) return s; } catch {} const n = (navigator.language || "en").slice(0, 2); return W[n] ? n : "en"; })();
 const t = (k) => (LANG !== "en" && W[LANG] && W[LANG][k]) || EN[k] || k;
 function paintWords() {
@@ -317,7 +317,7 @@ function arrive(f) {
 const births = [];
 function birth(addr) {
   const n = nodeOf(addr); n.count++; n.heat = 0; n.born = 0.001;
-  births.push({ n, t: 0 });
+  births.push({ n, t: 0 }); bornList.push({ a: addr, at: Date.now() }); if (bornList.length > 30) bornList.shift();
   pulse(true); pop("✦ NEW " + short(addr), n.pos, new THREE.Color(0xffffff));
 }
 function stepBirths(dt) {
@@ -430,7 +430,7 @@ function take(j) {
     // the busiest stars breathe with each block, even when it brought nothing
     (j.top || []).slice(0, 4).forEach(([a], i) => { const n = nodes.get(a); if (n) setTimeout(() => { n.heat = Math.min(6, n.heat + 0.5); }, 120 * i); });
   }
-  lastStats = j.stats; lastTop = j.top || [];
+  lastStats = j.stats; lastTop = j.top || []; lastBlocks = j.blocks || lastBlocks;
   setLive(!j.stale); paintStats(); paintTop(); paintLegend();
   if (j.sampled) $("gx-live-t").title = "busy: a sample of the transactions is drawn";
 }
@@ -466,12 +466,36 @@ function played(r) {
 }
 
 // ---------------------------------------------------------------- panels
+// GX5: numbers roll to their new value; tx/s, USDC and txs get a sparkline of the last ten minutes; tx/s shows ▲▼ vs the 10-min average
+let lastBlocks = [];
+function roll(el, v, fmt) {
+  if (v == null || !isFinite(v)) { el.textContent = "–"; return; }
+  const from = el._v == null ? v : el._v, t0 = performance.now(); el._v = v; cancelAnimationFrame(el._raf);
+  const step = (now) => { const u = Math.min(1, (now - t0) / 700), e = 1 - Math.pow(1 - u, 3); el.textContent = fmt(from + (v - from) * e); if (u < 1) el._raf = requestAnimationFrame(step); };
+  el._raf = requestAnimationFrame(step);
+}
+function sparkline(id, vals, col) {
+  const box = $(id).parentElement; let sv = box.querySelector("svg.sp");
+  if (!sv) { sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", "sp"); sv.setAttribute("viewBox", "0 0 100 24"); sv.setAttribute("preserveAspectRatio", "none"); box.appendChild(sv); }
+  if (vals.length < 2) { sv.innerHTML = ""; return; }
+  const mx = Math.max(...vals, 1e-9), pts = vals.map((v, i) => `${(i / (vals.length - 1)) * 100},${22 - (v / mx) * 20}`).join(" ");
+  sv.innerHTML = `<polyline points="0,24 ${pts} 100,24" fill="${col}22" stroke="none"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`;
+}
+function buckets(n, col) {
+  const b = lastBlocks; if (b.length < 4) return [];
+  const t0 = b[0][1], t1 = b[b.length - 1][1], w = Math.max(1, (t1 - t0) / n), out = new Array(n).fill(0);
+  for (const x of b) out[Math.min(n - 1, Math.floor((x[1] - t0) / w))] += x[col];
+  return out;
+}
 function paintStats() {
   const s = lastStats; if (!s) return;
-  $("s-tps").textContent = s.tps1m != null ? (s.tps1m >= 10 ? s.tps1m.toFixed(0) : s.tps1m.toFixed(1)) : s.tps != null ? s.tps.toFixed(1) : "–";
+  const tps = s.tps1m != null ? s.tps1m : s.tps;
+  roll($("s-tps"), tps, (v) => (v >= 10 ? v.toFixed(0) : v.toFixed(1)));
+  if (s.tps1m != null && s.tps) { const d = (s.tps1m / s.tps - 1) * 100, lab = $("s-tps").nextElementSibling; let em = lab.querySelector("em"); if (!em) { em = document.createElement("em"); lab.appendChild(em); } em.className = d >= 0 ? "up" : "dn"; em.textContent = ` ${d >= 0 ? "▲" : "▼"}${Math.abs(d).toFixed(0)}%`; }
+  roll($("s-usd"), (s.usd10m || 0), (v) => fmtUsd(v));
+  roll($("s-txs"), s.txs, (v) => fmtN(v));
+  sparkline("s-tps", buckets(20, 2), "#3ce6ff"); sparkline("s-usd", buckets(20, 4), "#ffd166"); sparkline("s-txs", buckets(20, 2), "#4dffb0");
   $("s-bt").textContent = s.blockTime != null ? (s.blockTime < 1 ? Math.round(s.blockTime * 1000) + " ms" : s.blockTime.toFixed(1) + " s") : "–";
-  $("s-usd").textContent = fmtUsd(s.usd10m || 0);
-  $("s-txs").textContent = fmtN(s.txs);
   $("s-ok").textContent = s.failRate != null ? ((1 - s.failRate) * 100).toFixed(1) + "%" : "–";
   $("s-w").textContent = fmtN(s.wallets);
 }
@@ -481,8 +505,23 @@ function paintLegend() {
 }
 $("gx-kinds").addEventListener("click", (e) => { const b = e.target.closest("button[data-k]"); if (!b) return; const k = +b.dataset.k; hidden.has(k) ? hidden.delete(k) : hidden.add(k); paintLegend(); });
 function nameOf(a) { return (LABELS[a] && LABELS[a][0]) || short(a); }
+let rankTab = "c";
+function rankRows() {
+  if (rankTab === "w") { const m = new Map(); for (const r of recent) m.set(r[2], (m.get(r[2]) || 0) + 1); return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([a, c]) => [a, c, "w"]); }
+  if (rankTab === "t") return [...nodes.values()].filter((n) => n.g === "token").sort((a, b) => b.count - a.count).slice(0, 10).map((n) => [n.addr, n.count, "c"]);
+  if (rankTab === "n") return births.concat(bornList).slice(-10).reverse().map((b) => [b.n ? b.n.addr : b.a, 1, "c", true]);
+  return lastTop.slice(0, 10).map(([a, c]) => [a, c, "c"]);
+}
+const bornList = [];
 function paintTop() {
   const ol = $("gx-top"); if (!ol) return;
+  if (rankTab !== "c") {
+    const rs = rankRows();
+    if (!rs.length) { ol.innerHTML = `<li class="gx-empty">${esc(t(rankTab === "n" ? "noNew" : "none"))}</li>`; return; }
+    const mx = Math.max(...rs.map((r) => r[1]), 1);
+    ol.innerHTML = rs.map(([a, c, kind, isNew]) => `<li class="${a === cardOf ? "sel" : ""}"><button type="button" data-${kind === "w" ? "w" : "a"}="${a}"><span class="n">${esc(kind === "w" ? short(a) : nameOf(a))}${!isNew && LABELS[a] ? `<small>${short(a)}</small>` : ""}</span><span class="c">${isNew ? "✦" : fmtN(c)}</span><span class="bar" style="width:${Math.max(4, (c / mx) * 100)}%"></span></button></li>`).join("");
+    return;
+  }
   if (!lastTop.length) { ol.innerHTML = `<li class="gx-empty">${esc(t("none"))}</li>`; return; }
   const max = lastTop[0][1];
   ol.innerHTML = lastTop.slice(0, 10).map(([a, c]) => `<li class="${a === cardOf ? "sel" : ""}"><button type="button" data-a="${a}"><span class="n">${esc(nameOf(a))}${LABELS[a] ? `<small>${short(a)}</small>` : ""}</span><span class="c">${fmtN(c)}</span><span class="bar" style="width:${Math.max(4, (c / max) * 100)}%"></span></button></li>`).join("");
@@ -490,7 +529,7 @@ function paintTop() {
   topLabels.forEach((l) => l.el.remove());
   topLabels = lastTop.slice(0, PHONE ? 4 : 8).map(([a]) => ({ el: label(nameOf(a)), n: nodeOf(a) }));
 }
-$("gx-top").addEventListener("click", (e) => { const b = e.target.closest("button[data-a]"); if (b) { $("gx-topc").classList.remove("open"); document.body.classList.remove("topopen"); showContract(b.dataset.a); } });
+$("gx-top").addEventListener("click", (e) => { const w = e.target.closest("button[data-w]"); if (w) { $("gx-q").value = w.dataset.w; doFollow(); return; } const b = e.target.closest("button[data-a]"); if (b) { $("gx-topc").classList.remove("open"); document.body.classList.remove("topopen"); showContract(b.dataset.a); } });
 
 const tape = $("gx-tape"); let tapeBuf = [];
 // the tape shows one transaction every 0.4 s at most: the most interesting of what flew since (big USDC, bridges,
@@ -516,6 +555,7 @@ let cardOf = null;
 const card = $("gx-card");
 function closeCard() { card.hidden = true; cardOf = null; document.body.classList.remove("carded"); paintTop(); }
 function cardShell(title, addr, body, link) {
+  if (PHONE && !document.body.classList.contains("pt-live")) { const lt = document.querySelector("[data-pt=live]"); if (lt) lt.click(); }
   card.innerHTML = `<button class="x" type="button" aria-label="Close">×</button><h3>${esc(title)}</h3><div class="ad">${esc(addr)}</div>${body}<div class="ln"><a href="${link || `${EXPLORER}/address/${addr}`}" target="_blank" rel="noopener">${esc(t("openExp"))} ↗</a><a href="#" data-copy="${addr}">${esc(t("copy"))}</a></div>`;
   card.hidden = false; document.body.classList.add("carded");
 }
@@ -529,7 +569,9 @@ function showContract(a) {
   const n = nodeOf(a), rs = rowsOf(a), usd = rs.reduce((s, r) => s + (r[5] || 0), 0), top = lastTop.find((x) => x[0] === a);
   cardOf = a;
   const c10 = top ? top[1] : n.count, cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
-  cardShell(nameOf(a) === short(a) ? cap(t("contract")) + " " + short(a) : nameOf(a), a, `<dl><dt>${esc(t("txs10"))}</dt><dd>${fmtN(c10)}</dd>${rs.length !== c10 ? `<dt>${esc(t("txsSeen"))} · ${esc(t("lastMin"))}</dt><dd>${fmtN(rs.length)}</dd>` : ""}${usd ? `<dt>USDC · ${esc(t("lastMin"))}</dt><dd>${fmtUsd(usd)}</dd>` : ""}</dl><ul>${kindsHtml(rs)}</ul>`);
+  const now2 = Date.now() + skew, bars = new Array(12).fill(0); for (const r of rs) { const i = 11 - Math.floor((now2 - r[8]) / 10000); if (i >= 0 && i < 12) bars[i]++; }
+  const bm = Math.max(...bars, 1), chart = `<div class="gx-mini">${bars.map((v) => `<i style="height:${Math.max(6, (v / bm) * 100)}%"></i>`).join("")}</div>`;
+  cardShell(nameOf(a) === short(a) ? cap(t("contract")) + " " + short(a) : nameOf(a), a, chart + `<dl><dt>${esc(t("txs10"))}</dt><dd>${fmtN(c10)}</dd>${rs.length !== c10 ? `<dt>${esc(t("txsSeen"))} · ${esc(t("lastMin"))}</dt><dd>${fmtN(rs.length)}</dd>` : ""}${usd ? `<dt>USDC · ${esc(t("lastMin"))}</dt><dd>${fmtUsd(usd)}</dd>` : ""}</dl><ul>${kindsHtml(rs)}</ul>`);
   flyTo(n.pos, 70); paintTop();
 }
 function showFollow(a, quiet) {
@@ -589,11 +631,55 @@ if (OBS) { document.body.classList.add("gx-obs"); orbit.idle = 20; }
   $("gx-share").before(b);
   b.addEventListener("click", () => { soundOn = !soundOn; b.textContent = soundOn ? "🔊" : "🔇"; if (soundOn && !actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { soundOn = false; b.textContent = "🔇"; } } if (actx && actx.state === "suspended") actx.resume(); });
 }
-{ // phones: the busiest list behind a button
-  const b = document.createElement("button"); b.type = "button"; b.className = "ph"; b.id = "gx-topbtn"; b.textContent = "★"; b.title = "Busiest contracts";
-  if (PHONE) $("gx-spin").before(b);
-  b.addEventListener("click", () => { const o = $("gx-topc").classList.toggle("open"); document.body.classList.toggle("topopen", o); if (o) closeCard(); });
+{ // GX5: the rankings' tabs
+  const h = $("gx-topc").querySelector("h2");
+  const tb = document.createElement("div"); tb.className = "gx-rtabs"; tb.innerHTML = [["c", "tabContracts"], ["w", "tabWallets"], ["t", "tabTokens"], ["n", "tabNew"]].map(([k, w]) => `<button type="button" data-rt="${k}" class="${k === rankTab ? "on" : ""}" data-i="${w}">${esc(t(w))}</button>`).join("");
+  h.after(tb);
+  tb.addEventListener("click", (e) => { const b = e.target.closest("[data-rt]"); if (!b) return; rankTab = b.dataset.rt; tb.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); paintTop(); });
+  setInterval(() => { if (rankTab !== "c" && !document.hidden) paintTop(); }, 3000);
 }
+{ // GX5: phones — one row of tabs picks what the bottom shows (Live tape · Top · Kinds · Follow)
+  if (PHONE) {
+    const bar = document.createElement("div"); bar.className = "gx-ptabs"; bar.innerHTML = [["live", "tabLive"], ["top", "top"], ["kinds", "tabKinds"], ["follow", "followBtn"]].map(([k, w]) => `<button type="button" data-pt="${k}" class="${k === "live" ? "on" : ""}">${esc(t(w))}</button>`).join("");
+    document.querySelector(".gx-bottom").prepend(bar);
+    document.body.classList.add("pt-live");
+    bar.addEventListener("click", (e) => { const b = e.target.closest("[data-pt]"); if (!b) return; ["live", "top", "kinds", "follow"].forEach((k) => document.body.classList.toggle("pt-" + k, k === b.dataset.pt)); bar.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); if (b.dataset.pt === "top") closeCard(); if (b.dataset.pt === "follow") setTimeout(() => $("gx-q").focus(), 50); });
+  }
+}
+{ // GX5: replay the last minutes fast, focus mode, keys
+  const rb = document.createElement("button"); rb.type = "button"; rb.id = "gx-replay"; rb.textContent = "⏪"; rb.title = "Replay the last minutes"; rb.setAttribute("aria-label", "Replay");
+  $("gx-spin").before(rb);
+  rb.addEventListener("click", () => {
+    const rs = recent.slice(-600); if (rs.length < 3) return;
+    const t0 = rs[0][8], span = Math.max(1, rs[rs.length - 1][8] - t0), now = performance.now();
+    replayPlan = rs.map((r) => ({ r, at: now + ((r[8] - t0) / span) * 12000 })); replayUntil = now + 12000; mode = "replay"; setLive(true); note(t("replay"), false, 12000);
+  });
+  const fb = document.createElement("button"); fb.type = "button"; fb.id = "gx-focus"; fb.textContent = "⤢"; fb.title = "Focus (F)"; fb.setAttribute("aria-label", "Focus");
+  if (!PHONE) $("gx-full").before(fb);
+  const focus = (on) => document.body.classList.toggle("gx-focus", on);
+  fb.addEventListener("click", () => focus(!document.body.classList.contains("gx-focus")));
+  addEventListener("keydown", (e) => {
+    if (e.target && /input|select|textarea/i.test(e.target.tagName)) return;
+    if (e.key === "f" || e.key === "F") focus(!document.body.classList.contains("gx-focus"));
+    else if (e.key === " ") { e.preventDefault(); $("gx-spin").click(); }
+    else if (e.key === "Escape") { if (!card.hidden) closeCard(); else focus(false); }
+    else if (e.key === "ArrowLeft") { orbit.th -= 0.12; orbit.idle = 0; } else if (e.key === "ArrowRight") { orbit.th += 0.12; orbit.idle = 0; }
+    else if (e.key === "ArrowUp") { orbit.d = Math.max(40, orbit.d * 0.9); } else if (e.key === "ArrowDown") { orbit.d = Math.min(900, orbit.d * 1.1); }
+  });
+}
+// GX5: the last 24 hours, half an hour a bar (only the minutes the feed read)
+async function paintDay() {
+  try {
+    const r = await fetch("/api/social?arc=galaxy-day" + (NET === "testnet" ? "&net=testnet" : "")); if (!r.ok) return;
+    const j = await r.json(), m = j.minutes || []; if (m.length < 5) return;
+    const now = Date.now(), bars = new Array(48).fill(null);
+    for (const [ts, tx] of m) { const i = 47 - Math.floor((now - ts) / 1800000); if (i >= 0 && i < 48) bars[i] = (bars[i] || 0) + tx; }
+    const mx = Math.max(...bars.map((v) => v || 0), 1), peak = Math.max(...m.map((x) => x[1]));
+    let el = $("gx-day"); if (!el) { el = document.createElement("div"); el.id = "gx-day"; el.className = "gx-day"; $("gx-legend").appendChild(el); }
+    el.innerHTML = `<h2>${esc(t("day24"))}</h2><div class="bars">${bars.map((v) => `<i class="${v == null ? "gap" : ""}" style="height:${v == null ? 4 : Math.max(6, (v / mx) * 100)}%"></i>`).join("")}</div><p class="gx-hint">${esc(t("peak"))}: ${fmtN(peak)} tx / min</p>`;
+  } catch { /* the chart is a bonus */ }
+}
+if (!DEMO && !Q.get("src")) { setTimeout(paintDay, 3000); setInterval(() => { if (!document.hidden) paintDay(); }, 60000); }
 
 // GX4: a followed wallet's recent past (testnet only — mainnet's explorer API is behind a bot check)
 async function walletHistory(a) {
@@ -658,7 +744,8 @@ function demoFeed() {
   demoRows = demoRows.filter((r) => r[8] > now - 120e3);
   const kinds = new Array(8).fill(0); demoRows.forEach((r) => kinds[r[4]]++);
   const top = {}; demoRows.forEach((r) => { if (r[3] && r[4] !== 0) top[r[3]] = (top[r[3]] || 0) + 1; });
-  return { head: demoN, at: now, rows: demoRows, labels: demoLab, top: Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 16), stats: { tps1m: demoRows.length / 120, tps: demoRows.length / 120, blockTime: 0.5, usd10m: demoRows.reduce((s, r) => s + r[5], 0) * 5, txs: demoRows.length * 5, failRate: 0.04, kinds: kinds.map((x) => x * 5), wallets: 280 } };
+  const bmap = new Map(); for (const r of demoRows) { const x = bmap.get(r[1]) || [r[1], r[8], 0, 0, 0]; x[2]++; x[4] += r[5]; if (r[6] === 0) x[3]++; bmap.set(r[1], x); }
+  return { head: demoN, at: now, rows: demoRows, labels: demoLab, blocks: [...bmap.values()].sort((a, b) => a[0] - b[0]), top: Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 16), stats: { tps1m: demoRows.length / 120, tps: demoRows.length / 120, blockTime: 0.5, usd10m: demoRows.reduce((s, r) => s + r[5], 0) * 5, txs: demoRows.length * 5, failRate: 0.04, kinds: kinds.map((x) => x * 5), wallets: 280 } };
 }
 
 // ---------------------------------------------------------------- frame
