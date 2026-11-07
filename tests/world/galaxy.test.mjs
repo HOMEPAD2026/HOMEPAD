@@ -125,5 +125,20 @@ ok(fs.existsSync(new URL("../../galaxy.html", import.meta.url)) && fs.existsSync
   ok(G.kindLabel({ kind: "proxy", impl: "0x" + impl }, ["Uniswap v4 PoolManager", "uniswap"]).g === "uniswap", "a proxy of a known contract joins its family");
   ok(G.kindLabel({ kind: "safe" }).n === "Safe wallet" && G.kindLabel({ kind: "safe" }).g === "infra", "Safe wallets join smart accounts");
 }
+// GX7: signed (EIP-3009) USDC payments and the fee in USDC
+{
+  const G = await import("../../api/_arc-galaxy.mjs");
+  const p32 = (h) => String(h).replace(/^0x/, "").padStart(64, "0");
+  const from = "0x" + "11".repeat(20), to = "0x" + "22".repeat(20);
+  const input = "0xe3ee160e" + p32(from) + p32(to) + p32((2500000).toString(16)) + p32("0") + p32("ffffffff") + p32("ab".repeat(32)) + p32("1b") + p32("cd".repeat(32)) + p32("ef".repeat(32));
+  const c1 = G.classify({ to: G.USDC, input, from: "0x" + "33".repeat(20), value: "0x0", hash: "0x" + "44".repeat(32) }, null);
+  ok(c1.auth === 1 && c1.k === G.KINDS.indexOf("usdc") && c1.usd === 250, "transferWithAuthorization: a signed USDC payment, $2.50 read from the call");
+  const rc = { status: "0x1", gasUsed: "0x5208", effectiveGasPrice: "0x" + (160e9).toString(16), logs: [{ address: G.USDC, topics: [G.T_AUTH_USED, "0x" + p32(from), "0x" + "99".repeat(32)], data: "0x" }, { address: G.USDC, topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x" + p32(from), "0x" + p32(to)], data: "0x" + p32((1000000).toString(16)) }] };
+  const c2 = G.classify({ to: "0x" + "55".repeat(20), input: "0x12345678", from: "0x" + "33".repeat(20), value: "0x0", hash: "0x" + "66".repeat(32) }, rc);
+  ok(c2.auth === 1, "a relayer's call caught by USDC's AuthorizationUsed log");
+  ok(c2.fee === 3360, "fee = gasUsed × effectiveGasPrice in millionths of a dollar (21000 × 160 gwei = $0.00336)");
+  const c3 = G.classify({ to: G.USDC, input: "0xa9059cbb" + p32(to) + p32("64"), from: "0x" + "33".repeat(20), value: "0x0", hash: "0x" + "77".repeat(32) }, null);
+  ok(c3.auth === 0 && c3.fee === 0, "a plain transfer is not a signed payment; no receipt, no fee");
+}
 console.log(`galaxy: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -46,11 +46,14 @@
 
 <section class="gx-stats" id="gx-stats" aria-label="Live numbers">
   <div class="gx-st"><b id="s-tps">–</b><span data-i="tps">tx / second</span></div>
-  <div class="gx-st"><b id="s-bt">–</b><span data-i="blockTime">block time</span></div>
+  <div class="gx-st" title="Arc's finality is deterministic: a transaction in a block is final, with no reorgs to wait for"><b id="s-bt">–</b><span data-i="blockTime">block time · final</span></div>
   <div class="gx-st gold"><b id="s-usd">–</b><span data-i="usd10">USDC moved · 10 min</span></div>
   <div class="gx-st"><b id="s-txs">–</b><span data-i="txs10">transactions · 10 min</span></div>
   <div class="gx-st"><b id="s-ok">–</b><span data-i="okRate">succeeded</span></div>
   <div class="gx-st"><b id="s-w">–</b><span data-i="wallets">active wallets</span></div>
+  <div class="gx-st mini"><b id="s-fee">–</b><span data-i="feeAvg">avg fee in USDC</span></div>
+  <div class="gx-st mini"><b id="s-fees">–</b><span data-i="fee10">fees paid · 10 min</span></div>
+  <div class="gx-st mini agent"><b id="s-auth">–</b><span data-i="auth10" title="EIP-3009 signed USDC payments in the last 10 minutes — how x402 and AI agents pay">signed payments</span></div>
 </section>
 
 <aside class="gx-side gx-legend" id="gx-legend" aria-label="Kinds of transactions">
