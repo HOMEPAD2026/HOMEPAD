@@ -1,0 +1,28 @@
+# raw/galaxy — ARC GALAXY source material
+
+Made 2026-11-07 by a worker session on the 기본 environment for arcircle.app/galaxy (community-built by ARCIRCLE, not an official Arc page). All images from Meshy text-to-image (`node tools/meshy.mjs image`, model nano-banana), converted with `pack.py` (Pillow, WebP q80–82). Source PNGs aren't committed.
+
+## Arc data
+
+| file | size | what |
+|---|---|---|
+| sample.mjs | 11.4 KB | the sampler (`node raw/galaxy/sample.mjs [300]`, plain fetch + Node 22's WebSocket) |
+| arc-sample.md | 6.6 KB | its report: block rate, receipts, websockets, batch limits, last 300 blocks |
+| blocks-sample.json | 300.2 KB | [{block, receipts}] × 3 consecutive full blocks (the busiest stretch of the last 60) |
+| top-contracts.json | 5.5 KB | top 40 `to` addresses over 300 blocks: [{address, count, selectors}] |
+
+## Images
+
+| file | size | Meshy prompt | processing |
+|---|---|---|---|
+| sky.webp · sky-1024.webp | 41.5 KB · 11.3 KB | Deep space nebula background filling the entire frame edge to edge, no borders, no black bars, dark navy-black space with large soft wispy cyan and soft violet nebula clouds spread across the whole image, faint gold dust, thousands of tiny faint stars everywhere, calm, low contrast, seamless panorama, stylized premium digital art, no planets, no text (16:9) | sky2 → centre-cropped to 2:1, 2048×1024; made to wrap left-right by crossfading with a half-width roll (seam hidden in the middle); 1024×512 copy. (The first try, sky, came back letterboxed and wasn't used.) |
+| core-glow.webp | 4.0 KB | A single radiant star core light burst, bright cyan-white center with soft rays and bloom, centered, on a pure black background, nothing else, no text (1:1) | 512×512, black floor crushed to 0, edges masked to a circle — no grey square under additive drawing |
+| ring.webp | 5.1 KB | A thin glowing circular shockwave ring of cyan-white light, perfect circle, centered, thin bright edge with soft glow, empty dark center, on a pure black background, nothing else, no text (1:1) | 512×512, black crushed, edges masked |
+| glow-cyan.webp | 0.9 KB | cyan soft diffuse light glow, a blurry out-of-focus bokeh light with smooth gaussian falloff fading to black, no hard edge, no surface, not a sphere, not a planet, not a moon, no texture, centered, on a pure black background, nothing else (1:1) | Meshy's sprites came out lumpy (and the first set as hard moons), so only their colour is kept: the brightest 1 % of glow2-cyan.png, saturation ×2.4, redrawn as a clean round gaussian (+ a faint whiter centre) on pure black, 256×256 |
+| glow-mint.webp | 0.9 KB | mint green soft diffuse light glow, a blurry out-of-focus bokeh light with smooth gaussian falloff fading to black, no hard edge, no surface, not a sphere, not a planet, not a moon, no texture, centered, on a pure black background, nothing else (1:1) | Meshy's sprites came out lumpy (and the first set as hard moons), so only their colour is kept: the brightest 1 % of glow2-mint.png, saturation ×2.4, redrawn as a clean round gaussian (+ a faint whiter centre) on pure black, 256×256 |
+| glow-gold.webp | 1.0 KB | warm gold soft diffuse light glow, a blurry out-of-focus bokeh light with smooth gaussian falloff fading to black, no hard edge, no surface, not a sphere, not a planet, not a moon, no texture, centered, on a pure black background, nothing else (1:1) | Meshy's sprites came out lumpy (and the first set as hard moons), so only their colour is kept: the brightest 1 % of glow2-gold.png, saturation ×2.4, redrawn as a clean round gaussian (+ a faint whiter centre) on pure black, 256×256 |
+| glow-violet.webp | 0.9 KB | soft violet soft diffuse light glow, a blurry out-of-focus bokeh light with smooth gaussian falloff fading to black, no hard edge, no surface, not a sphere, not a planet, not a moon, no texture, centered, on a pure black background, nothing else (1:1) | Meshy's sprites came out lumpy (and the first set as hard moons), so only their colour is kept: the brightest 1 % of glow2-violet.png, saturation ×2.4, redrawn as a clean round gaussian (+ a faint whiter centre) on pure black, 256×256 |
+| glow-red.webp | 0.9 KB | red soft diffuse light glow, a blurry out-of-focus bokeh light with smooth gaussian falloff fading to black, no hard edge, no surface, not a sphere, not a planet, not a moon, no texture, centered, on a pure black background, nothing else (1:1) | Meshy's sprites came out lumpy (and the first set as hard moons), so only their colour is kept: the brightest 1 % of glow2-red.png, saturation ×2.4, redrawn as a clean round gaussian (+ a faint whiter centre) on pure black, 256×256 |
+| key-wide.webp · key-1200x630.webp | 66.1 KB · 43.1 KB | Luminous spiral galaxy made of flowing light streams and particles swirling into a bright glowing core, cyan and mint light with hints of soft violet and gold, deep navy space background, galaxy placed in the right two thirds, empty dark calm space on the left third for a title, premium stylized digital key art, cinematic, no text, no logos, no planets (16:9) | a stray glint in the top-left corner cropped off; 1600×900, and a 1200×630 centre crop for og:image (the galaxy stays on the right) |
+
+Meshy task ids (tools/meshy-out/log.jsonl in the worker): core: text-to-image ; glow-cyan: text-to-image ; glow-gold: text-to-image ; glow-mint: text-to-image ; glow-red: text-to-image ; glow-violet: text-to-image ; glow2-cyan: text-to-image ; glow2-gold: text-to-image ; glow2-mint: text-to-image ; glow2-red: text-to-image ; glow2-violet: text-to-image ; key: text-to-image ; ring: text-to-image ; sky: text-to-image ; sky2: text-to-image 
