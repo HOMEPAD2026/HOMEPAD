@@ -47,9 +47,9 @@ button, input, select { font: inherit; color: inherit; }
 .gx-legend li button em { margin-left: auto; font: 500 12px "JetBrains Mono", monospace; color: var(--dim); font-style: normal; }
 .gx-legend li.off button { opacity: 0.38; } .gx-legend li.off button i { box-shadow: none; }
 .gx-hint { margin: 8px 0 0; font-size: 11px; color: var(--dim); opacity: 0.8; }
-.gx-topc { right: var(--pad); top: calc(80px + var(--sa-t)); width: 290px; max-height: calc(100vh - 300px); overflow: auto; }
+.gx-topc { right: var(--pad); top: calc(80px + var(--sa-t)); width: 290px; max-height: calc(100vh - 290px); overflow: auto; scrollbar-width: thin; }
 .gx-topc ol { margin: 0; padding: 0; list-style: none; counter-reset: c; }
-.gx-topc li button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; width: 100%; padding: 6px 6px; border-radius: 8px; cursor: pointer; }
+.gx-topc li button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 2px 8px; width: 100%; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
 .gx-topc li button:hover, .gx-topc li.sel button { background: rgba(120, 200, 255, 0.1); }
 .gx-topc li button::before { counter-increment: c; content: counter(c); font: 700 11px "JetBrains Mono", monospace; color: var(--dim); text-align: right; }
 .gx-topc .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -65,7 +65,7 @@ button, input, select { font: inherit; color: inherit; }
 .gx-search button { border: 0; border-radius: 10px; padding: 6px 14px; background: linear-gradient(90deg, #1fb6ff, #2be3a8); color: #021018; font-weight: 700; cursor: pointer; }
 .gx-card { right: var(--pad); top: calc(80px + var(--sa-t)); width: 320px; max-height: calc(100vh - 290px); overflow: auto; padding: 14px 16px; background: var(--glass2); border-color: var(--line2); animation: gx-in 0.25s ease-out; }
 .gx-card h3 { margin: 0 0 4px; font: 800 17px "Exo 2", sans-serif; padding-right: 24px; }
-.gx-card .ad { font: 500 11.5px "JetBrains Mono", monospace; color: var(--dim); word-break: break-all; }
+.gx-card .ad { font: 500 10.5px "JetBrains Mono", monospace; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gx-card .x { position: absolute; top: 8px; right: 10px; border: 0; background: none; color: var(--dim); font-size: 18px; cursor: pointer; }
 .gx-card dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 10px 0; font-size: 12.5px; }
 .gx-card dt { color: var(--dim); } .gx-card dd { margin: 0; font-family: "JetBrains Mono", monospace; text-align: right; }
@@ -121,13 +121,13 @@ body.carded .gx-topc { display: none; }
   :root { --pad: 10px; }
   .gx-brand h1 { font-size: 24px; } .gx-brand p { font-size: 11.5px; margin-top: 4px; } .gx-brand .gx-by { display: none; }
   .gx-live { padding: 6px 10px; font-size: 11px; } .gx-live b { font-size: 11px; } .gx-live span { display: none; }
-  .gx-note { top: calc(128px + var(--sa-t)); font-size: 11.5px; padding: 6px 12px; }
-  .gx-stats { top: calc(72px + var(--sa-t)); width: auto; right: var(--pad); display: flex; overflow-x: auto; scrollbar-width: none; gap: 6px; }
+  .gx-note { top: calc(176px + var(--sa-t)); font-size: 11.5px; padding: 6px 12px; }
+  .gx-stats { top: calc(70px + var(--sa-t)); width: auto; right: var(--pad); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .gx-stats::-webkit-scrollbar { display: none; }
-  .gx-st { flex: none; padding: 7px 10px; } .gx-st b { font-size: 17px; } .gx-st span { font-size: 10px; }
+  .gx-st { padding: 6px 8px; border-radius: 10px; } .gx-st b { font-size: 15px; } .gx-st span { font-size: 9.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gx-legend { top: auto; bottom: calc(176px + var(--sa-b)); left: var(--pad); right: var(--pad); width: auto; padding: 6px 8px; background: transparent; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .gx-legend h2, .gx-hint { display: none; }
-  .gx-legend ul { display: flex; overflow-x: auto; scrollbar-width: none; gap: 4px; }
+  .gx-legend ul { display: flex; overflow-x: auto; scrollbar-width: none; gap: 4px; mask-image: linear-gradient(90deg, #000 82%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); padding-right: 30px; }
   .gx-legend li button { padding: 4px 9px; background: var(--glass); border: 1px solid var(--line); border-radius: 999px; font-size: 11.5px; white-space: nowrap; width: auto; }
   .gx-legend li button em { margin-left: 4px; font-size: 10.5px; }
   .gx-topc { display: none; }
