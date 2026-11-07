@@ -295,3 +295,9 @@ body.gx-focus .gx-stats, body.gx-focus .gx-side, body.gx-focus .gx-search, body.
   .gxd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .gxd-t { padding: 8px 10px; } .gxd-t b { font-size: 17px; }
   .gxd-two { grid-template-columns: 1fr; gap: 0; }
 }
+/* GXR: Robinhood Chain — lime accent, the net switch with an Arena link */
+body.gx-rh { --cyan: #ccff00; }
+body.gx-rh .gx-b1 { color: #ccff00; }
+.gx-net a.rh.on { color: #0b1300; background: #ccff00; }
+.gx-net a.ar { color: var(--gold); }
+.gx-st[hidden] { display: none !important; }

@@ -75,8 +75,11 @@ export function addBlock(day, b, rcs, classify, prev, opt = {}) {
   const byHash = new Map((rcs || []).map((r) => [lc(r.transactionHash), r]));
   const txs = (b.transactions || []).filter((t) => typeof t === "object");
   const from = [];
+  let nTx = 0;
   for (const tx of txs) {
     const c = classify(tx, byHash.get(lc(tx.hash)) || null);
+    if (!c) continue; // a chain's own system tx
+    nTx++;
     day.txs++; day.kinds[c.k] = (day.kinds[c.k] || 0) + 1;
     if (c.ok !== -1) { day.known++; if (c.ok === 0) { day.fail++; day.hFail[h]++; } }
     day.usd += c.usd; day.hUsd[h] += c.usd;
@@ -89,8 +92,8 @@ export function addBlock(day, b, rcs, classify, prev, opt = {}) {
     if (to && c.k !== 0 && c.k !== 5 && !(opt.skipTop && opt.skipTop(to))) day.top[to] = (day.top[to] || 0) + 1;
     from.push(lc(tx.from));
   }
-  day.blocks++; day.hB[h]++; day.hTx[h] += txs.length; day.min[mi] += txs.length;
-  if (!day.peakBlock || txs.length > day.peakBlock[0]) day.peakBlock = [txs.length, n, ts];
+  day.blocks++; day.hB[h]++; day.hTx[h] += nTx; day.min[mi] += nTx;
+  if (!day.peakBlock || nTx > day.peakBlock[0]) day.peakBlock = [nTx, n, ts];
   if (!day.first || n < day.first) day.first = n;
   if (n > day.last) day.last = n;
   if (prev && prev.n === n - 1 && dayOf(prev.ts) === day.d && ts >= prev.ts && ts - prev.ts < 60e3) day.secs += (ts - prev.ts) / 1000;

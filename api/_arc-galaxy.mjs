@@ -96,11 +96,24 @@ export const SEL_AUTH = new Set(["0xe3ee160e", "0xcf092995", "0xef55bec6"]);
 export const T_AUTH_USED = "0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5";
 
 const big = (h) => { try { return BigInt(h || "0x0"); } catch { return 0n; } };
-/// one transaction (+ its receipt when the RPC gives receipts) → { k, usd (cents), ok }
-export function classify(tx, rc) {
+/// the chain's money rules (GXR): Arc's native coin is USDC (18 decimals, a cent = 1e16) and so is its gas; another EVM
+/// chain (Robinhood Chain: ETH) prices its native coin and its fees through a live dollar price (cfg.px(), dollars an ETH)
+export const ARC_MONEY = {
+  usdc: USDC, nativeCents: (wei) => wei / 10n ** 16n, feeMicro: (w) => w / 10n ** 12n,
+  bridgeOf: () => null, skip: () => false,
+};
+export function evmMoney({ usdc, px, bridgeOf = () => null, skip = () => false }) {
+  const pc = () => { const p = Number(px && px()); return p > 0 ? BigInt(Math.round(p * 1e6)) : 0n; }; // micro-dollars an ETH
+  return { usdc: lc(usdc || "") || "0x-none", nativeCents: (wei) => (wei * pc()) / 10n ** 22n, feeMicro: (w) => (w * pc()) / 10n ** 18n, bridgeOf, skip };
+}
+/// one transaction (+ its receipt when the RPC gives receipts) → { k, usd (cents), ok } — null for a chain's own system tx
+export const classify = (tx, rc) => classifyWith(ARC_MONEY, tx, rc);
+export function classifyWith(M, tx, rc) {
+  if (M.skip(tx)) return null;
+  const USDC = M.usdc;
   const to = lc(tx.to), input = String(tx.input || tx.data || "0x"), sel = input.length >= 10 ? input.slice(0, 10).toLowerCase() : "";
   const logs = (rc && rc.logs) || [];
-  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false, br = 0, mint = 0n, auth = to === USDC && SEL_AUTH.has(sel);
+  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false, br = 0, mint = 0n, xb = M.bridgeOf(tx), auth = to === USDC && SEL_AUTH.has(sel);
   for (const l of logs) {
     const a = lc(l.address), t0 = lc(l.topics && l.topics[0]);
     if (BRIDGE.has(a)) bridge = true;
@@ -117,8 +130,9 @@ export function classify(tx, rc) {
     }
   }
   if (mint > usd) usd = mint;
+  if (xb) { bridge = true; br = xb; }
   // the native coin is USDC (18 decimals); count it when no USDC Transfer log says the same thing already
-  const native = big(tx.value) / 10n ** 16n;
+  const native = M.nativeCents(big(tx.value));
   if (native > usd) usd = native;
   if (!usd && to === USDC && SEL_AUTH.has(sel)) usd = big("0x" + input.slice(138, 202)) / 10000n; // (from, to, value, …)
   if (!usd && to === USDC && SEL_TRANSFER.has(sel)) { // no receipt: read the amount from the call itself
@@ -143,7 +157,7 @@ export function classify(tx, rc) {
   const cents = usd > 9007199254740991n ? 9007199254740991 : Number(usd);
   // GX7: the fee in USDC (the native gas coin, 18 decimals) in millionths of a dollar
   let fee = 0;
-  if (rc && rc.gasUsed) { const f = big(rc.gasUsed) * big(rc.effectiveGasPrice || tx.gasPrice || "0x0") / 10n ** 12n; fee = f > 9007199254740991n ? 9007199254740991 : Number(f); }
+  if (rc && rc.gasUsed) { const f = M.feeMicro(big(rc.gasUsed) * big(rc.effectiveGasPrice || tx.gasPrice || "0x0")); fee = f > 9007199254740991n ? 9007199254740991 : Number(f); }
   return { k, usd: cents, ok, sel, br, route, auth: auth ? 1 : 0, fee };
 }
 
@@ -226,7 +240,9 @@ export const defaultStore = {
 // explorer: off on mainnet — explorer.arc.io's API sits behind a Cloudflare bot check (the worker's check, 2026-11-07); the
 // testnet's Blockscout answers (explorerFor). Names come from eth_call + LABELS.
 export const explorerFor = (base) => (base ? (a) => fetchJson(`${base}/api/v2/addresses/${a}`) : async () => null);
-export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy" } = {}) {
+// maxBlocks / backfill / batch: Arc reads 120 / 100 blocks a call in batches of 40; Robinhood Chain (0.1 s blocks, an RPC that
+// rate-limits bursts of ~150 requests) 150 / 100 in batches of 20 — its explorer API sits behind a bot check, so names come from eth_call
+export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy", cls = classify, chain = 5042, before = null, maxBlocks = MAX_BLOCKS, backfill = BACKFILL, batch = 40 } = {}) {
   const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [], claims: new Map(), rec: null };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
@@ -235,7 +251,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const body = [];
     ns.forEach((n, i) => { body.push({ jsonrpc: "2.0", id: 2 * i, method: "eth_getBlockByNumber", params: [hx(n), true] }); if (st.receipts) body.push({ jsonrpc: "2.0", id: 2 * i + 1, method: "eth_getBlockReceipts", params: [hx(n)] }); });
     const out = [];
-    for (let i = 0; i < body.length; i += 40) out.push(...(await rpc(body.slice(i, i + 40)))); // Arc's RPC takes 100 a batch
+    for (let i = 0; i < body.length; i += batch) out.push(...(await rpc(body.slice(i, i + batch)))); // Arc's RPC takes 100 a batch
     const by = new Map(out.map((r) => [r.id, r]));
     const res = [];
     ns.forEach((n, i) => {
@@ -261,16 +277,19 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const n = Number(b.number), ts = Number(b.timestamp) * 1000;
     const byHash = new Map((rcs || []).map((r) => [lc(r.transactionHash), r]));
     let fails = 0, usd = 0, fee = 0, auth = 0;
+    let nTx = 0;
     for (const tx of b.transactions || []) {
       if (typeof tx !== "object") continue;
-      const c = classify(tx, byHash.get(lc(tx.hash)) || null);
+      const c = cls(tx, byHash.get(lc(tx.hash)) || null);
+      if (!c) continue; // a chain's own system tx (Robinhood Chain's ArbOS start-of-block) isn't anyone's transaction
+      nTx++;
       if (c.ok === 0) fails++;
       usd += c.usd; fee += c.fee; auth += c.auth;
       if (c.usd > 0 && c.ok !== 0) bump("usd", c.usd, lc(tx.hash), ts);
       st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0, c.route || 0, c.auth]);
     }
-    st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed)), fee, auth]);
-    bump("block", (b.transactions || []).length, n, ts);
+    st.blocks.push([n, ts, nTx, fails, usd, Number(big(b.gasUsed)), fee, auth]);
+    bump("block", nTx, n, ts);
   }
 
   function trim(t) {
@@ -366,7 +385,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     for (const [a] of topList) { const n = nameOf(a); if (n) labels[a] = n; }
     const bt = b.length > 1 ? span / (b.length - 1) : null;
     return {
-      chain: 5042, head: st.head, at: t, receipts: st.receipts, sampled,
+      chain, head: st.head, at: t, receipts: st.receipts, sampled,
       stats: {
         span, txs: total, tps: span > 0 ? total / span : null, tps1m: span1 > 0 ? tx1 / span1 : null,
         blockTime: bt, usd1m: m1.reduce((s, x) => s + x[4], 0), usd10m: b.reduce((s, x) => s + x[4], 0),
@@ -382,9 +401,10 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
 
   async function refresh() {
     const t = now();
+    if (before) await before().catch(() => {}); // e.g. the ETH price for a chain whose money is ETH
     const head = Number(await call("eth_blockNumber", []));
-    let from = st.head ? st.head + 1 : head - BACKFILL + 1;
-    if (head - from + 1 > MAX_BLOCKS) from = head - MAX_BLOCKS + 1; // asleep too long: skip the gap (the older rows age out)
+    let from = st.head ? st.head + 1 : head - backfill + 1;
+    if (head - from + 1 > maxBlocks) from = head - maxBlocks + 1; // asleep too long: skip the gap (the older rows age out)
     if (from <= head) { for (const x of await readBlocks(from, head)) add(x); st.head = head; }
     trim(Math.max(t, st.blocks.length ? st.blocks[st.blocks.length - 1][1] : 0));
     // name what's busy or just flew (the busiest first)
@@ -415,7 +435,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const by = new Map((Array.isArray(out) ? out : []).filter(Boolean).map((r) => [r.id, r.result]));
     const t = by.get(1), rc = by.get(2);
     if (!t || !t.blockNumber) return null;
-    const c = classify(t, rc || null), n = Number(t.blockNumber);
+    const c = cls(t, rc || null) || { k: 7, usd: 0, ok: -1, sel: "", br: 0, route: 0, auth: 0, fee: 0 }, n = Number(t.blockNumber);
     const b = await rpc({ jsonrpc: "2.0", id: 3, method: "eth_getBlockByNumber", params: [hx(n), false] }).catch(() => null);
     const ts = b && b.result ? Number(b.result.timestamp) * 1000 : now();
     const to = lc(t.to || "");
@@ -456,6 +476,60 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   return { live, day, tx, claim, pageMeta, state: st, nameOf, ready: async () => { if (!st.loaded) await loadSnap(now()).catch(() => {}); } };
 }
 
+// GXR: ROBINHOOD CHAIN (chain 4663, Arbitrum Orbit, gas in ETH) through the same engine. Labels: only what this repo's
+// own config proves (config-arc.js ARCPAD_RH / PONS / NFT / OMNI, liq-core.js); names otherwise from its Blockscout.
+export const ROBINHOOD = {
+  chainId: 4663, explorer: "https://robinhoodchain.blockscout.com",
+  rpcs: () => [process.env.ROBINHOOD_RPC_URL, "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
+  // the dollar that moves there: USDG "Global Dollar" (6 decimals) — the worker's measurement 2026-11-07: no USDC Transfer
+  // in 200 blocks, USDG 110; ROBINHOOD_USDC overrides once a USDC is live
+  usdc: process.env.ROBINHOOD_USDC || "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+  weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+  arbsys: "0x0000000000000000000000000000000000000064",
+  internal: "0x6a", // ArbOS's start-of-block system transaction (from 0x…0a4b05) — no one's transaction
+  deposits: new Set(["0x64", "0x65", "0x66", "0x68", "0x69"]), // Arbitrum deposit / retryable kinds: value arriving from the parent chain
+  parentDomain: 0, // drawn at the Ethereum gate
+};
+Object.assign(LABELS, {
+  "0x58daec3116aae6d93017baaea7749052e8a04fa7": ["Uniswap Positions (Robinhood)", "uniswap"],
+  [ROBINHOOD.weth]: ["WETH", "token"],
+  "0x5fc5360d0400a0fd4f2af552add042d716f1d168": ["USDG · Global Dollar", "token"],
+  "0x0000000000000068f116a894984e2db1123eb395": ["Seaport", "other"],
+  "0x1446af2d4b86cf31a96bde8173c2bc39c8a2eeaf": ["ArcPad Factory (Robinhood)", "launch"],
+  "0x0ab746332b5b85091b62cbc6f1ce90f1557465b3": ["ArcPad Router (Robinhood)", "launch"],
+  "0xd49d2d593fcf79651e2db7f554d4e13f434e8044": ["ArcPad Hook (Robinhood)", "launch"],
+  "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e": ["Pons Launch Factory", "launch"],
+  "0x8e67b75b4b91c5c95c4562f99980371e4f466daa": ["ARCIRCLE Launch Drop (Robinhood)", "arcircle"],
+  "0x6f9ebd0dfc6de9ed47eec18efeb69a9b97c71ee4": ["$ARCIRCLE (Robinhood)", "arcircle"],
+  "0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25": ["$ARCIA", "arcircle"],
+  "0x2ee3ae4140a08930dc9cede5cde86f3bc906c304": ["ARCIRCLE NFT Vault", "arcircle"],
+  "0x95b56477722df40021797121f2fade759dc88f65": ["ARCIRCLE NFT Router", "arcircle"],
+  [ROBINHOOD.arbsys]: ["ArbSys (withdrawals)", "infra"],
+});
+SWAPPERS.add("0x0ab746332b5b85091b62cbc6f1ce90f1557465b3");
+let ethPx = null;
+export const RH_MONEY = evmMoney({
+  usdc: ROBINHOOD.usdc, px: () => ethPx,
+  skip: (tx) => lc(tx.type) === ROBINHOOD.internal,
+  bridgeOf: (tx) => (ROBINHOOD.deposits.has(lc(tx.type)) ? "i" + ROBINHOOD.parentDomain : lc(tx.to) === ROBINHOOD.arbsys ? "o" + ROBINHOOD.parentDomain : null),
+});
+let rIdx = 0;
+export async function rhRpc(body) {
+  const urls = ROBINHOOD.rpcs(); let err;
+  for (let k = 0; k < urls.length; k++) {
+    const url = urls[(rIdx + k) % urls.length];
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) });
+      if (r.status === 429 || r.status >= 500) throw new Error("rpc " + r.status);
+      const out = await r.json();
+      if (Array.isArray(body) && !Array.isArray(out)) throw new Error((out && out.error && out.error.message) || "batch refused");
+      rIdx = (rIdx + k) % urls.length; return out;
+    } catch (e) { err = e; }
+  }
+  throw err || new Error("no robinhood rpc");
+}
+async function rhPrice() { if (ethPx && Date.now() - (rhPrice.at || 0) < 60e3) return; try { const P = await import("./_pons-arcpad.mjs"); const p = await P.ethUsd(); if (p > 0) { ethPx = p; rhPrice.at = Date.now(); } } catch { /* keep the last price */ } }
+
 // GX4: Arc TESTNET (chain 5042002) — its own RPCs (checked by the worker 2026-11-07: every one takes 100 a batch except
 // dRPC; a -32005 'rate limit' right after a big batch passes a moment later → the next RPC), names from eth_call + its
 // Blockscout (explorer.testnet.arc.io answers, CORS *), kept apart in the store (arcGalaxyTest…)
@@ -478,8 +552,11 @@ export async function testRpc(body) {
   throw err || new Error("no testnet rpc");
 }
 let one = null, test = null;
-const inst = (net) => net === "testnet" ? (test || (test = makeGalaxy({ rpc: testRpc, explorer: explorerFor(TESTNET.explorer), key: "arcGalaxyTest" }))) : (one || (one = makeGalaxy()));
-export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ? { ...o, chain: TESTNET.chainId, net: "testnet" } : o));
+let rh = null;
+const inst = (net) => net === "testnet" ? (test || (test = makeGalaxy({ rpc: testRpc, explorer: explorerFor(TESTNET.explorer), key: "arcGalaxyTest" })))
+  : net === "robinhood" ? (rh || (rh = makeGalaxy({ rpc: rhRpc, explorer: explorerFor(null), maxBlocks: 150, backfill: 100, batch: 20, key: "rhGalaxy", chain: ROBINHOOD.chainId, cls: (tx, rc) => classifyWith(RH_MONEY, tx, rc), before: rhPrice })))
+  : (one || (one = makeGalaxy()));
+export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ? { ...o, chain: TESTNET.chainId, net: "testnet" } : net === "robinhood" ? { ...o, net: "robinhood", ethUsd: ethPx } : o));
 export const galaxyDay = (net) => inst(net).day();
 export const galaxyTx = (h, net) => inst(net).tx(h);
 export const galaxyClaim = (body, recover, net) => inst(net).claim(body, recover);

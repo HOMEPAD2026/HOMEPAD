@@ -12,10 +12,12 @@ const Q = new URLSearchParams(location.search);
 const PHONE = matchMedia("(max-width: 760px)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 const LOW = PHONE && (navigator.hardwareConcurrency || 4) <= 4;
 // GX4: ?net=testnet reads Arc's testnet; /embed/galaxy (or ?embed=1) a compact view for other sites; ?obs=1 no UI at all (streams, screens)
-const NET = Q.get("net") === "testnet" ? "testnet" : "mainnet";
+const NET = Q.get("net") === "testnet" || Q.get("net") === "robinhood" ? Q.get("net") : "mainnet";
+const RH = NET === "robinhood"; // GXR: Robinhood Chain (4663) through the same engine — ETH priced live, no CCTP
+const CHAIN_NAME = RH ? "Robinhood Chain" : NET === "testnet" ? "Arc testnet" : "Arc";
 const EMBED = location.pathname.startsWith("/embed/") || Q.get("embed") === "1", OBS = Q.get("obs") === "1";
-const EXPLORER = NET === "testnet" ? "https://explorer.testnet.arc.io" : "https://arc.etherscan.io";
-const FEED = (() => { const s = Q.get("src"); return s && /^\/[\w\-./]+$/.test(s) ? s : "/api/social?arc=galaxy" + (NET === "testnet" ? "&net=testnet" : ""); })();
+const EXPLORER = NET === "testnet" ? "https://explorer.testnet.arc.io" : RH ? "https://robinhoodchain.blockscout.com" : "https://arc.etherscan.io";
+const FEED = (() => { const s = Q.get("src"); return s && /^\/[\w\-./]+$/.test(s) ? s : "/api/social?arc=galaxy" + (NET !== "mainnet" ? "&net=" + NET : ""); })();
 const DEMO = Q.get("demo") === "1";
 const POLL_MS = 2000, LAG_MS = 4500, REPLAY_S = 12;
 
@@ -27,10 +29,17 @@ const W = {
 };
 const EN = { views: "views", records: "Records", recUsd: "Biggest USDC move", recBlock: "Busiest block", recTps: "Peak tx/s (1 min)", today: "today", ever: "ever", recSee: "See the biggest move ever", recHint: "“ever” = since ARC GALAXY began watching", newRec: "New record!", mileIn: "Next: block #{n} in {t}", mileNow: "Arc reached block #{n}!", shareStar: "Share this star", copiedLink: "Link copied", claim: "Name my contract", rename: "Rename", claimedBy: "named by its contract's owner", claimHint: "Your contract? Sign with the wallet its owner() returns and the star gets your name.", claimName: "Name (2–28 characters)", claimBtn: "Sign with wallet & save", noWallet: "Open this page in a wallet browser (MetaMask, Rabby …) to sign.", claimOk: "Named! Everyone sees it in a moment.", feeAvg: "avg fee in USDC", fee10: "fees paid · 10 min", auth10: "signed payments", authK: "Signed payment (EIP-3009)", tabKinds: "Kinds", tabContracts: "Contracts", tabWallets: "Wallets", tabTokens: "Tokens", tabNew: "New", tabLive: "Live", noNew: "No new contracts yet", day24: "Last 24 h", peak: "busiest minute", play: "Play ARCIRCLE", saved: "Snapshot saved — post it with #ArcGalaxy", openFull: "Open ARC GALAXY", warming: "Waking up the feed — showing the last saved minutes…", reading: "Reading Arc's latest blocks…", finding: "Looking for that transaction on Arc…", noTx: "No such transaction on Arc (yet).", block: "Block", from: "From", to: "To", when: "When", tag: "Every transaction on Arc, live in 3D", tps: "tx / second", blockTime: "block time · final", usd10: "USDC moved · 10 min", txs10: "transactions · 10 min", okRate: "succeeded", wallets: "active wallets", kinds: "What's flying", busiest: "Busiest contracts · 10 min", follow: "Follow a wallet / contract, or find a tx — paste 0x…", followBtn: "Follow", share: "Share", live: "LIVE", replay: "Replaying the last 2 minutes", quiet: "A quiet moment on Arc — replaying the last 2 minutes", usdc: "USDC transfer", swap: "Swap", bridge: "Bridge (CCTP)", token: "Token transfer", nft: "NFT", deploy: "New contract", approve: "Approval", call: "Contract call", failed: "failed", txsSeen: "transactions seen", lastMin: "last 2 min", kindsOf: "kinds", openExp: "Open in explorer", copy: "Copy address", copied: "Copied", following: "Following", waiting: "Waiting for this address's next transaction…", bad: "Arc's RPC didn't answer — retrying", demo: "DEMO — made-up data (not the real Arc)", top: "Top", none: "none yet", contract: "contract", wallet: "wallet", noWebgl: "This browser can't use WebGL, so the 3D can't be drawn.", badAddr: "Paste a 40-character address that starts with 0x.", connecting: "Connecting to Arc…" };
 let LANG = (() => { try { const s = localStorage.getItem("arc.galaxy.lang") || localStorage.getItem("arcircle.lang"); if (s && (s === "en" || W[s])) return s; } catch {} const n = (navigator.language || "en").slice(0, 2); return W[n] ? n : "en"; })();
-const t = (k) => (LANG !== "en" && W[LANG] && W[LANG][k]) || EN[k] || k;
+// GXR: the words that change on Robinhood Chain (its money is ETH, it has no CCTP, finality isn't Arc's)
+const RHW = {
+  en: { tag: "Every transaction on Robinhood Chain, live in 3D", usd10: "value moved · 10 min", feeAvg: "avg fee in USD", blockTime: "block time", usdc: "ETH / USDG transfer", bridge: "Bridge", connecting: "Connecting to Robinhood Chain…", reading: "Reading Robinhood Chain's latest blocks…", finding: "Looking for that transaction on Robinhood Chain…", noTx: "No such transaction on Robinhood Chain (yet).", bad: "Robinhood Chain's RPC didn't answer — retrying", quiet: "A quiet moment on Robinhood Chain — replaying the last 2 minutes", src: "Data: Robinhood Chain's public RPC · ETH priced live", notOfficial: "not an official Robinhood site", recUsd: "Biggest move", openFull: "Open the galaxy" },
+  ko: { tag: "Robinhood Chain의 모든 트랜잭션을 실시간 3D로", usd10: "이동한 가치 · 10분", feeAvg: "평균 수수료 (USD)", blockTime: "블록 시간", usdc: "ETH / USDG 전송", bridge: "브리지", connecting: "Robinhood Chain에 연결하는 중…", reading: "Robinhood Chain의 최신 블록을 읽는 중…", finding: "Robinhood Chain에서 그 트랜잭션을 찾는 중…", noTx: "Robinhood Chain에 그런 트랜잭션이 (아직) 없어요.", bad: "Robinhood Chain RPC가 응답하지 않아요 — 다시 시도 중", quiet: "Robinhood Chain이 조용한 순간 — 지난 2분을 다시 보여줍니다", src: "데이터: Robinhood Chain 공개 RPC · ETH 실시간 가격", notOfficial: "Robinhood 공식 사이트가 아닙니다", recUsd: "가장 큰 이동", openFull: "갤럭시 크게 보기" },
+  zh: { tag: "Robinhood Chain 上的每一笔交易，实时 3D 呈现", usd10: "转移价值 · 10 分钟", feeAvg: "平均手续费（美元）", blockTime: "出块时间", usdc: "ETH / USDG 转账", bridge: "跨链桥", connecting: "正在连接 Robinhood Chain…", reading: "正在读取 Robinhood Chain 最新区块…", finding: "正在 Robinhood Chain 上查找该交易…", noTx: "Robinhood Chain 上（还）没有这笔交易。", bad: "Robinhood Chain RPC 未响应 — 正在重试", quiet: "Robinhood Chain 此刻很安静 — 回放最近 2 分钟", src: "数据：Robinhood Chain 公共 RPC · ETH 实时价格", notOfficial: "非 Robinhood 官方网站", recUsd: "最大一笔", openFull: "打开星系" },
+  tr: { tag: "Robinhood Chain'deki her işlem, canlı 3D", usd10: "taşınan değer · 10 dk", feeAvg: "ort. ücret (USD)", blockTime: "blok süresi", usdc: "ETH / USDG transferi", bridge: "Köprü", connecting: "Robinhood Chain'e bağlanılıyor…", reading: "Robinhood Chain'in son blokları okunuyor…", finding: "Bu işlem Robinhood Chain'de aranıyor…", noTx: "Robinhood Chain'de böyle bir işlem (henüz) yok.", bad: "Robinhood Chain RPC yanıt vermedi — yeniden deneniyor", quiet: "Robinhood Chain'de sakin bir an — son 2 dakika tekrar", src: "Veri: Robinhood Chain açık RPC · ETH canlı fiyat", notOfficial: "resmi Robinhood sitesi değildir", recUsd: "En büyük hareket", openFull: "Galaksiyi aç" },
+};
+const t = (k) => (RH && ((RHW[LANG] && RHW[LANG][k]) || RHW.en[k])) || (LANG !== "en" && W[LANG] && W[LANG][k]) || EN[k] || k;
 function paintWords() {
   document.documentElement.lang = LANG;
-  document.querySelectorAll("[data-i]").forEach((el) => { const k = el.dataset.i; if (LANG === "en") { if (el.dataset.en) el.textContent = el.dataset.en; } else { if (!el.dataset.en) el.dataset.en = el.textContent; if (W[LANG][k]) el.textContent = W[LANG][k]; } });
+  document.querySelectorAll("[data-i]").forEach((el) => { const k = el.dataset.i; if (!el.dataset.en) el.dataset.en = el.textContent; if (RH && RHW.en[k]) el.textContent = t(k); else if (LANG === "en") el.textContent = el.dataset.en; else if (W[LANG][k]) el.textContent = W[LANG][k]; });
   document.querySelectorAll("[data-iph]").forEach((el) => { if (!el.dataset.en) el.dataset.en = el.placeholder; el.placeholder = LANG === "en" ? el.dataset.en : W[LANG][el.dataset.iph] || el.dataset.en; });
   const sel = document.getElementById("gx-lang"); if (sel) sel.value = LANG;
   paintLegend(); paintTop();
@@ -224,7 +233,7 @@ function busyTint(dt) { busyK += (busyWant - busyK) * Math.min(1, dt * 0.6); cor
 function whale(row, gate) {
   const el = $("gx-whale") || (() => { const d = document.createElement("div"); d.id = "gx-whale"; d.className = "gx-whale"; document.body.appendChild(d); return d; })();
   const k = row[4], where = gate ? (row[9][0] === "i" ? ` · ${t("from")} ${gate.name}` : ` · ${t("to")} ${gate.name}`) : "";
-  el.innerHTML = `<b>🐋 ${fmtUsd(row[5])} USDC</b><span>${esc(t(KINDS[k]))}${esc(where)}</span>`;
+  el.innerHTML = `<b>🐋 ${fmtUsd(row[5])}${RH ? "" : " USDC"}</b><span>${esc(t(KINDS[k]))}${esc(where)}</span>`;
   el.className = "gx-whale"; void el.offsetWidth; el.classList.add("on"); document.body.classList.add("whaling");
   clearTimeout(el._t); clearTimeout(el._m);
   if (PHONE) el._m = setTimeout(() => el.classList.add("mini"), 2600); // GX6: on a phone it folds to a chip so the galaxy shows
@@ -401,7 +410,7 @@ const LB = $("gx-labels"); const lbs = [];
 function label(text, cls) { const el = document.createElement("div"); el.className = "gx-lb " + (cls || ""); el.textContent = text; LB.appendChild(el); return el; }
 const hubLabels = Object.keys(HUBS).map((g) => ({ el: label(GROUPS[g].name, "hub"), pos: HUBS[g] }));
 let topLabels = [];
-function bigLabel(f) { f.lb = label(f.me ? "● " + (f.row[5] ? fmtUsd(f.row[5]) : t(KINDS[f.row[4]])) : fmtUsd(f.row[5]) + " USDC", f.me ? "me" : "big"); }
+function bigLabel(f) { f.lb = label(f.me ? "● " + (f.row[5] ? fmtUsd(f.row[5]) : t(KINDS[f.row[4]])) : fmtUsd(f.row[5]) + (RH ? "" : " USDC"), f.me ? "me" : "big"); }
 function placeLabel(el, pos, must) {
   tmpV.copy(pos).applyMatrix4(world.matrixWorld).project(cam);
   if (tmpV.z > 1 || Math.abs(tmpV.x) > 1.1 || Math.abs(tmpV.y) > 1.1) { el.style.display = "none"; return; }
@@ -459,7 +468,7 @@ function paintRecords(r) {
   const line = (k, lab, f) => ev[k] ? `<dt>${esc(t(lab))}</dt><dd>${td[k] ? `<b>${f(td[k][0])}</b> ${esc(t("today"))} · ` : ""}${f(ev[k][0])} ${esc(t("ever"))}</dd>` : "";
   el.innerHTML = `<h2>🏆 ${esc(t("records"))}</h2><dl>${line("usd", "recUsd", (v) => fmtUsd(v))}${line("block", "recBlock", (v) => fmtN(v) + " tx")}${line("tps", "recTps", fmtTps)}</dl>${ev.usd ? `<button type="button" class="gx-recgo" data-tx="${ev.usd[1]}">↗ ${esc(t("recSee"))}</button>` : ""}<p class="gx-hint">${esc(t("recHint"))}</p>`;
   if (lastRec && lastRec.ever) {
-    for (const [k, lab, f] of [["usd", "recUsd", (v) => fmtUsd(v) + " USDC"], ["block", "recBlock", (v) => fmtN(v) + " tx"], ["tps", "recTps", (v) => (v / 100).toFixed(1) + " tx/s"]]) {
+    for (const [k, lab, f] of [["usd", "recUsd", (v) => fmtUsd(v) + (RH ? "" : " USDC")], ["block", "recBlock", (v) => fmtN(v) + " tx"], ["tps", "recTps", (v) => (v / 100).toFixed(1) + " tx/s"]]) {
       const a = lastRec.ever[k], b = ev[k];
       if (b && (!a || b[0] > a[0]) && a) { banner(`<b>🏆 ${esc(t("newRec"))}</b><span>${esc(t(lab))}: ${esc(f(b[0]))}</span>`, "rec"); shake = Math.max(shake, 0.7); spark(core.position, new THREE.Color(0xffd166), 90, 1.8); break; }
     }
@@ -694,7 +703,7 @@ function showContract(a) {
   const now2 = Date.now() + skew, bars = new Array(12).fill(0); for (const r of rs) { const i = 11 - Math.floor((now2 - r[8]) / 10000); if (i >= 0 && i < 12) bars[i]++; }
   const bm = Math.max(...bars, 1), chart = `<div class="gx-mini">${bars.map((v) => `<i style="height:${Math.max(6, (v / bm) * 100)}%"></i>`).join("")}</div>`;
   cardShell(nameOf(a) === short(a) ? cap(t("contract")) + " " + short(a) : nameOf(a), a, chart + `<dl><dt>${esc(t("txs10"))}</dt><dd>${fmtN(c10)}</dd>${rs.length !== c10 ? `<dt>${esc(t("txsSeen"))} · ${esc(t("lastMin"))}</dt><dd>${fmtN(rs.length)}</dd>` : ""}${usd ? `<dt>USDC · ${esc(t("lastMin"))}</dt><dd>${fmtUsd(usd)}</dd>` : ""}</dl><ul>${kindsHtml(rs)}</ul>`);
-  card.insertAdjacentHTML("beforeend", `${CLAIMED.has(a) ? `<p class="gx-claimed">✓ ${esc(t("claimedBy"))}</p>` : ""}<div class="gx-cact"><button type="button" data-share="${a}">🔗 ${esc(t("shareStar"))}</button>${LABELS[a] && !CLAIMED.has(a) && LABELS[a][1] !== "other" && LABELS[a][1] !== "token" ? "" : `<button type="button" data-claim="${a}">✎ ${esc(t(CLAIMED.has(a) ? "rename" : "claim"))}</button>`}</div>`);
+  card.insertAdjacentHTML("beforeend", `${CLAIMED.has(a) ? `<p class="gx-claimed">✓ ${esc(t("claimedBy"))}</p>` : ""}<div class="gx-cact"><button type="button" data-share="${a}">🔗 ${esc(t("shareStar"))}</button>${RH || (LABELS[a] && !CLAIMED.has(a) && LABELS[a][1] !== "other" && LABELS[a][1] !== "token") ? "" : `<button type="button" data-claim="${a}">✎ ${esc(t(CLAIMED.has(a) ? "rename" : "claim"))}</button>`}</div>`);
   flyTo(n.pos, 70); paintTop();
 }
 // GX8: share a star (its own page /galaxy/c/<address>, with its own link card), and name it as its owner
@@ -741,12 +750,12 @@ function showFollow(a, quiet) {
 async function findTx(h) {
   note(t("finding"), false, 2500);
   try {
-    const r = await fetch(`/api/social?arc=galaxy-tx&h=${h}${NET === "testnet" ? "&net=testnet" : ""}`); if (!r.ok) throw new Error(r.status);
+    const r = await fetch(`/api/social?arc=galaxy-tx&h=${h}${NET !== "mainnet" ? "&net=" + NET : ""}`); if (!r.ok) throw new Error(r.status);
     const j = await r.json(); if (j.labels) { Object.assign(LABELS, j.labels); relabel(); }
     const row = j.row; seen.add(row[0]); played(row); launch(row, 0.45);
     const to = row[3], usd = row[5];
     cardOf = row[0];
-    cardShell(`${t(KINDS[row[4]])}${row[6] === 0 ? " · " + t("failed") : ""}`, row[0], `<dl><dt>${esc(t("block"))}</dt><dd>#${row[1].toLocaleString("en-US")}</dd><dt>${esc(t("from"))}</dt><dd>${esc(short(row[2]))}</dd><dt>${esc(t("to"))}</dt><dd>${esc(to ? nameOf(to) : (j.contract ? short(j.contract) : t("deploy")))}</dd>${usd ? `<dt>USDC</dt><dd>${fmtUsd(usd)}</dd>` : ""}<dt>${esc(t("when"))}</dt><dd>${new Date(row[8]).toLocaleString()}</dd></dl>`, `${EXPLORER}/tx/${row[0]}`);
+    cardShell(`${t(KINDS[row[4]])}${row[6] === 0 ? " · " + t("failed") : ""}`, row[0], `<dl><dt>${esc(t("block"))}</dt><dd>#${row[1].toLocaleString("en-US")}</dd><dt>${esc(t("from"))}</dt><dd>${esc(short(row[2]))}</dd><dt>${esc(t("to"))}</dt><dd>${esc(to ? nameOf(to) : (j.contract ? short(j.contract) : t("deploy")))}</dd>${usd ? `<dt>${RH ? "USD" : "USDC"}</dt><dd>${fmtUsd(usd)}</dd>` : ""}<dt>${esc(t("when"))}</dt><dd>${new Date(row[8]).toLocaleString()}</dd></dl>`, `${EXPLORER}/tx/${row[0]}`);
     flyTo(to && nodes.has(to) ? nodes.get(to).pos : walletPos(row[2]).multiplyScalar(0.6), 160);
   } catch { note(t("noTx"), false, 3500); }
 }
@@ -768,16 +777,23 @@ $("gx-home").addEventListener("click", () => { closeCard(); follow = null; goHom
 $("gx-full").addEventListener("click", () => { const d = document; if (d.fullscreenElement) d.exitFullscreen(); else d.documentElement.requestFullscreen && d.documentElement.requestFullscreen().catch(() => {}); });
 $("gx-share").addEventListener("click", () => {
   const s = lastStats || {};
-  const txt = `Arc right now: ${s.tps1m != null ? s.tps1m.toFixed(1) : "–"} tx/s, ${fmtUsd(s.usd10m || 0)} USDC moved in 10 minutes.\n\nEvery transaction on @Arc, live in 3D 🌌`;
+  const txt = `${CHAIN_NAME} right now: ${s.tps1m != null ? s.tps1m.toFixed(1) : "–"} tx/s, ${fmtUsd(s.usd10m || 0)} ${RH ? "moved" : "USDC moved"} in 10 minutes.\n\nEvery transaction on ${RH ? "Robinhood Chain" : "@Arc"}, live in 3D 🌌`;
   open(`https://x.com/intent/post?text=${encodeURIComponent(txt)}&url=${encodeURIComponent("https://www.arcircle.app/galaxy")}`, "_blank", "noopener");
 });
+if (RH) { // GXR: the page dressed for Robinhood Chain
+  document.body.classList.add("gx-rh");
+  const au = document.getElementById("s-auth"); if (au && au.parentElement) au.parentElement.hidden = true; // EIP-3009 is Arc USDC's
+  const b1 = document.querySelector(".gx-b1"); if (b1) b1.textContent = "ROBINHOOD";
+  document.title = "ROBINHOOD GALAXY — every Robinhood Chain transaction, live in 3D";
+  const ex = document.querySelector('.gx-src a[href*="etherscan"]'); if (ex) { ex.href = EXPLORER; ex.textContent = "Robinhood Chain explorer"; }
+}
 $("gx-lang").addEventListener("change", (e) => { LANG = e.target.value; try { localStorage.setItem("arc.galaxy.lang", LANG); } catch {} paintWords(); });
 { // snapshot + Play ARCIRCLE + mainnet / testnet
   const sb = document.createElement("button"); sb.type = "button"; sb.id = "gx-shot"; sb.textContent = "📸"; sb.title = "Snapshot"; sb.setAttribute("aria-label", "Snapshot");
   $("gx-share").before(sb); sb.addEventListener("click", () => shareShot());
   const pl = document.createElement("a"); pl.id = "gx-play"; pl.className = "gx-play"; pl.href = "/game"; pl.target = "_blank"; pl.rel = "noopener"; pl.innerHTML = "🎮 <span>" + esc(t("play")) + "</span>";
   $("gx-tools").prepend(pl);
-  const nt = document.createElement("div"); nt.className = "gx-net"; nt.innerHTML = `<a href="?net=mainnet" class="${NET === "mainnet" ? "on" : ""}">Mainnet</a><a href="?net=testnet" class="${NET === "testnet" ? "on" : ""}">Testnet</a>`;
+  const nt = document.createElement("div"); nt.className = "gx-net"; nt.innerHTML = `<a href="?net=mainnet" class="${NET === "mainnet" ? "on" : ""}">Arc</a><a href="?net=testnet" class="${NET === "testnet" ? "on" : ""}">Testnet</a><a href="?net=robinhood" class="rh ${RH ? "on" : ""}">Robinhood</a>`;
   $("gx-live").after(nt);
 }
 if (EMBED) { document.body.classList.add("gx-embed"); const o = document.createElement("a"); o.className = "gx-open"; o.href = "/galaxy" + (NET === "testnet" ? "?net=testnet" : ""); o.target = "_blank"; o.rel = "noopener"; o.textContent = t("openFull") + " ↗"; document.body.appendChild(o); }
@@ -838,7 +854,7 @@ if (OBS) { document.body.classList.add("gx-obs"); orbit.idle = 20; }
 // GX5: the last 24 hours, half an hour a bar (only the minutes the feed read)
 async function paintDay() {
   try {
-    const r = await fetch("/api/social?arc=galaxy-day" + (NET === "testnet" ? "&net=testnet" : "")); if (!r.ok) return;
+    const r = await fetch("/api/social?arc=galaxy-day" + (NET !== "mainnet" ? "&net=" + NET : "")); if (!r.ok) return;
     const j = await r.json(), m = j.minutes || []; if (m.length < 5) return;
     const now = Date.now(), bars = new Array(48).fill(null);
     for (const [ts, tx] of m) { const i = 47 - Math.floor((now - ts) / 1800000); if (i >= 0 && i < 48) bars[i] = (bars[i] || 0) + tx; }
@@ -875,14 +891,14 @@ async function shareShot() {
   const s = lastStats || {};
   x.fillStyle = "#fff"; x.font = "900 76px 'Exo 2', sans-serif"; x.fillText("ARC", 60, 140);
   const gg = x.createLinearGradient(60, 0, 520, 0); gg.addColorStop(0, "#3ce6ff"); gg.addColorStop(1, "#4dffb0"); x.fillStyle = gg; x.fillText("GALAXY", 60, 220);
-  x.fillStyle = "#cfe3ff"; x.font = "600 26px Sora, sans-serif"; x.fillText(NET === "testnet" ? "Arc testnet right now" : "Arc right now", 62, 280);
+  x.fillStyle = "#cfe3ff"; x.font = "600 26px Sora, sans-serif"; x.fillText(CHAIN_NAME + " right now", 62, 280);
   const lines = [[s.tps1m != null ? s.tps1m.toFixed(1) : "–", t("tps")], [fmtUsd(s.usd10m || 0), t("usd10")], [fmtN(s.txs), t("txs10")]];
   lines.forEach(([v, l], i) => { x.fillStyle = i === 1 ? "#ffd166" : "#fff"; x.font = "800 46px 'Exo 2', sans-serif"; x.fillText(v, 62, 350 + i * 74); x.fillStyle = "#8fa6c8"; x.font = "500 20px Sora, sans-serif"; x.fillText(l, 64, 376 + i * 74); });
   x.fillStyle = "#8fa6c8"; x.font = "500 18px Sora, sans-serif"; x.fillText(new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC · #" + head.toLocaleString("en-US"), 62, H - 70);
   x.fillStyle = "#3ce6ff"; x.font = "800 24px Sora, sans-serif"; x.fillText("arcircle.app/galaxy", 62, H - 36);
   const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9)); if (!blob) return;
   const file = new File([blob], "arc-galaxy.jpg", { type: "image/jpeg" });
-  const text = `Arc right now: ${s.tps1m != null ? s.tps1m.toFixed(1) : "–"} tx/s, ${fmtUsd(s.usd10m || 0)} USDC in 10 minutes. Watch every transaction live in 3D 🌌`;
+  const text = `${CHAIN_NAME} right now: ${s.tps1m != null ? s.tps1m.toFixed(1) : "–"} tx/s, ${fmtUsd(s.usd10m || 0)} ${RH ? "moved" : "USDC"} in 10 minutes. Watch every transaction live in 3D 🌌`;
   try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text, url: "https://www.arcircle.app/galaxy" }); return; } } catch { /* fall through */ }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "arc-galaxy.jpg"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   note(t("saved"), false, 3500);
