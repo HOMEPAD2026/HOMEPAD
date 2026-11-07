@@ -165,6 +165,27 @@ export function tokenLabel(sym, name) {
   if (sym && name && name.toLowerCase() !== sym.toLowerCase() && (sym + " · " + name).length <= 30) return `${sym} · ${name}`;
   return (sym || name).slice(0, 30);
 }
+// GX6: what kind of contract it is, from its code alone (when it has no token name): an EIP-1167 clone (the
+// implementation's address is in the code), an EIP-1967 proxy (the implementation in its storage slot), a Safe wallet
+// (the proxy's masterCopy() selector). Only what the bytes prove — the label names the pattern, never a guess at the app.
+export const SLOT_1967 = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const shortA = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+export function codeKind(code, slot) {
+  const c = String(code || "").toLowerCase();
+  if (!c || c === "0x") return null;
+  const m = /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3/.exec(c);
+  if (m) return { kind: "clone", impl: "0x" + m[1] };
+  const sl = String(slot || "").toLowerCase().replace(/^0x/, "");
+  if (/^[0-9a-f]{64}$/.test(sl) && !/^0+$/.test(sl)) return { kind: "proxy", impl: "0x" + sl.slice(24) };
+  if (c.length < 2400 && c.includes("a619486e")) return { kind: "safe" };
+  return null;
+}
+export function kindLabel(k, implName) {
+  if (!k) return null;
+  if (k.kind === "safe") return { n: "Safe wallet", g: "infra" };
+  const who = implName ? implName[0] : shortA(k.impl);
+  return { n: (k.kind === "clone" ? "Clone · " : "Proxy · ") + who, g: implName ? implName[1] : "other" };
+}
 async function fetchJson(url, ms = 3500) {
   const ctl = typeof AbortController !== "undefined" ? new AbortController() : null; const t = ctl ? setTimeout(() => ctl.abort(), ms) : null;
   try { const r = await fetch(url, { signal: ctl ? ctl.signal : undefined, headers: { accept: "application/json" } }); return r.ok ? await r.json() : null; }
@@ -243,6 +264,15 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
           if (j.token && (j.token.symbol || j.token.name)) { lab = tokenLabel(j.token.symbol, j.token.name); g = "token"; }
           else if (j.name) lab = String(j.name).slice(0, 30);
         }
+      }
+      if (!lab) { // GX6: the code says what it is
+        try {
+          const out = await rpc([{ jsonrpc: "2.0", id: 1, method: "eth_getCode", params: [a, "latest"] }, { jsonrpc: "2.0", id: 2, method: "eth_getStorageAt", params: [a, SLOT_1967, "latest"] }]);
+          const byId = new Map((Array.isArray(out) ? out : []).filter(Boolean).map((r) => [r.id, r])), c = byId.get(1), sl = byId.get(2);
+          const k = codeKind(c && c.result, sl && sl.result);
+          const kl = kindLabel(k, k && k.impl ? nameOf(k.impl) : null);
+          if (kl) { lab = kl.n; g = kl.g; }
+        } catch { /* stays unnamed */ }
       }
       const rec = { n: lab || "", g, at: t };
       st.names.set(a, rec);

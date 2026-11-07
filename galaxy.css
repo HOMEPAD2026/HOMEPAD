@@ -163,9 +163,12 @@ body.gx-focus .gx-stats, body.gx-focus .gx-side, body.gx-focus .gx-search, body.
   :root { --pad: 10px; }
   .gx-brand h1 { font-size: 24px; } .gx-brand p { font-size: 11.5px; margin-top: 4px; } .gx-brand .gx-by { display: none; }
   .gx-live { padding: 6px 10px; font-size: 11px; } .gx-live b { font-size: 11px; } .gx-live span { display: none; }
-  .gx-whale { top: calc(188px + var(--sa-t)); padding: 9px 16px; } .gx-whale b { font-size: 20px; }
-  .gx-note { top: calc(188px + var(--sa-t)); font-size: 11.5px; padding: 6px 12px; }
-  .gx-stats { top: calc(70px + var(--sa-t)); width: auto; right: var(--pad); display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .gx-whale { top: calc(132px + var(--sa-t)); padding: 8px 14px; } .gx-whale b { font-size: 18px; }
+  .gx-whale.mini { padding: 5px 12px; } .gx-whale.mini b { font-size: 14px; } .gx-whale.mini span { display: none; }
+  .gx-note { top: calc(132px + var(--sa-t)); font-size: 11.5px; padding: 6px 12px; }
+  /* GX6: one swipeable row — three cards at a time, the galaxy gets the rest of the screen */
+  .gx-stats { top: calc(70px + var(--sa-t)); width: auto; right: var(--pad); display: flex; gap: 5px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; mask-image: linear-gradient(90deg, #000 92%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent); }
+  .gx-stats > .gx-st { flex: 0 0 calc((100vw - 2 * var(--pad) - 10px) / 3.15); scroll-snap-align: start; }
   .gx-stats::-webkit-scrollbar { display: none; }
   .gx-st { padding: 6px 8px; border-radius: 10px; } .gx-st.sp { padding-bottom: 14px; } .gx-st svg.sp { height: 11px; } .gx-st b { font-size: 15px; } .gx-st span { font-size: 9.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gx-legend { top: auto; bottom: calc(176px + var(--sa-b)); left: var(--pad); right: var(--pad); width: auto; padding: 6px 8px; background: transparent; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
