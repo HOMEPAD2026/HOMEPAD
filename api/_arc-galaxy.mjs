@@ -31,6 +31,15 @@ const T = {
   batch: "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb",
 };
 const SWAP_TOPICS = new Set([T.v4swap, T.v3swap, T.v2swap]);
+// CCTP V2 on Arc (GX2): MessageReceived on the Message Transmitter carries the source domain (data word 0);
+// DepositForBurn on the Token Messenger carries the destination domain (data word 2)
+export const CCTP = {
+  received: "0xff48c13eda96b1cceacc6b9edeedc9e9db9d6226afbc30146b720c19d3addb1c",
+  deposit: "0x0c8c1cbdc5190613ebd485511d4e2812cfa45eecb79d845893331fedad5130a5",
+  mint: "0x50c55e915134d457debfa58eb6f4342956f8b0616d51a89a3659360178e1ab63", // MintAndWithdraw: word 0 = the amount minted (6 decimals)
+  transmitter: "0x81d40f21f12a8f0e3252bccb954d722d4c464b64", messenger: "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d",
+};
+const word = (data, i) => { const h = String(data || "").replace(/^0x/, "").slice(64 * i, 64 * i + 64); return h.length === 64 ? parseInt(h.slice(-8), 16) : null; };
 
 /// The contracts we can name for sure (from this repo's own config: config-arc.js, api/_scan-core.mjs ADDR, Circle's
 /// CCTP V2 addresses). Group = the star system it orbits in the galaxy; everything else is "other" and shows its address.
@@ -83,10 +92,13 @@ const big = (h) => { try { return BigInt(h || "0x0"); } catch { return 0n; } };
 export function classify(tx, rc) {
   const to = lc(tx.to), input = String(tx.input || tx.data || "0x"), sel = input.length >= 10 ? input.slice(0, 10).toLowerCase() : "";
   const logs = (rc && rc.logs) || [];
-  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false;
+  let usd = 0n, swap = false, bridge = BRIDGE.has(to), nft = false, token = false, br = 0, mint = 0n;
   for (const l of logs) {
     const a = lc(l.address), t0 = lc(l.topics && l.topics[0]);
     if (BRIDGE.has(a)) bridge = true;
+    if (a === CCTP.transmitter && t0 === CCTP.received) { const d = word(l.data, 0); if (d != null && d < 1000) br = "i" + d; }
+    if (a === CCTP.messenger && t0 === CCTP.deposit) { const d = word(l.data, 2); if (d != null && d < 1000) br = "o" + d; }
+    if (a === CCTP.messenger && t0 === CCTP.mint) { const m = big("0x" + String(l.data || "").replace(/^0x/, "").slice(0, 64)) / 10000n; if (m > mint) mint = m; }
     if (SWAP_TOPICS.has(t0)) swap = true;
     if (t0 === T.single || t0 === T.batch) nft = true;
     if (t0 === T.transfer) {
@@ -95,6 +107,7 @@ export function classify(tx, rc) {
       else token = true;
     }
   }
+  if (mint > usd) usd = mint;
   // the native coin is USDC (18 decimals); count it when no USDC Transfer log says the same thing already
   const native = big(tx.value) / 10n ** 16n;
   if (native > usd) usd = native;
@@ -114,7 +127,7 @@ export function classify(tx, rc) {
   else k = K.call;
   const ok = rc ? (lc(rc.status) === "0x1" ? 1 : 0) : -1;
   const cents = usd > 9007199254740991n ? 9007199254740991 : Number(usd);
-  return { k, usd: cents, ok, sel };
+  return { k, usd: cents, ok, sel, br };
 }
 
 const hx = (n) => "0x" + Number(n).toString(16);
@@ -156,7 +169,10 @@ export const defaultStore = {
   async set(path, data) { if (!storeOn()) return; try { await fstore.setDoc(path, data); } catch { /* best effort */ } },
 };
 /// makeGalaxy({ rpc, now }) — rpc(body) is api/_arc.mjs's raw JSON-RPC (single or batch, with failover)
-export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = (a) => fetchJson(`${EXPLORER_API}/api/v2/addresses/${a}`), snapEvery = 45e3 } = {}) {
+// explorer: off on mainnet — explorer.arc.io's API sits behind a Cloudflare bot check (the worker's check, 2026-11-07); the
+// testnet's Blockscout answers (explorerFor). Names come from eth_call + LABELS.
+export const explorerFor = (base) => (base ? (a) => fetchJson(`${base}/api/v2/addresses/${a}`) : async () => null);
+export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defaultStore, explorer = explorerFor(null), snapEvery = 45e3, key = "arcGalaxy" } = {}) {
   const st = { head: 0, rows: [], blocks: [], receipts: true, readAt: 0, out: null, busy: null, err: null, names: new Map(), loaded: false, snapAt: 0, day: [] };
   const call = async (method, params) => { const r = await rpc({ jsonrpc: "2.0", id: 1, method, params }); if (r.error) throw new Error(r.error.message || "rpc error"); return r.result; };
 
@@ -186,7 +202,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
       const c = classify(tx, byHash.get(lc(tx.hash)) || null);
       if (c.ok === 0) fails++;
       usd += c.usd;
-      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts]);
+      st.rows.push([lc(tx.hash), n, lc(tx.from), lc(tx.to || ""), c.k, c.usd, c.ok, c.sel, ts, c.br || 0]);
     }
     st.blocks.push([n, ts, (b.transactions || []).length, fails, usd, Number(big(b.gasUsed))]);
   }
@@ -203,8 +219,8 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
   async function resolveNames(addrs, t) {
     const want = addrs.filter((a) => a && !LABELS[a] && !(st.names.get(a) && t - st.names.get(a).at < (st.names.get(a).n ? NAME_TTL : MISS_TTL)));
     if (!want.length) return;
-    const fromStore = await store.get(want.slice(0, 40).map((a) => "arcGalaxyName/" + a)).catch(() => ({}));
-    for (const a of want) { const d = fromStore["arcGalaxyName/" + a]; if (d && t - (d.at || 0) < (d.n ? NAME_TTL : MISS_TTL)) st.names.set(a, { n: d.n || "", g: d.g || "other", at: d.at }); }
+    const fromStore = await store.get(want.slice(0, 40).map((a) => key + "Name/" + a)).catch(() => ({}));
+    for (const a of want) { const d = fromStore[key + "Name/" + a]; if (d && t - (d.at || 0) < (d.n ? NAME_TTL : MISS_TTL)) st.names.set(a, { n: d.n || "", g: d.g || "other", at: d.at }); }
     const left = want.filter((a) => !st.names.has(a) || t - st.names.get(a).at >= (st.names.get(a).n ? NAME_TTL : MISS_TTL)).slice(0, NAME_PER_READ);
     if (!left.length) return;
     const body = [];
@@ -223,14 +239,14 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
       }
       const rec = { n: lab || "", g, at: t };
       st.names.set(a, rec);
-      store.set("arcGalaxyName/" + a, rec);
+      store.set(key + "Name/" + a, rec);
     }));
     if (st.names.size > 3000) st.names.delete(st.names.keys().next().value);
   }
   // the snapshot: the last rows + ten minutes of blocks + the day's minutes, so a cold start opens with a full replay
   async function loadSnap(t) {
     st.loaded = true;
-    const d = (await store.get(["arcGalaxy/snap"]).catch(() => ({})))["arcGalaxy/snap"];
+    const d = (await store.get([key + "/snap"]).catch(() => ({})))[key + "/snap"];
     if (!d || !d.j) return;
     try {
       const j = JSON.parse(d.j);
@@ -251,7 +267,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     st.snapAt = t;
     const names = [...st.names.entries()].filter(([, v]) => v.n).slice(-300).map(([a, v]) => [a, v.n, v.g]);
     const rows = st.rows.slice(-900), j = JSON.stringify({ at: t, head: st.head, rows, blocks: st.blocks, day: dayOut(), names });
-    store.set("arcGalaxy/snap", { j, at: t });
+    store.set(key + "/snap", { j, at: t });
   }
 
   function shape(t) {
@@ -280,7 +296,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
         failRate: known.length ? failed / known.length : null, kinds, wallets: new Set(st.rows.map((r) => r[2])).size,
       },
       top: topList, blocks: b.map((x) => x.slice(0, 5)),
-      rows: rows.map((r) => r.slice(0, 8).concat([r[8]])), labels, groups: GROUPS, kindNames: KINDS,
+      rows: rows.map((r) => r.slice(0, 10)), labels, groups: GROUPS, kindNames: KINDS,
       err: st.err,
     };
   }
@@ -324,7 +340,7 @@ export function makeGalaxy({ rpc = arcRpc, now = () => Date.now(), store = defau
     const to = lc(t.to || "");
     await resolveNames([to].filter(Boolean), now()).catch(() => {});
     const labels = {}; const nm = to && nameOf(to); if (nm) labels[to] = nm;
-    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
+    return { row: [lc(t.hash), n, lc(t.from), to, c.k, c.usd, c.ok, c.sel, ts, c.br || 0], labels, contract: rc && rc.contractAddress ? lc(rc.contractAddress) : null };
   }
   /// the last 24 hours, a minute at a time: [minute, txs, usd cents, failed] (only minutes the feed read)
   async function day() { if (!st.loaded) await loadSnap(now()).catch(() => {}); return { at: now(), minutes: dayOut() }; }

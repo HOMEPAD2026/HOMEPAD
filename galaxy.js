@@ -154,6 +154,36 @@ for (const [g, v] of Object.entries(HUBS)) {
   tryTex(`/images/galaxy/glow-${GROUPS[g].glow}.webp`, (tx) => { sp.material.map = tx; sp.material.needsUpdate = true; sp.scale.setScalar(34); });
 }
 
+// ---------------------------------------------------------------- CCTP gates (GX2): the chains USDC comes from / goes to
+// CCTP domains (config-arc.js BRIDGE + Solana); a gate sits on a far ring, lights up when USDC crosses it
+const DOMAINS = { 0: ["Ethereum", 0x8a92b2], 1: ["Avalanche", 0xe84142], 2: ["OP Mainnet", 0xff0420], 3: ["Arbitrum", 0x28a0f0], 5: ["Solana", 0x9945ff], 6: ["Base", 0x3b82f6], 7: ["Polygon", 0x8247e5], 10: ["Unichain", 0xf50db4], 11: ["Linea", 0x61dfff], 13: ["Sonic", 0xfe9a4c], 14: ["World Chain", 0xc9ccd6], 15: ["Monad", 0x836ef9], 16: ["Sei", 0xc1272d], 19: ["HyperEVM", 0x50d2c1], 21: ["Ink", 0x7132f5] };
+const gates = new Map();
+function gateOf(d) {
+  let g = gates.get(d); if (g) return g;
+  const keys = Object.keys(DOMAINS).map(Number), i = Math.max(0, keys.indexOf(d)), th = (i / keys.length) * Math.PI * 2 + 0.3, r = 330;
+  const info = DOMAINS[d] || ["Domain " + d, 0x9fb4d8], col = new THREE.Color(info[1]);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex([[0, "rgba(255,255,255,0.95)"], [0.18, `rgba(${col.r * 255 | 0},${col.g * 255 | 0},${col.b * 255 | 0},0.6)`], [1, "rgba(0,0,0,0)"]]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.35 }));
+  const pos = new THREE.Vector3(Math.cos(th) * r, 26 + Math.sin(th * 3) * 18, Math.sin(th) * r);
+  sp.position.copy(pos); sp.scale.setScalar(30); world.add(sp);
+  g = { d, name: info[0], col, pos, sp, heat: 0, el: label("⇄ " + info[0], "gate") };
+  gates.set(d, g); return g;
+}
+// "+$1.2K" over a star when a transfer lands, and the whale banner
+const pops = [];
+function pop(text, pos, col) {
+  if (pops.length > (PHONE ? 4 : 8)) { const o = pops.shift(); o.el.remove(); }
+  const el = label(text, "pop"); el.style.color = "#" + col.getHexString(); pops.push({ el, pos: pos.clone(), t: 0 });
+}
+let shake = 0;
+function whale(row, gate) {
+  const el = $("gx-whale") || (() => { const d = document.createElement("div"); d.id = "gx-whale"; d.className = "gx-whale"; document.body.appendChild(d); return d; })();
+  const k = row[4], where = gate ? (row[9][0] === "i" ? ` · ${t("from")} ${gate.name}` : ` · ${t("to")} ${gate.name}`) : "";
+  el.innerHTML = `<b>🐋 ${fmtUsd(row[5])} USDC</b><span>${esc(t(KINDS[k]))}${esc(where)}</span>`;
+  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("on"), 5200);
+  shake = Math.max(shake, 0.9);
+}
+
 // ---------------------------------------------------------------- flying transactions
 const TRAIL = LOW ? 5 : PHONE ? 8 : 12, CAP = LOW ? 500 : PHONE ? 900 : 2200;
 const flyCloud = cloud(CAP * TRAIL, (i, p, c, s, a) => { s[i] = 0; a[i] = 0; }, 1);
@@ -179,9 +209,16 @@ const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3();
 function launch(row, speed = 1) {
   const [hash_, , from, to, k, usd, ok] = row;
   if (hidden.has(k) || !freeSlots.length) return false;
-  const p0 = walletPos(from); walletSeen(from, from === follow);
-  let p2, node = null;
-  if (!to) p2 = new THREE.Vector3(0, 0, 0);                              // a deployment flies into the core and a new star is born
+  let p0 = walletPos(from); walletSeen(from, from === follow);
+  let p2, node = null, gate = null;
+  const br = row[9];
+  if (k === 2 && br) {                                                    // CCTP: from / to another chain's gate
+    gate = gateOf(Number(br.slice(1)));
+    gate.heat = 1;
+    if (br[0] === "i") { p0 = gate.pos; node = nodeOf(to || "0x81d40f21f12a8f0e3252bccb954d722d4c464b64"); p2 = node.pos; }
+    else p2 = gate.pos;
+  }
+  else if (!to) p2 = new THREE.Vector3(0, 0, 0);                         // a deployment flies into the core and a new star is born
   else if (k === 0 && !LABELS[to]) p2 = walletPos(to);                    // USDC between wallets: halo to halo, past the core
   else { node = nodeOf(to); p2 = node.pos; }
   const mid = tmpV.copy(p0).add(p2).multiplyScalar(0.5);
@@ -190,8 +227,10 @@ function launch(row, speed = 1) {
   const big = usd >= 1e6; // ≥ $10,000
   const col = new THREE.Color(ok === 0 ? RED : KCOL[k]);
   const f = { slot: freeSlots.pop(), p0, p1, p2, t: 0, dur: (1.7 + hash(hash_, 6) * 1.1) / speed, col, size: (2.6 + Math.min(4.5, Math.log10(1 + usd / 100) * 1.1)) * (big ? 1.6 : 1) * (follow && (row[2] === follow || row[3] === follow) ? 1.8 : 1), node, row, big, me: follow && (row[2] === follow || row[3] === follow) };
+  if (gate) { f.dur *= 1.6; f.size *= 1.3; f.gate = gate; }
   flies.push(f);
-  spark(p0, col, f.size * 1.4, 1.2);
+  spark(p0, col, f.size * (gate ? 3 : 1.4), gate ? 1.6 : 1.2);
+  if (usd >= 1e7 && speed >= 1) whale(row, gate);                      // ≥ $100,000
   if (f.me || (big && flies.filter((x) => x.lb).length < (PHONE ? 2 : 5))) bigLabel(f);
   return true;
 }
@@ -204,6 +243,9 @@ function stepFlies(dt) {
       for (let q = 0; q < TRAIL; q++) fA.alpha.array[base + q] = 0;
       if (f.node) { f.node.heat = Math.min(6, f.node.heat + 1.2); } else if (!f.row[3]) pulseCore(0.6);
       spark(f.p2, f.col, f.size * (f.big ? 3 : 1.8), f.big ? 1.6 : 0.8);
+      if (f.row[5] >= 1e5) pop("+" + fmtUsd(f.row[5]), f.p2, f.col);           // ≥ $1,000 lands with its amount
+      if (f.row[5] >= 1e7) { spark(f.p2, new THREE.Color(0xffe08a), 60, 2.2); pulse(true); }
+      if (f.gate) f.gate.heat = 1;
       freeSlots.push(f.slot); flies.splice(j, 1); if (f.lb) f.lb.remove(); continue;
     }
     const e = f.t < 0.5 ? 2 * f.t * f.t : 1 - Math.pow(-2 * f.t + 2, 2) / 2;
@@ -273,6 +315,8 @@ function paintLabels() {
   taken = [];
   for (const h of hubLabels) placeLabel(h.el, h.pos, 1);
   for (const f of flies) if (f.lb && f.lbPos) placeLabel(f.lb, f.lbPos, f.me ? 1 : 0);
+  for (const g of gates.values()) { if (g.heat > 0.05) placeLabel(g.el, g.pos, 1); else g.el.style.display = "none"; }
+  for (const p of pops) { tmpV2.copy(p.pos); tmpV2.y += p.t * 14; placeLabel(p.el, tmpV2, 1); p.el.style.opacity = String(Math.max(0, 1 - p.t / 1.6)); }
   const far = orbit.d > 300; topLabels.forEach((l, i) => { if (far && i >= (PHONE ? 2 : 4)) { l.el.style.display = "none"; return; } placeLabel(l.el, l.n.pos, 0); });
 }
 
@@ -399,7 +443,10 @@ function tapeShow(r) {
   const a = document.createElement("a");
   a.className = "gx-tx" + (ok === 0 ? " fail" : "") + (follow && (from === follow || to === follow) ? " me" : "");
   a.href = `${EXPLORER}/tx/${h}`; a.target = "_blank"; a.rel = "noopener";
-  a.innerHTML = `<span class="k" style="color:${kcss(k)}"><i></i>${esc(t(KINDS[k]))}${ok === 0 ? " · " + esc(t("failed")) : ""}${usd ? `<em>${fmtUsd(usd)}</em>` : ""}</span><span class="p">${esc(short(from))} → ${esc(to ? nameOf(to) : t("deploy"))}</span>`;
+  const br = r[9], gname = br && DOMAINS[Number(br.slice(1))] ? DOMAINS[Number(br.slice(1))][0] : null;
+  const path = gname ? (br[0] === "i" ? `${gname} → Arc · ${short(to || from)}` : `${short(from)} → ${gname}`) : `${short(from)} → ${to ? nameOf(to) : t("deploy")}`;
+  a.innerHTML = `<span class="k" style="color:${kcss(k)}"><i></i>${esc(t(KINDS[k]))}${ok === 0 ? " · " + esc(t("failed")) : ""}${usd ? `<em>${fmtUsd(usd)}</em>` : ""}</span><span class="p">${esc(path)}</span>`;
+  if (usd >= 1e7) a.classList.add("whale");
   tape.prepend(a);
   while (tape.children.length > 28) tape.lastChild.remove();
 }
@@ -489,7 +536,8 @@ function demoFeed() {
       let x = Math.random() * tot, c = demoC[0]; for (const y of demoC) { x -= y[2]; if (x <= 0) { c = y; break; } }
       const from = demoW[Math.floor(Math.random() * demoW.length)], k = Math.random() < 0.02 ? 5 : c[1];
       const usd = k === 0 || k === 1 || k === 2 ? Math.floor(Math.pow(10, 1 + Math.random() * 4.4)) * 100 : 0;
-      demoRows.push(["0x" + (demoN * 100 + i).toString(16).padStart(64, "0"), demoN, from, k === 5 ? "" : k === 0 && Math.random() < 0.5 ? demoW[(Math.random() * demoW.length) | 0] : c[0], k, usd, Math.random() < 0.04 ? 0 : 1, "0x", Math.floor(demoT / 1000) * 1000]);
+      const dd = [0, 6, 3, 5, 2, 7, 1, 10][Math.floor(Math.random() * 8)], dbr = k === 2 ? (Math.random() < 0.6 ? "i" : "o") + dd : 0;
+      demoRows.push(["0x" + (demoN * 100 + i).toString(16).padStart(64, "0"), demoN, from, k === 5 ? "" : k === 0 && Math.random() < 0.5 ? demoW[(Math.random() * demoW.length) | 0] : c[0], k, usd, Math.random() < 0.04 ? 0 : 1, "0x", Math.floor(demoT / 1000) * 1000, dbr]);
     }
   }
   demoRows = demoRows.filter((r) => r[8] > now - 120e3);
@@ -512,6 +560,9 @@ function frame(now) {
   placeCam();
   coreKick = Math.max(0, coreKick - dt * 1.4); core.scale.setScalar(70 + Math.sin(now / 900) * 3 + coreKick * 22);
   for (const m of rings) { if (!m.visible) continue; m.userData.t += dt; const u = m.userData.t / 2.4; if (u >= 1) { m.visible = false; continue; } const s = 8 + u * (m.userData.big ? 260 : 200); m.scale.set(s, s, s); m.material.opacity = (1 - u) * (1 - u) * (m.userData.big ? 0.55 : 0.32); }
+  for (const g of gates.values()) { g.heat = Math.max(0, g.heat - dt / 20); g.sp.material.opacity = 0.25 + g.heat * 0.75; g.sp.scale.setScalar(26 + g.heat * 22); }
+  for (let i = pops.length - 1; i >= 0; i--) { pops[i].t += dt; if (pops[i].t > 1.6) { pops[i].el.remove(); pops.splice(i, 1); } }
+  if (shake > 0) { shake = Math.max(0, shake - dt * 1.6); const a = shake * shake * 2.2; cam.position.x += (Math.random() - 0.5) * a; cam.position.y += (Math.random() - 0.5) * a; }
   feedTick(now); stepFlies(dt);
   world.updateMatrixWorld(); R.render(scene, cam); paintLabels();
 }

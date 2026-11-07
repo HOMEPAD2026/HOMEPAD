@@ -23,6 +23,11 @@ ok(classify({ to: "0x8366a39cc670b4001a1121b8f6a443a643e40951", input: "0x123456
 ok(classify({ to: C, input: "0x12345678" }, rc([{ address: C, topics: [T.v4] }])).k === K.swap, "a swap seen in the logs, any router");
 ok(classify({ to: "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", input: "0x8e0250ee" }, rc([usdcLog(1000)])).k === K.bridge, "a CCTP burn = bridge");
 ok(classify({ to: C, input: "0x57ecfd28" }, rc([{ address: "0x81d40f21f12a8f0e3252bccb954d722d4c464b64", topics: ["0x01"] }])).k === K.bridge, "a CCTP mint (MessageTransmitter log) = bridge");
+{ const wd = (n) => pad(n.toString(16));
+  const inb = classify({ to: C, input: "0x57ecfd28" }, rc([{ address: "0x81d40f21f12a8f0e3252bccb954d722d4c464b64", topics: ["0xff48c13eda96b1cceacc6b9edeedc9e9db9d6226afbc30146b720c19d3addb1c", "0x" + pad("1")], data: "0x" + wd(6) + wd(0) + wd(0) }, usdcLog(5200000)]));
+  ok(inb.k === K.bridge && inb.br === "i6" && inb.usd === 5200000, "CCTP in: from domain 6 (Base), $52,000");
+  const outb = classify({ to: "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", input: "0x8e0250ee" }, rc([{ address: "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d", topics: ["0x0c8c1cbdc5190613ebd485511d4e2812cfa45eecb79d845893331fedad5130a5"], data: "0x" + wd(1000000) + wd(0) + wd(0) + wd(0) }, usdcLog(100)]));
+  ok(outb.k === K.bridge && outb.br === "o0", "CCTP out: to domain 0 (Ethereum)"); }
 ok(classify({ to: C, input: "0x23b872dd" + pad(A) + pad(B) + pad("1") }, rc([{ address: C, topics: [T.transfer, "0x" + pad(A), "0x" + pad(B), "0x" + pad("1")] }])).k === K.nft, "an ERC-721 transfer");
 ok(classify({ to: C, input: "0xa9059cbb" + pad(B) + pad("ff") }, rc([{ address: C, topics: [T.transfer, "0x" + pad(A), "0x" + pad(B)], data: "0xff" }])).k === K.token, "another token's transfer");
 ok(classify({ to: C, input: "0x095ea7b3" + pad(B) + pad("ff") }, rc([])).k === K.approve, "an approval");
