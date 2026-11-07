@@ -62,6 +62,7 @@
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?arc=galaxy                  ARC GALAXY: the whole chain's last two minutes of transactions, live (api/_arc-galaxy.mjs)
 //   GET  /api/social?arc=galaxy-day · ?arc=galaxy-tx&h=0x…   ARC GALAXY: the last 24 h by the minute · one transaction
+//   GET  /api/social?arc=galaxy-daily[&days=30|&d=YYYY-MM-DD] · ?arc=galaxy-collect&key=…   ARC GALAXY's daily records (GXD)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders, burned on Robinhood Chain; (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -362,6 +363,21 @@ export async function GET(req) {
   if (url.searchParams.get("arc") === "galaxy-day") {
     try { const { galaxyDay } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyDay(url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { return json(502, { error: "couldn't read the day" }, "public, max-age=10"); }
+  }
+  // GXD: the daily records — ?arc=galaxy-daily&days=30 (totals a day) · &d=YYYY-MM-DD (one day in full);
+  // ?arc=galaxy-collect&key=<CRON_SECRET> runs the keeper (also run by api/arcia-tg.mjs ?buys=1 every minute)
+  if (url.searchParams.get("arc") === "galaxy-daily") {
+    try {
+      const m = await import("./_arc-galaxy.mjs"), d = url.searchParams.get("d");
+      if (d) { const r = await m.galaxyDailyOne(d); return r ? json(200, r, "public, max-age=60, s-maxage=120, stale-while-revalidate=600") : json(404, { error: "no records for that day yet" }, "public, max-age=60"); }
+      return json(200, await m.galaxyDailyList(url.searchParams.get("days")), "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
+    } catch (err) { console.error("arc galaxy daily", err && err.message || err); return json(502, { error: "couldn't read the records" }, "public, max-age=10"); }
+  }
+  if (url.searchParams.get("arc") === "galaxy-collect") {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || (url.searchParams.get("key") !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json(401, { error: "unauthorized" }, "no-store");
+    try { const { galaxyCollect } = await import("./_arc-galaxy.mjs"); return json(200, await galaxyCollect({ budgetMs: 20000 }), "no-store"); }
+    catch (err) { return json(500, { error: String(err && err.message || err).slice(0, 160) }, "no-store"); }
   }
   if (url.searchParams.get("arc") === "galaxy-tx") {
     try { const { galaxyTx } = await import("./_arc-galaxy.mjs"); const r = await galaxyTx(url.searchParams.get("h"), url.searchParams.get("net") === "testnet" ? "testnet" : "mainnet"); return r ? json(200, r, "public, max-age=60, s-maxage=3600") : json(404, { error: "no such transaction on Arc" }, "public, max-age=10"); }

@@ -9,6 +9,7 @@
 // Nothing here writes or signs anything.
 import { rpc as arcRpc } from "./_arc.mjs";
 import * as fstore from "./_store.mjs";
+import { makeDaily } from "./_galaxy-daily.mjs";
 
 export const KINDS = ["usdc", "swap", "bridge", "token", "nft", "deploy", "approve", "call"];
 const K = Object.fromEntries(KINDS.map((k, i) => [k, i]));
@@ -482,6 +483,21 @@ export const galaxy = (net) => inst(net).live().then((o) => (net === "testnet" ?
 export const galaxyDay = (net) => inst(net).day();
 export const galaxyTx = (h, net) => inst(net).tx(h);
 export const galaxyClaim = (body, recover, net) => inst(net).claim(body, recover);
+// GXD: the daily records — every block read once by a keeper on a clock (api/_galaxy-daily.mjs), kept a UTC day a doc
+let dly = null;
+const dailyOf = () => dly || (dly = makeDaily({ rpc: arcRpc, classify, key: "arcGalaxy" }));
+export const galaxyCollect = (o) => dailyOf().collect(o);
+export const galaxyDailyList = (days) => dailyOf().list(days);
+export async function galaxyDailyOne(d) {
+  const r = await dailyOf().one(d);
+  if (!r) return null;
+  const g = inst("mainnet"); await g.ready().catch(() => {});
+  const want = r.top.map((x) => x[0]).filter((a) => !g.nameOf(a));
+  const docs = want.length ? await defaultStore.get(want.map((a) => "arcGalaxyName/" + a)).catch(() => ({})) : {};
+  const labels = {};
+  for (const [a] of r.top) { const n = g.nameOf(a) || ((docs["arcGalaxyName/" + a] || {}).n ? [docs["arcGalaxyName/" + a].n, docs["arcGalaxyName/" + a].g || "other"] : null); if (n) labels[a] = n; }
+  return { ...r, labels };
+}
 /// GX8: /galaxy/c/<address> — galaxy.html with that contract's title / description / link card and the star to open
 export async function galaxyPage(addr, origin, net, fetchTpl) {
   const g = inst(net); await g.ready();

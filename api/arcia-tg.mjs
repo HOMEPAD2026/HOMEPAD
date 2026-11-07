@@ -9,6 +9,7 @@
 //   GET  /api/arcia-tg?claim=1&key=<CRON_SECRET> one-time admin code (10 min): "/admin CODE" in a DM
 //   GET  /api/arcia-tg?status=1&key=<CRON_SECRET>
 //   GET  /api/arcia-tg?buys=1&key=<CRON_SECRET>  every minute (cron-job.org): buy alerts for our coins (api/_tg-buybot.mjs)
+//                                                 + ARC GALAXY's daily records keeper (api/_galaxy-daily.mjs)
 //   GET  /api/arcia-tg?tick=1&key=<CRON_SECRET>  every ~5 min (cron-job.org): alerts, watched wallets,
 //                                                price history, X → Telegram mirror, scheduled posts
 //
@@ -2255,7 +2256,12 @@ export async function GET(req) {
     if (q.setup) return json(200, await setup());
     // cron-job.org: short answers inside its timeout (api/_cron.mjs)
     if (q.tick) { const t0 = Date.now(); return json(200, cronOut(q, await tick(), t0)); }
-    if (q.buys) { const t0 = Date.now(); return json(200, cronOut(q, await BB.run({ budgetMs: within(cronBudget(q) - 3000, 45000) }), t0)); }
+    if (q.buys) { // + ARC GALAXY's daily records (api/_galaxy-daily.mjs): the chain read from its cursor, beside the buybot
+      const t0 = Date.now(), total = cronBudget(q) - 3000;
+      const gx = import("./_arc-galaxy.mjs").then((m) => m.galaxyCollect({ budgetMs: within(total - 4000, 18000) })).catch((e) => ({ error: String((e && e.message) || e).slice(0, 120) }));
+      const [out, galaxy] = await Promise.all([BB.run({ budgetMs: within(total, 45000) }), gx]);
+      return json(200, cronOut(q, { ...out, galaxy }, t0));
+    }
     if (q.claim) {
       const c = await loadCfg();
       const code = String(Math.floor(10000000 + Math.random() * 89999999));
